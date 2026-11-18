@@ -11,6 +11,7 @@ import { RAW_ANTIGA } from "./raw_old.js";
         try { localStorage.setItem('aba-ativa', id) } catch (e) { }
     }
     btns.forEach(b => b.onclick = () => show(b.dataset.tab));
+    window.showTab = show;
     let a = 't-flow'; try { a = localStorage.getItem('aba-ativa') || a } catch (e) { }
     show(a);
 })();
@@ -48,14 +49,56 @@ const desc = id => { const s = new Set(); const f = x => C[x].kids.forEach(p => 
 const now = new Date();
 const defaultState = () => ({
     version: 1, curriculo: KEY, passed: [], electivePlan: [], startYear: now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear(),
-    startHalf: now.getMonth() >= 6 ? 1 : 2, maxLoad: 9, failRate: 20, respectParity: true, acDone: false, expect: 70, scen: 0, hor: { cells: {} }, ac: {}, tccBase: "total", curSort: "add", current: [], tasks: [], cap: 3, weekend: true, savedAt: null
+    startHalf: now.getMonth() >= 6 ? 1 : 2, maxLoad: 9, failRate: 20, respectParity: true, acDone: false, expect: 70, scen: 0, hor: { cells: {} }, ac: {}, tccBase: "total", curSort: "add", current: [], tasks: [], cap: 3, weekend: true, trView: "list", trSort: "prio", trFilterSubj: "", trFilterType: "", trFilterStatus: "unresolved", savedAt: null
 });
 let S = defaultState();
 const LS = CUR.ls;
 const fixCur = r => {
     const prev = r.prev ?? C[r.id].aulas * 19, cum = r.cum ?? prev, nota = r.nota ?? 0;
-    return { id: r.id, nota, pts: r.pts ?? Math.max(0, 10 - nota), prev, cum, falt: r.falt ?? Math.round((1 - (r.freq ?? 100) / 100) * cum), prio: r.prio && r.prio !== "Média" ? r.prio : "Auto", fase: r.fase || "Consumindo" }
+    return {
+        id: r.id,
+        nota,
+        pts: r.pts ?? Math.max(0, 10 - nota),
+        prev,
+        cum,
+        falt: r.falt ?? Math.round((1 - (r.freq ?? 100) / 100) * cum),
+        prio: r.prio && r.prio !== "Média" ? r.prio : "Auto",
+        fase: r.fase || "Consumindo",
+        autoGrade: r.autoGrade !== undefined ? r.autoGrade : true
+    };
 };
+
+const taskStatus = t => {
+    if (t.status) return t.status;
+    if (t.got != null && t.got !== "") return "avaliada";
+    if (t.done) return "avaliando";
+    return "pendente";
+};
+
+function syncSubjectGrades() {
+    (S.current || []).forEach(r => {
+        if (r.autoGrade === false) return;
+        const ts = (S.tasks || []).filter(t => t.subj === r.id);
+        if (ts.length === 0) return;
+        
+        // Apenas atividades com status 'avaliada' (com nota lançada) entram em nota atual!
+        const graded = ts.filter(t => taskStatus(t) === "avaliada" && t.got != null && t.got !== "");
+        // Atividades 'pendente' ou 'avaliando' continuam sendo pontos a receber/disputar
+        const pendingOrEvaluating = ts.filter(t => taskStatus(t) !== "avaliada");
+        
+        const sumGot = graded.reduce((acc, t) => acc + (parseFloat(t.got) || 0), 0);
+        const sumGradedPts = graded.reduce((acc, t) => acc + (parseFloat(t.pts) || 0), 0);
+        const sumPendingPts = pendingOrEvaluating.reduce((acc, t) => acc + (parseFloat(t.pts) || 0), 0);
+        
+        r.nota = Math.round(sumGot * 100) / 100;
+        
+        if (pendingOrEvaluating.length > 0) {
+            r.pts = Math.round(Math.max(sumPendingPts, 10 - sumGradedPts) * 100) / 100;
+        } else {
+            r.pts = Math.round(Math.max(0, 10 - sumGradedPts) * 100) / 100;
+        }
+    });
+}
 try { const t = localStorage.getItem(LS); if (t) S = { ...S, ...JSON.parse(t) } } catch (e) { }
 S.current = (S.current || []).filter(r => C[r.id]).map(fixCur);
 S.tasks = (S.tasks || []).filter(t => C[t.subj]);
@@ -208,6 +251,7 @@ function togglePlan(id) {
 
 let lastPlan = null;
 function update() {
+    syncSubjectGrades();
     const P = passedSet();
     const best = simulate(0, 0), plan = +S.scen === 1 ? simulate(0, 1) : best; lastPlan = plan;
     const when = {}; plan.terms.forEach(t => t.taken.forEach(id => when[id] = t.k));
@@ -332,16 +376,71 @@ function renderCurrent() {
     sel.innerHTML = ORDER.filter(i => !used.has(i) && !P.has(i) && C[i].kind !== "tcc").map(i => `<option value="${i}">${C[i].name}</option>`).join("");
     document.getElementById("curBody").innerHTML = cur.map(r => {
         const k = risk(r), pc = Math.round(k.p * 100), st = k.p >= .7 ? "Crítico" : k.p >= .4 ? "Moderado" : k.p >= .15 ? "Recuperável" : "Bem viável", pr = !r.prio || r.prio === "Auto" ? (k.p >= .15 && k.p <= .75 ? "Alta" : "Baixa") : r.prio;
+        const ts = (S.tasks || []).filter(t => t.subj === r.id);
+        const hasTasks = ts.length > 0;
+        const isLinked = hasTasks && r.autoGrade !== false;
+        const gradedCount = ts.filter(t => taskStatus(t) === "avaliada" && t.got != null && t.got !== "").length;
+        const evaluatingCount = ts.filter(t => taskStatus(t) === "avaliando").length;
+
+        // Botão para ver ou adicionar avaliações
+        const tasksActionBtn = hasTasks
+            ? `<button type="button" class="cur-tasks-btn" data-act="view-tasks" data-subj="${r.id}" title="Ver e gerenciar as avaliações desta matéria">📝 ${ts.length} avaliação(ões)</button>`
+            : `<button type="button" class="cur-tasks-btn add" data-act="add-tasks" data-subj="${r.id}" title="Cadastrar provas e trabalhos para esta matéria">+ avaliar</button>`;
+
+        // Coluna Nota Atual
+        let notaColHtml = "";
+        if (isLinked) {
+            notaColHtml = `<div class="mini">
+                <input type="number" min="0" max="10" step="0.1" value="${r.nota}" data-k="nota" class="in-linked" readonly title="Nota vinculada às avaliações corrigidas. Clique em 🔗 para editar manualmente.">
+                <button type="button" class="btn-link-icon on" data-act="toggle-link" data-subj="${r.id}" title="Vinculado às avaliações. Clique para editar manualmente.">🔗</button>
+                <div class="pb"><div style="width:${Math.min(100, r.nota * 10)}%"></div></div>
+            </div>
+            <div class="note-sync" title="Calculada a partir das avaliações corrigidas (atividades em avaliação aguardam nota)">🔗 ${gradedCount} nota(s) lançada(s)${evaluatingCount ? ` · <span style="color:#f59e0b">${evaluatingCount} avaliando</span>` : ''}</div>`;
+        } else {
+            notaColHtml = `<div class="mini">
+                <input type="number" min="0" max="10" step="0.1" value="${r.nota}" data-k="nota">
+                ${hasTasks ? `<button type="button" class="btn-link-icon off" data-act="toggle-link" data-subj="${r.id}" title="Desvinculado. Clique para vincular às avaliações.">🔓</button>` : ''}
+                <div class="pb"><div style="width:${Math.min(100, r.nota * 10)}%"></div></div>
+            </div>
+            <div class="note">${hasTasks ? 'Manual (desvinculada)' : ''}</div>`;
+        }
+
+        // Coluna Pontos a Receber
+        let ptsColHtml = "";
+        const maxPossivel = Math.round((r.nota + r.pts) * 10) / 10;
+        const needToPass = Math.round((6 - r.nota) * 10) / 10;
+        let goalStatus = "";
+        if (r.nota >= 6.0) {
+            goalStatus = `<span style="color:var(--ok)">✓ Meta 6.0 atingida!</span>`;
+        } else if (maxPossivel >= 6.0) {
+            goalStatus = `precisa de ${fmt(needToPass)} de ${fmt(r.pts)}`;
+        } else {
+            goalStatus = `<span style="color:#f87171">máx ${fmt(maxPossivel)} (abaixo de 6)</span>`;
+        }
+
+        if (isLinked) {
+            ptsColHtml = `<div class="mini">
+                <input type="number" min="0" max="10" step="0.1" value="${r.pts}" data-k="pts" class="in-linked" readonly title="Pontos a receber das avaliações pendentes">
+            </div>
+            <div class="note">${goalStatus}</div>`;
+        } else {
+            ptsColHtml = `<div class="mini">
+                <input type="number" min="0" max="10" step="0.1" value="${r.pts}" data-k="pts">
+            </div>
+            <div class="note">máx. possível: ${fmt(maxPossivel)}</div>`;
+        }
+
         return `<tr data-id="${r.id}" class="${r.fase === "Finalizada" ? "fin" : ""}">
-<td><b>${C[r.id].name}</b><div class="note">${r.id}</div></td>
-<td><div class="mini"><input type="number" min="0" max="10" step="0.1" value="${r.nota}" data-k="nota"><div class="pb"><div style="width:${Math.min(100, r.nota * 10)}%"></div></div></div></td>
-<td><div class="mini"><input type="number" min="0" max="10" step="0.1" value="${r.pts}" data-k="pts"></div><div class="note">máximo possível: ${fmt(r.nota + r.pts)}</div></td>
+<td><b>${C[r.id].name}</b><div class="note">${r.id}</div>${tasksActionBtn}</td>
+<td>${notaColHtml}</td>
+<td>${ptsColHtml}</td>
 <td><div class="mini"><input type="number" min="0" value="${r.falt}" data-k="falt"></div><div class="note" style="color:${k.folga <= 2 ? "#f87171" : "var(--mut)"}">${k.folga < 0 ? "passou " + (-k.folga) + " do limite" : "folga: " + k.folga + " (limite " + k.limit + ")"}</div></td>
 <td><div class="mini"><input class="sm" type="number" min="0" value="${r.cum}" data-k="cum"> / <input class="sm" type="number" min="0" value="${r.prev}" data-k="prev"></div><div class="note" style="color:${k.freq < 75 ? "#f87171" : "var(--mut)"}">frequência ${fmt(k.freq)}%</div></td>
 <td>${r.fase === "Finalizada" ? `<span class="rk" style="color:var(--ok)">✓ Aprovada</span>` : `<span class="rk">${pc}%</span> <span class="tag ${TAGC[st]}" style="padding:2px 6px;border-radius:6px;font-size:12px;font-weight:600">${st}</span><div class="note">${k.pF > k.pN ? "pesa mais: faltas" : "pesa mais: nota"}</div>`}</td>
 <td><select class="tag ${TAGC[r.prio || "Auto"]}" data-k="prio">${optList(PRIO, r.prio || "Auto")}</select><div class="note">${!r.prio || r.prio === "Auto" ? "sugerida: " + pr : ""}</div></td>
 <td><select class="tag ${TAGC[r.fase]}" data-k="fase">${optList(FASE, r.fase)}</select></td>
-<td><button class="x" data-rm title="Remover">✕</button></td></tr>`}).join("");
+<td><button class="x" data-rm title="Remover">✕</button></td></tr>`;
+    }).join("");
     document.getElementById("curEmpty").style.display = cur.length ? "none" : "";
     const n = cur.length;
     document.getElementById("curAvg").textContent = n ? `Média das notas: ${fmt(cur.reduce((s, r) => s + r.nota, 0) / n)} · Frequência média: ${fmt(cur.reduce((s, r) => s + risk(r).freq, 0) / n)}% · Reprovações esperadas: ${fmt(cur.reduce((s, r) => s + risk(r).p, 0))} de ${n}` : "";
@@ -354,9 +453,30 @@ const cb = document.getElementById("curBody");
 cb.onchange = e => {
     const tr = e.target.closest("tr"), k = e.target.dataset.k; if (!tr || !k) return;
     const r = S.current.find(x => x.id === tr.dataset.id);
+    if (k === "nota" || k === "pts") {
+        r.autoGrade = false;
+    }
     r[k] = e.target.type === "number" ? Math.max(0, parseFloat(e.target.value) || 0) : e.target.value; update()
 };
 cb.onclick = e => {
+    const act = e.target.dataset.act;
+    const subjId = e.target.dataset.subj;
+    if (act === "view-tasks") {
+        window.openTasksForSubject(subjId);
+        return;
+    }
+    if (act === "add-tasks") {
+        window.openNewTaskModal(subjId);
+        return;
+    }
+    if (act === "toggle-link") {
+        const r = S.current.find(x => x.id === subjId);
+        if (r) {
+            r.autoGrade = r.autoGrade === false ? true : false;
+            update();
+        }
+        return;
+    }
     if (!e.target.hasAttribute("data-rm")) return;
     const id = e.target.closest("tr").dataset.id; S.current = S.current.filter(x => x.id !== id); update()
 };
@@ -448,29 +568,43 @@ const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0
 const pd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d) };
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x };
 const dayDiff = (a, b) => Math.round((pd(ymd(b)) - pd(ymd(a))) / 864e5);
-const dfmt = s => pd(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+const dfmt = s => {
+    if (!s) return "—";
+    const d = pd(s);
+    return isNaN(d) ? "—" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+};
 const TYPE_ICON = { "Trabalho": "📄", "Prova": "📝", "Seminário": "🎤", "Outro": "📌" };
 let calMonth = new Date(); calMonth.setDate(1);
 
 function subjTotals(id) {
-    const ts = S.tasks.filter(t => t.subj === id);
-    const total = Math.max(10, ts.reduce((s, t) => s + t.pts, 0));
-    return { ts, total, got: ts.reduce((s, t) => s + (t.got != null ? t.got : 0), 0), graded: ts.filter(t => t.got != null).reduce((s, t) => s + t.pts, 0) };
+    const ts = (S.tasks || []).filter(t => t.subj === id);
+    const total = Math.max(10, ts.reduce((s, t) => s + (parseFloat(t.pts) || 0), 0));
+    return {
+        ts,
+        total,
+        got: ts.reduce((s, t) => s + (t.got != null && t.got !== "" ? parseFloat(t.got) || 0 : 0), 0),
+        graded: ts.filter(t => t.got != null && t.got !== "").reduce((s, t) => s + (parseFloat(t.pts) || 0), 0)
+    };
 }
+
 function importance(t) {
-    const w = t.pts / subjTotals(t.subj).total, cr = (S.current || []).find(r => r.id === t.subj), rp = cr ? risk(cr).p : 0;
-    return Math.min(100, w * 100 * (1 + .5 * rp) * 1.6);   // 1.6: uma prova de 6/10 já ≈ 100
+    const w = (t.pts || 0) / subjTotals(t.subj).total;
+    const cr = (S.current || []).find(r => r.id === t.subj);
+    const rp = cr ? risk(cr).p : 0;
+    return Math.min(100, w * 100 * (1 + .5 * rp) * 1.6);
 }
+
 function urgency(t, today, remH) {
     const slack = dayDiff(today, pd(t.due)) - remH / (+S.cap || 3);
     return slack <= 0 ? 100 : 100 / (1 + slack / 3);
 }
+
 const prioOf = (t, today, remH) => .55 * importance(t) + .45 * urgency(t, today, remH);
 const prioLbl = p => p >= 70 ? ["Crítica", "r"] : p >= 50 ? ["Alta", "y"] : p >= 30 ? ["Média", "b"] : ["Baixa", "g"];
 
 function planTasks() {
-    const today = pd(ymd(new Date())), pend = S.tasks.filter(t => !t.done && t.due).map(t => ({ t, rem: t.eff, start: null, plan: {} }));
-    const cap = +S.cap || 3, pending = [], res = {};
+    const today = pd(ymd(new Date())), pend = (S.tasks || []).filter(t => taskStatus(t) === "pendente" && t.due).map(t => ({ t, rem: t.eff || 1, start: null, plan: {} }));
+    const cap = +S.cap || 3, res = {};
     let last = today; pend.forEach(p => { const d = pd(p.t.due); if (d > last) last = d });
     for (let d = new Date(today), n = 0; d <= last && n < 400; d = addDays(d, 1), n++) {
         const wk = d.getDay() === 0 || d.getDay() === 6;
@@ -487,68 +621,541 @@ function planTasks() {
     pend.forEach(p => res[p.t.id] = p);
     return res;
 }
+
+let editingTaskId = null;
+
+function resetTaskForm() {
+    editingTaskId = null;
+    const wrap = $("trFormWrap");
+    if (wrap) wrap.style.display = "none";
+    if ($("trFormLegend")) $("trFormLegend").textContent = "Adicionar nova avaliação";
+    if ($("trTitle")) $("trTitle").value = "";
+    if ($("trGot")) $("trGot").value = "";
+    if ($("trStatus")) $("trStatus").value = "pendente";
+    if ($("trPts")) $("trPts").value = "2.0";
+    if ($("trEff")) $("trEff").value = "3.0";
+    if ($("trAdd")) $("trAdd").textContent = "Salvar Avaliação";
+}
+
+function openEditTaskModal(t) {
+    editingTaskId = t.id;
+    const wrap = $("trFormWrap");
+    if (!wrap) return;
+    wrap.style.display = "block";
+    if ($("trFormLegend")) $("trFormLegend").textContent = "Editar Avaliação — " + t.title;
+    if ($("trSubj")) $("trSubj").value = t.subj;
+    if ($("trType")) $("trType").value = t.type;
+    if ($("trStatus")) $("trStatus").value = taskStatus(t);
+    if ($("trTitle")) $("trTitle").value = t.title;
+    if ($("trDue")) $("trDue").value = t.due || "";
+    if ($("trPts")) $("trPts").value = t.pts;
+    if ($("trGot")) $("trGot").value = t.got != null ? t.got : "";
+    if ($("trEff")) $("trEff").value = t.eff;
+    if ($("trAdd")) $("trAdd").textContent = "Atualizar Avaliação";
+    wrap.scrollIntoView({ behavior: "smooth", block: "center" });
+    if ($("trTitle")) $("trTitle").focus();
+}
+
+window.openNewTaskModal = function(subjId) {
+    if (window.showTab) window.showTab("t-tr");
+    resetTaskForm();
+    const wrap = $("trFormWrap");
+    if (wrap) wrap.style.display = "block";
+    if (subjId && $("trSubj")) $("trSubj").value = subjId;
+    wrap.scrollIntoView({ behavior: "smooth", block: "center" });
+    if ($("trTitle")) $("trTitle").focus();
+};
+
+window.openTasksForSubject = function(subjId) {
+    if (window.showTab) window.showTab("t-tr");
+    S.trFilterSubj = subjId;
+    S.trView = "subjects";
+    update();
+    setTimeout(() => {
+        const card = document.getElementById("subj-card-" + subjId);
+        if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+};
+
 function renderTasks() {
-    const cur = S.current || [], T = S.tasks, today = pd(ymd(new Date()));
-    const sel = $("trSubj"), prev = sel.value;
-    sel.innerHTML = cur.map(r => `<option value="${r.id}">${esc(C[r.id].name)}</option>`).join("") || `<option value="">(adicione matérias em "Cursando agora")</option>`;
-    if (prev) sel.value = prev;
-    if (!$("trDue").value) $("trDue").value = ymd(addDays(today, 7));
-    $("trCap").value = S.cap; $("capV").textContent = S.cap + " h"; $("trWk").checked = S.weekend;
-    const plan = planTasks(), pend = T.filter(t => !t.done && t.due);
-    // resumo por matéria
-    const subs = [...new Set(T.map(t => t.subj))];
-    $("trSubjects").innerHTML = subs.length ? subs.map(id => {
-        const s = subjTotals(id), cr = cur.find(r => r.id === id), np = s.ts.filter(t => !t.done).length;
-        const items = s.ts.slice().sort((a, b) => (a.due || "").localeCompare(b.due || "")).map(t => `<li class="${t.done ? "dn" : ""}">${TYPE_ICON[t.type] || "📌"} ${esc(t.title)} · ${t.due ? dfmt(t.due) : "s/ data"} · ${t.got != null ? fmt(t.got) + "/" : ""}${fmt(t.pts)} pts</li>`).join("");
-        return `<div class="kpi"><b style="font-size:15px">${esc(C[id].name)}</b><small>${cr ? "nota atual " + fmt(cr.nota) + " · " : ""}${np} pendente(s)</small>
-<div class="bar" title="pontos obtidos / avaliados / total"><div style="width:${s.got / s.total * 100}%"></div></div>
-<small>${fmt(s.got)} obtidos de ${fmt(s.graded)} corrigidos · ${fmt(s.total)} pts totais</small><ul class="tl">${items}</ul></div>`;
-    }).join("") : `<div class="note">Sem atividades cadastradas.</div>`;
-    // ranking
-    const rows = pend.map(t => { const p = plan[t.id], rem = p ? p.rem : 0, pr = prioOf(t, today, t.eff); return { t, p, rem, pr, im: importance(t), ur: urgency(t, today, t.eff) } }).sort((a, b) => b.pr - a.pr);
-    $("trRank").innerHTML = rows.map((r, i) => {
-        const t = r.t, d = dayDiff(today, pd(t.due)), [lb, cl] = prioLbl(r.pr);
-        const sit = d < 0 ? `<span class="warn">atrasada ${-d}d</span>` : r.rem > .01 ? `<span style="color:#f87171">não cabe (faltam ${fmt(r.rem)} h)</span>` : `<span style="color:var(--ok)">cabe no plano</span>`;
-        return `<tr><td><b>${i + 1}</b></td><td><b>${TYPE_ICON[t.type] || ""} ${esc(t.title)}</b><div class="note">${esc(C[t.subj].name)}</div></td><td>${dfmt(t.due)}<div class="note">${d < 0 ? "vencida" : d === 0 ? "hoje" : "em " + d + " dia(s)"}</div></td><td>${fmt(t.pts)} <span class="note">(${Math.round(t.pts / subjTotals(t.subj).total * 100)}% da matéria)</span></td><td>${Math.round(r.im)}</td><td>${Math.round(r.ur)}</td><td><span class="tag ${cl}" style="padding:2px 8px;border-radius:6px;font-weight:600">${lb} · ${Math.round(r.pr)}</span></td><td>${r.p && r.p.start ? dfmt(r.p.start) : "—"}</td><td>${sit}</td></tr>`;
-    }).join("");
-    $("trEmpty").style.display = rows.length ? "none" : "";
-    // lista completa
-    $("trAll").innerHTML = T.slice().sort((a, b) => (a.due || "").localeCompare(b.due || "")).map(t => `<tr data-id="${t.id}" class="${t.done ? "fin" : ""}"><td>${esc(C[t.subj].name)}</td><td><select data-k="type">${optList(["Trabalho", "Prova", "Seminário", "Outro"], t.type)}</select></td><td><input data-k="title" value="${esc(t.title)}" style="width:150px"></td><td><input type="date" data-k="due" value="${t.due || ""}"></td><td><div class="mini"><input type="number" min="0" step="0.5" data-k="pts" value="${t.pts}"></div></td><td><div class="mini"><input type="number" min="0" step="0.1" data-k="got" value="${t.got ?? ""}" placeholder="—"></div></td><td><div class="mini"><input type="number" min="0.5" step="0.5" data-k="eff" value="${t.eff}"></div></td><td><input type="checkbox" data-k="done" ${t.done ? "checked" : ""}></td><td><button class="x" data-rm title="Remover">✕</button></td></tr>`).join("");
+    syncSubjectGrades();
+    const cur = S.current || [], T = S.tasks || [], today = pd(ymd(new Date()));
+
+    const selForm = $("trSubj");
+    if (selForm) {
+        const prev = selForm.value;
+        selForm.innerHTML = cur.map(r => `<option value="${r.id}">${esc(C[r.id].name)}</option>`).join("") || `<option value="">(adicione matérias em "Cursando agora")</option>`;
+        if (prev && cur.some(r => r.id === prev)) selForm.value = prev;
+    }
+
+    const selFilter = $("trFilterSubj");
+    if (selFilter) {
+        const prevF = S.trFilterSubj || "";
+        selFilter.innerHTML = `<option value="">Todas as matérias (${cur.length})</option>` +
+            cur.map(r => `<option value="${r.id}"${r.id === prevF ? " selected" : ""}>${esc(C[r.id].name)}</option>`).join("");
+    }
+
+    if ($("trFilterType")) $("trFilterType").value = S.trFilterType || "";
+    if ($("trFilterStatus")) $("trFilterStatus").value = S.trFilterStatus || "unresolved";
+    if ($("trSort")) $("trSort").value = S.trSort || "prio";
+
+    if ($("trDue") && !$("trDue").value) $("trDue").value = ymd(addDays(today, 7));
+    if ($("trCap")) {
+        $("trCap").value = S.cap;
+        if ($("capV")) $("capV").textContent = S.cap + " h";
+    }
+    if ($("trWk")) $("trWk").checked = S.weekend;
+
+    const plan = planTasks();
+
+    const activeView = S.trView || "list";
+    document.querySelectorAll(".tr-v-btn").forEach(b => b.classList.toggle("act", b.dataset.v === activeView));
+    if ($("trPaneList")) $("trPaneList").style.display = activeView === "list" ? "" : "none";
+    if ($("trPaneSubjects")) $("trPaneSubjects").style.display = activeView === "subjects" ? "" : "none";
+    if ($("trPaneCal")) $("trPaneCal").style.display = activeView === "cal" ? "" : "none";
+
+    renderTasksList(plan, today);
+    renderTasksSubjects();
     renderCal(plan);
 }
+
+function renderTasksList(plan, today) {
+    const T = S.tasks || [];
+    const fSubj = S.trFilterSubj || "";
+    const fType = S.trFilterType || "";
+    const fStatus = S.trFilterStatus || "unresolved";
+    const sort = S.trSort || "prio";
+
+    let filtered = T.filter(t => {
+        const st = taskStatus(t);
+        if (fSubj && t.subj !== fSubj) return false;
+        if (fType && t.type !== fType) return false;
+        if (fStatus === "unresolved" && st === "avaliada") return false;
+        if (fStatus === "pendente" && st !== "pendente") return false;
+        if (fStatus === "avaliando" && st !== "avaliando") return false;
+        if (fStatus === "avaliada" && st !== "avaliada") return false;
+        return true;
+    });
+
+    filtered.sort((a, b) => {
+        if (sort === "due") {
+            return (a.due || "9999").localeCompare(b.due || "9999");
+        } else if (sort === "subj") {
+            return (C[a.subj]?.name || "").localeCompare(C[b.subj]?.name || "", "pt-BR");
+        } else if (sort === "pts") {
+            return b.pts - a.pts;
+        } else {
+            return prioOf(b, today, b.eff) - prioOf(a, today, a.eff);
+        }
+    });
+
+    const body = $("trListBody");
+    if (!body) return;
+
+    if (filtered.length === 0) {
+        body.innerHTML = "";
+        if ($("trListEmpty")) $("trListEmpty").style.display = "";
+        return;
+    }
+    if ($("trListEmpty")) $("trListEmpty").style.display = "none";
+
+    body.innerHTML = filtered.map(t => {
+        const st = taskStatus(t);
+        const p = plan[t.id];
+        const pr = prioOf(t, today, t.eff);
+        const [lb, cl] = prioLbl(pr);
+        const d = t.due ? dayDiff(today, pd(t.due)) : null;
+
+        let dueBadge = "";
+        if (st === "avaliada") {
+            dueBadge = `<span class="due-badge tag g">Nota lançada ✓</span>`;
+        } else if (st === "avaliando") {
+            dueBadge = `<span class="due-badge status-eval">🔍 Em avaliação</span>`;
+        } else if (d === null) {
+            dueBadge = `<span class="due-badge note">Sem data</span>`;
+        } else if (d < 0) {
+            dueBadge = `<span class="due-badge tag r">Atrasada ${-d}d</span>`;
+        } else if (d === 0) {
+            dueBadge = `<span class="due-badge tag r">Hoje! ⚡</span>`;
+        } else if (d === 1) {
+            dueBadge = `<span class="due-badge tag y">Amanhã</span>`;
+        } else if (d <= 3) {
+            dueBadge = `<span class="due-badge tag y">Em ${d} dias</span>`;
+        } else {
+            dueBadge = `<span class="due-badge tag b">Em ${d} dias</span>`;
+        }
+
+        const startPlan = p && p.start && st === "pendente" ? dfmt(p.start) : null;
+        const typeClass = t.type ? t.type.toLowerCase() : "outro";
+
+        return `<tr data-id="${t.id}" class="${st === 'avaliada' ? 'fin' : st === 'avaliando' ? 'is-evaluating' : ''}">
+            <td style="text-align:center">
+                <select class="tag-status status-${st}" data-act="set-status" title="Alterar status da avaliação">
+                    <option value="pendente"${st === "pendente" ? " selected" : ""}>⏳ A Fazer</option>
+                    <option value="avaliando"${st === "avaliando" ? " selected" : ""}>🔍 Avaliando</option>
+                    <option value="avaliada"${st === "avaliada" ? " selected" : ""}>✅ Avaliada</option>
+                </select>
+            </td>
+            <td>
+                <div class="tr-task-title-cell">
+                    <span class="tag-type tag-${typeClass}">${TYPE_ICON[t.type] || "📌"} ${t.type}</span>
+                    <b class="tr-title-text" data-act="edit" title="Clique para editar">${esc(t.title)}</b>
+                </div>
+            </td>
+            <td>
+                <button type="button" class="tr-subj-tag" data-act="filter-subj" data-subj="${t.subj}" title="Filtrar por esta matéria">
+                    ${esc(C[t.subj]?.name || t.subj)}
+                </button>
+            </td>
+            <td>
+                <div class="tr-due-cell">
+                    <span>${dfmt(t.due)}</span>
+                    ${dueBadge}
+                </div>
+                ${startPlan ? `<div class="note">Ideal começar: ${startPlan}</div>` : ""}
+            </td>
+            <td>
+                <span class="tag ${cl}" style="padding:2px 8px;border-radius:6px;font-weight:600">${lb} · ${Math.round(pr)}</span>
+                <div class="note">${fmt(t.pts)} pts (${Math.round(t.pts / subjTotals(t.subj).total * 100)}% da matéria)</div>
+            </td>
+            <td>
+                <div class="tr-grade-edit">
+                    <input type="number" min="0" max="10" step="0.1" class="tr-in-got" data-act="set-got" value="${t.got != null ? t.got : ''}" placeholder="${st === 'avaliando' ? 'aguardando' : '—'}" title="${st === 'avaliando' ? 'Aguardando professor corrigir (digite para lançar nota)' : 'Nota obtida'}">
+                    <span class="note">/ <input type="number" min="0" step="0.5" class="tr-in-pts" data-act="set-pts" value="${t.pts}" title="Pontos que vale"> pts</span>
+                </div>
+                ${st === 'avaliando' ? `<div class="note" style="color:#f59e0b">⏳ Aguardando nota</div>` : ''}
+                ${st === 'avaliada' && t.got != null ? `<div class="note" style="color:var(--ok)">✓ Nota lançada</div>` : ''}
+            </td>
+            <td>
+                <div class="tr-eff-cell">
+                    <input type="number" min="0.5" step="0.5" class="tr-in-eff" data-act="set-eff" value="${t.eff}"> h
+                </div>
+            </td>
+            <td style="text-align:center">
+                <button class="x" data-act="rm" title="Excluir avaliação">✕</button>
+            </td>
+        </tr>`;
+    }).join("");
+}
+
+function renderTasksSubjects() {
+    const cur = S.current || [];
+    const container = $("trSubjectsCards");
+    if (!container) return;
+
+    const fSubj = S.trFilterSubj || "";
+    const subjectsToShow = fSubj ? cur.filter(r => r.id === fSubj) : cur;
+
+    if (subjectsToShow.length === 0) {
+        container.innerHTML = "";
+        if ($("trSubjEmpty")) $("trSubjEmpty").style.display = "";
+        return;
+    }
+    if ($("trSubjEmpty")) $("trSubjEmpty").style.display = "none";
+
+    container.innerHTML = subjectsToShow.map(r => {
+        const id = r.id;
+        const ts = (S.tasks || []).filter(t => t.subj === id);
+        const gradedTasks = ts.filter(t => taskStatus(t) === "avaliada" && t.got != null && t.got !== "");
+        const evaluatingTasks = ts.filter(t => taskStatus(t) === "avaliando");
+        const pendingTasks = ts.filter(t => taskStatus(t) === "pendente");
+
+        const nota = r.nota;
+        const pts = r.pts;
+        const maxPossivel = Math.round((nota + pts) * 10) / 10;
+
+        let statusTag = "";
+        let gradeColorClass = "pass";
+        if (nota >= 6.0) {
+            statusTag = `<span class="tag g" style="font-weight:600">🎉 Aprovado por nota! (≥ 6.0)</span>`;
+            gradeColorClass = "pass";
+        } else if (maxPossivel >= 6.0) {
+            const need = Math.round((6.0 - nota) * 10) / 10;
+            statusTag = `<span class="tag y" style="font-weight:600">Falta ${fmt(need)} pts para média 6.0</span>`;
+            gradeColorClass = "warn";
+        } else {
+            statusTag = `<span class="tag r" style="font-weight:600">⚠️ Risco: máx. ${fmt(maxPossivel)} (abaixo de 6.0)</span>`;
+            gradeColorClass = "crit";
+        }
+
+        const pctObt = Math.min(100, Math.max(0, nota * 10));
+        const pctPend = Math.min(100 - pctObt, Math.max(0, pts * 10));
+
+        const sortedTs = ts.slice().sort((a, b) => (a.due || "").localeCompare(b.due || ""));
+        const tasksHtml = sortedTs.length ? sortedTs.map(t => {
+            const st = taskStatus(t);
+            return `<div class="tr-subj-task-item status-${st}" data-id="${t.id}">
+                <select class="mini-status-sel status-${st}" data-act="set-status" title="Alterar status da avaliação">
+                    <option value="pendente"${st === "pendente" ? " selected" : ""}>⏳ A Fazer</option>
+                    <option value="avaliando"${st === "avaliando" ? " selected" : ""}>🔍 Avaliando</option>
+                    <option value="avaliada"${st === "avaliada" ? " selected" : ""}>✅ Avaliada</option>
+                </select>
+                <span class="task-type-icon">${TYPE_ICON[t.type] || "📌"}</span>
+                <span class="task-item-title" title="${esc(t.title)}">${esc(t.title)}</span>
+                <div class="tr-task-item-due note">${dfmt(t.due)}</div>
+                <div class="tr-task-item-grade">
+                    <input type="number" min="0" max="10" step="0.1" class="mini-grade-in" data-act="set-got" value="${t.got != null ? t.got : ''}" placeholder="${st === 'avaliando' ? 'aguardando' : '—'}" title="Nota obtida">
+                    <span class="pts-max">/ ${fmt(t.pts)} pts</span>
+                </div>
+                <button class="x btn-xs" data-act="rm" title="Excluir">✕</button>
+            </div>`;
+        }).join("") : `<div class="note" style="padding:10px 0;text-align:center">Nenhuma avaliação cadastrada para esta matéria.</div>`;
+
+        return `<div class="tr-subj-card" id="subj-card-${id}">
+            <div class="tr-subj-header">
+                <div>
+                    <h4 class="tr-subj-title">${esc(C[id].name)}</h4>
+                    <div class="tr-subj-code">${id} · ${C[id].aulas * 19}h totais</div>
+                </div>
+                <div class="tr-subj-grade-badge">
+                    <span class="grade-val ${gradeColorClass}">${fmt(nota)}</span>
+                    <span class="grade-max">/ 10.0</span>
+                </div>
+            </div>
+
+            <div class="tr-subj-meta-row">
+                ${statusTag}
+                <span class="note">${gradedTasks.length} avaliada(s)${evaluatingTasks.length ? ` · <b style="color:#f59e0b">${evaluatingTasks.length} avaliando</b>` : ""} · ${pendingTasks.length} a fazer</span>
+            </div>
+
+            <div class="tr-grade-bar-wrap">
+                <div class="tr-grade-bar">
+                    <div class="bar-obtained" style="width:${pctObt}%" title="Nota obtida: ${fmt(nota)}"></div>
+                    <div class="bar-pending" style="width:${pctPend}%" title="Pontos a receber: ${fmt(pts)}"></div>
+                </div>
+                <div class="tr-grade-marker" style="left:60%" title="Meta IFSP: 6.0">
+                    <span class="marker-label">6.0</span>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:-6px">
+                <span>0.0</span>
+                <span>${fmt(nota)} obtidos + ${fmt(pts)} em disputa = máx. ${fmt(maxPossivel)}</span>
+                <span>10.0</span>
+            </div>
+
+            <div class="tr-subj-tasks-header">
+                <b>Avaliações cadastradas</b>
+            </div>
+            <div class="tr-subj-tasks">
+                ${tasksHtml}
+            </div>
+
+            <div class="tr-subj-footer">
+                <button type="button" class="btn-sm pri" data-act="new-for-subj" data-subj="${id}">+ Adicionar avaliação</button>
+            </div>
+        </div>`;
+    }).join("");
+}
+
 function renderCal(plan) {
     const y = calMonth.getFullYear(), m = calMonth.getMonth(), todayS = ymd(new Date());
     $("calTitle").textContent = calMonth.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
     const first = new Date(y, m, 1), start = addDays(first, -first.getDay()), ev = {};
-    S.tasks.forEach(t => { if (t.due) (ev[t.due] = ev[t.due] || []).push({ k: "due", t }) });
-    Object.values(plan).forEach(p => Object.entries(p.plan).forEach(([d, h]) => (ev[d] = ev[d] || []).push({ k: "work", t: p.t, h, p })));
+    const fSubj = S.trFilterSubj || "";
+    const fType = S.trFilterType || "";
+
+    (S.tasks || []).forEach(t => {
+        if (t.due) {
+            if (fSubj && t.subj !== fSubj) return;
+            if (fType && t.type !== fType) return;
+            (ev[t.due] = ev[t.due] || []).push({ k: "due", t });
+        }
+    });
+
+    Object.values(plan).forEach(p => {
+        if (fSubj && p.t.subj !== fSubj) return;
+        if (fType && p.t.type !== fType) return;
+        Object.entries(p.plan).forEach(([d, h]) => (ev[d] = ev[d] || []).push({ k: "work", t: p.t, h, p }));
+    });
+
     let h = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(d => `<div class="ch">${d}</div>`).join("");
     for (let i = 0; i < 42; i++) {
         const d = addDays(start, i), s = ymd(d), items = (ev[s] || []).sort((a, b) => (a.k === "due" ? 0 : 1) - (b.k === "due" ? 0 : 1));
-        h += `<div class="cd${d.getMonth() !== m ? " oth" : ""}${s === todayS ? " tdy" : ""}"><span class="dn">${d.getDate()}</span>` + items.map(e => e.k === "due"
-            ? `<div class="ev due${e.t.done ? " ok" : ""}" title="${esc(C[e.t.subj].name)} · vale ${fmt(e.t.pts)} pts">${TYPE_ICON[e.t.type] || ""} ${esc(e.t.title)}</div>`
-            : `<div class="ev wk" title="${esc(C[e.t.subj].name)}">${fmt(e.h)}h · ${esc(e.t.title)}</div>`).join("") + "</div>";
+        h += `<div class="cd${d.getMonth() !== m ? " oth" : ""}${s === todayS ? " tdy" : ""}"><span class="dn">${d.getDate()}</span>` + items.map(e => {
+            const st = taskStatus(e.t);
+            if (e.k === "due") {
+                const cls = st === "avaliada" ? "ev due ok" : st === "avaliando" ? "ev due status-eval" : "ev due";
+                const label = st === "avaliando" ? `🔍 ${esc(e.t.title)} (avaliando)` : `${TYPE_ICON[e.t.type] || ""} ${esc(e.t.title)}`;
+                return `<div class="${cls}" title="${esc(C[e.t.subj].name)} · vale ${fmt(e.t.pts)} pts">${label}</div>`;
+            } else {
+                return `<div class="ev wk" title="${esc(C[e.t.subj].name)}">${fmt(e.h)}h · ${esc(e.t.title)}</div>`;
+            }
+        }).join("") + "</div>";
     }
     $("cal").innerHTML = h;
 }
-$("calPrev").onclick = () => { calMonth.setMonth(calMonth.getMonth() - 1); renderTasks() };
-$("calNext").onclick = () => { calMonth.setMonth(calMonth.getMonth() + 1); renderTasks() };
-$("calToday").onclick = () => { calMonth = new Date(); calMonth.setDate(1); renderTasks() };
-$("trCap").oninput = e => { S.cap = +e.target.value; update() };
-$("trWk").onchange = e => { S.weekend = e.target.checked; update() };
+
+$("calPrev").onclick = () => { calMonth.setMonth(calMonth.getMonth() - 1); renderTasks(); };
+$("calNext").onclick = () => { calMonth.setMonth(calMonth.getMonth() + 1); renderTasks(); };
+$("calToday").onclick = () => { calMonth = new Date(); calMonth.setDate(1); renderTasks(); };
+$("trCap").oninput = e => { S.cap = +e.target.value; update(); };
+$("trWk").onchange = e => { S.weekend = e.target.checked; update(); };
+
+$("btnToggleForm").onclick = () => {
+    const wrap = $("trFormWrap");
+    if (!wrap) return;
+    if (wrap.style.display === "none" || !wrap.style.display) {
+        resetTaskForm();
+        wrap.style.display = "block";
+        $("trTitle").focus();
+    } else {
+        resetTaskForm();
+    }
+};
+
+$("btnCloseForm").onclick = resetTaskForm;
+$("trCancel").onclick = resetTaskForm;
+
+document.querySelectorAll(".tr-v-btn").forEach(btn => {
+    btn.onclick = () => {
+        S.trView = btn.dataset.v;
+        update();
+    };
+});
+
+if ($("trFilterSubj")) $("trFilterSubj").onchange = e => { S.trFilterSubj = e.target.value; update(); };
+if ($("trFilterType")) $("trFilterType").onchange = e => { S.trFilterType = e.target.value; update(); };
+if ($("trFilterStatus")) $("trFilterStatus").onchange = e => { S.trFilterStatus = e.target.value; update(); };
+if ($("trSort")) $("trSort").onchange = e => { S.trSort = e.target.value; update(); };
+
 $("trAdd").onclick = () => {
     const subj = $("trSubj").value, title = $("trTitle").value.trim(), due = $("trDue").value;
     if (!subj) return alert("Adicione primeiro uma matéria em \"Cursando agora\".");
-    if (!title || !due) return alert("Informe título e data.");
-    S.tasks.push({ id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), subj, type: $("trType").value, title, due, pts: Math.max(0, +$("trPts").value || 0), got: null, eff: Math.max(.5, +$("trEff").value || 1), done: false });
-    $("trTitle").value = ""; update();
-};
-$("trAll").onchange = e => {
-    const tr = e.target.closest("tr"), k = e.target.dataset.k; if (!tr || !k) return;
-    const t = S.tasks.find(x => x.id === tr.dataset.id), v = e.target;
-    t[k] = k === "done" ? v.checked : k === "got" ? (v.value === "" ? null : Math.max(0, +v.value)) : ["pts", "eff"].includes(k) ? Math.max(k === "eff" ? .5 : 0, +v.value || 0) : v.value;
-    if (k === "got" && t.got != null) t.done = true;
+    if (!title || !due) return alert("Informe título e data da avaliação.");
+
+    const pts = Math.max(0, parseFloat($("trPts").value) || 0);
+    const gotVal = $("trGot").value.trim();
+    let status = $("trStatus") ? $("trStatus").value : "pendente";
+    let got = null;
+    if (gotVal !== "") {
+        got = Math.max(0, parseFloat(gotVal) || 0);
+        status = "avaliada";
+    } else if (status === "avaliada") {
+        status = "avaliando";
+    }
+    const eff = Math.max(0.5, parseFloat($("trEff").value) || 1);
+    const done = status === "avaliando" || status === "avaliada";
+
+    if (editingTaskId) {
+        const t = (S.tasks || []).find(x => x.id === editingTaskId);
+        if (t) {
+            t.subj = subj;
+            t.type = $("trType").value;
+            t.status = status;
+            t.title = title;
+            t.due = due;
+            t.pts = pts;
+            t.got = got;
+            t.eff = eff;
+            t.done = done;
+        }
+    } else {
+        S.tasks.push({
+            id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+            subj,
+            type: $("trType").value,
+            status,
+            title,
+            due,
+            pts,
+            got,
+            eff,
+            done
+        });
+    }
+
+    resetTaskForm();
     update();
 };
-$("trAll").onclick = e => { if (!e.target.hasAttribute("data-rm")) return; const id = e.target.closest("tr").dataset.id; S.tasks = S.tasks.filter(x => x.id !== id); update() };
+
+const handleTaskEvents = e => {
+    const act = e.target.dataset.act;
+    if (!act) return;
+
+    // Ações acionadas exclusivamente por clique (botões e links)
+    if (e.type === "click") {
+        if (act === "filter-subj") {
+            const s = e.target.dataset.subj;
+            S.trFilterSubj = s;
+            update();
+            return;
+        }
+
+        if (act === "new-for-subj") {
+            const s = e.target.dataset.subj;
+            window.openNewTaskModal(s);
+            return;
+        }
+
+        const elem = e.target.closest("[data-id]");
+        if (!elem) return;
+        const id = elem.dataset.id;
+        const t = (S.tasks || []).find(x => x.id === id);
+        if (!t) return;
+
+        if (act === "rm") {
+            S.tasks = S.tasks.filter(x => x.id !== id);
+            update();
+        } else if (act === "edit") {
+            openEditTaskModal(t);
+        }
+        return;
+    }
+
+    // Ações acionadas por alteração de campos (selects e inputs)
+    if (e.type === "change") {
+        const elem = e.target.closest("[data-id]");
+        if (!elem) return;
+        const id = elem.dataset.id;
+        const t = (S.tasks || []).find(x => x.id === id);
+        if (!t) return;
+
+        if (act === "set-status") {
+            const newStatus = e.target.value;
+            t.status = newStatus;
+            if (newStatus === "pendente") {
+                t.done = false;
+                t.got = null;
+            } else if (newStatus === "avaliando") {
+                t.done = true;
+                t.got = null; // garante que não conta na nota atual!
+            } else if (newStatus === "avaliada") {
+                t.done = true;
+            }
+            update();
+        } else if (act === "set-got") {
+            const v = e.target.value.trim();
+            if (v === "") {
+                t.got = null;
+                if (t.status === "avaliada") {
+                    t.status = "avaliando";
+                }
+            } else {
+                t.got = Math.max(0, parseFloat(v) || 0);
+                t.status = "avaliada";
+                t.done = true;
+            }
+            update();
+        } else if (act === "set-pts") {
+            t.pts = Math.max(0, parseFloat(e.target.value) || 0);
+            update();
+        } else if (act === "set-eff") {
+            t.eff = Math.max(0.5, parseFloat(e.target.value) || 0.5);
+            update();
+        }
+    }
+};
+
+const tblList = $("tblTrList");
+if (tblList) {
+    tblList.onchange = handleTaskEvents;
+    tblList.onclick = handleTaskEvents;
+}
+
+const subjCards = $("trSubjectsCards");
+if (subjCards) {
+    subjCards.onchange = handleTaskEvents;
+    subjCards.onclick = handleTaskEvents;
+}
+
 build(); update();

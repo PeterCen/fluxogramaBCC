@@ -31,7 +31,7 @@
     <div class="tabs" id="tabs">
       <button data-tab="t-flow">🗺️ Fluxograma</button>
       <button data-tab="t-cur">📚 Cursando agora</button>
-      <button data-tab="t-tr">📝 Trabalhos e Provas</button>
+      <button data-tab="t-tr">📝 Tarefas, Provas e Notas</button>
       <button data-tab="t-hor">🕒 Horários</button>
       <button data-tab="t-plan">📅 Plano estimado</button>
       <button data-tab="t-ac">🏅 Atividades Compl.</button>
@@ -125,41 +125,173 @@
     </div>
 
     <div class="tabpane" id="t-tr">
+      <!-- Painel Principal de Controle e Ações -->
       <div class="panel">
-        <h3 style="margin:0">📝 Trabalhos e Provas · por matéria</h3>
-        <div class="note">Matérias vêm de "Cursando agora". Cadastre cada avaliação; o app calcula importância, urgência e sugere a ordem de execução.</div>
-        <div class="controls" style="margin-top:10px">
-          <label>Matéria<select id="trSubj"></select></label>
-          <label>Tipo<select id="trType"><option>Trabalho</option><option>Prova</option><option>Seminário</option><option>Outro</option></select></label>
-          <label>Título<input id="trTitle" placeholder="ex.: Lista 3" style="width:170px"></label>
-          <label>Entrega / data<input type="date" id="trDue"></label>
-          <label>Pontos que vale<input type="number" id="trPts" min="0" step="0.5" value="2" style="width:90px"></label>
-          <label>Esforço (h)<input type="number" id="trEff" min="0.5" step="0.5" value="3" style="width:80px"></label>
-          <button class="pri" id="trAdd">+ Adicionar</button>
+        <div class="tr-header-row">
+          <div>
+            <h3 style="margin:0">📝 Tarefas, Provas e Notas</h3>
+            <div class="note" style="margin-top:4px">
+              Cadastre suas avaliações, planeje o estudo e vincule automaticamente suas notas às matérias que está cursando.
+            </div>
+          </div>
+          <div class="tr-action-btns">
+            <button class="pri" id="btnToggleForm">+ Nova Avaliação / Tarefa</button>
+          </div>
         </div>
-        <div class="controls" style="margin-top:12px">
-          <label>Horas de estudo por dia: <b id="capV"></b><input type="range" id="trCap" min="1" max="10" step="0.5"></label>
-          <label class="inl"><input type="checkbox" id="trWk"> Estudar nos fins de semana</label>
+
+        <!-- Formulário Elegante e Colapsável para Adicionar / Editar -->
+        <div id="trFormWrap" class="tr-form-wrap" style="display:none">
+          <div class="tr-form-title">
+            <span id="trFormLegend">Adicionar nova avaliação</span>
+            <button type="button" class="btn-ghost" id="btnCloseForm" title="Fechar formulário">✕</button>
+          </div>
+          <div class="tr-form-grid">
+            <label>Matéria em curso
+              <select id="trSubj"></select>
+            </label>
+            <label>Tipo de avaliação
+              <select id="trType">
+                <option value="Prova">📝 Prova</option>
+                <option value="Trabalho">📄 Trabalho</option>
+                <option value="Seminário">🎤 Seminário</option>
+                <option value="Outro">📌 Outro</option>
+              </select>
+            </label>
+            <label>Status da atividade
+              <select id="trStatus">
+                <option value="pendente">⏳ A Fazer (Pendente)</option>
+                <option value="avaliando">🔍 Avaliando (Aguardando nota)</option>
+                <option value="avaliada">✅ Avaliada (Nota lançada)</option>
+              </select>
+            </label>
+            <label>Título da atividade
+              <input id="trTitle" placeholder="ex.: Prova 1, Lista 3, Projeto Semestral">
+            </label>
+            <label>Data de entrega / realização
+              <input type="date" id="trDue">
+            </label>
+            <label>Pontos que vale (peso na média)
+              <input type="number" id="trPts" min="0" max="10" step="0.5" value="2.0">
+            </label>
+            <label>Nota obtida (se já corrigida)
+              <input type="number" id="trGot" min="0" max="10" step="0.1" placeholder="Pendente (—)">
+            </label>
+            <label>Tempo de estudo estimado (horas)
+              <input type="number" id="trEff" min="0.5" step="0.5" value="3.0">
+            </label>
+          </div>
+          <div class="tr-form-actions">
+            <button class="pri" id="trAdd">Salvar Avaliação</button>
+            <button type="button" id="trCancel">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- Barra de Modos de Exibição e Filtros -->
+        <div class="tr-toolbar">
+          <div class="tr-views" id="trViewSw">
+            <button class="tr-v-btn act" data-v="list">📋 Lista de Atividades</button>
+            <button class="tr-v-btn" data-v="subjects">📚 Por Matéria &amp; Notas</button>
+            <button class="tr-v-btn" data-v="cal">🗓️ Calendário &amp; Planejador</button>
+          </div>
+          <div class="tr-filters">
+            <select id="trFilterSubj" title="Filtrar por matéria">
+              <option value="">Todas as matérias</option>
+            </select>
+            <select id="trFilterType" title="Filtrar por tipo">
+              <option value="">Todos os tipos</option>
+              <option value="Prova">Provas</option>
+              <option value="Trabalho">Trabalhos</option>
+              <option value="Seminário">Seminários</option>
+              <option value="Outro">Outros</option>
+            </select>
+            <select id="trFilterStatus" title="Filtrar por status">
+              <option value="unresolved" selected>⏳ Não avaliadas (A Fazer + Avaliando)</option>
+              <option value="all">Todas as atividades</option>
+              <option value="pendente">⏳ Apenas A Fazer</option>
+              <option value="avaliando">🔍 Apenas Avaliando</option>
+              <option value="avaliada">✅ Apenas Avaliadas</option>
+            </select>
+          </div>
         </div>
       </div>
-      <div class="panel"><h3 style="margin:0 0 4px">📚 Resumo por matéria</h3><div id="trSubjects" class="grid"></div></div>
-      <div class="panel">
-        <h3 style="margin:0 0 4px">🎯 Ordem sugerida de execução</h3>
-        <div class="note">Prioridade = importância (peso na matéria, ajustado pelo risco de reprovar) + urgência (prazo menos o tempo que o esforço exige). Veja "Como funciona".</div>
-        <div class="tblwrap"><table class="st" style="min-width:900px"><thead><tr><th>#</th><th>Atividade</th><th>Prazo</th><th>Pontos</th><th>Importância</th><th>Urgência</th><th>Prioridade</th><th>Início ideal</th><th>Situação</th></tr></thead><tbody id="trRank"></tbody></table></div>
-        <div class="note" id="trEmpty" style="margin-top:8px">Nenhuma atividade pendente.</div>
-      </div>
-      <div class="panel">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <h3 style="margin:0">🗓️ Calendário</h3>
-          <button id="calPrev">◀</button><b id="calTitle" style="min-width:140px;text-align:center"></b><button id="calNext">▶</button><button id="calToday">Hoje</button>
+
+      <!-- VISÃO 1: Lista Unificada e Organizada de Tarefas -->
+      <div class="panel tr-view-pane" id="trPaneList">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+          <div>
+            <h3 style="margin:0">📋 Lista Unificada de Atividades</h3>
+            <div class="note">A prioridade combina urgência e peso. Digite a nota obtida diretamente na linha para calcular a média da matéria.</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="inl">Ordenar por:
+              <select id="trSort">
+                <option value="prio">🎯 Prioridade sugerida</option>
+                <option value="due">📅 Prazo mais próximo</option>
+                <option value="subj">📚 Matéria (A–Z)</option>
+                <option value="pts">⭐ Maior pontuação</option>
+              </select>
+            </label>
+          </div>
         </div>
-        <div class="legend"><span><i style="background:#ef4444"></i>Entrega/prova</span><span><i style="background:#2563eb"></i>Trabalhar neste dia (plano)</span><span><i style="background:#22c55e"></i>Concluída</span></div>
+        <div class="tblwrap">
+          <table class="st" id="tblTrList" style="min-width:880px">
+            <thead>
+              <tr>
+                <th style="width:125px;text-align:center">Status</th>
+                <th>Atividade</th>
+                <th>Matéria</th>
+                <th>Prazo / Situação</th>
+                <th>Prioridade Sugerida</th>
+                <th>Nota Obtida / Vale</th>
+                <th>Esforço</th>
+                <th style="width:50px;text-align:center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="trListBody"></tbody>
+          </table>
+        </div>
+        <div class="note" id="trListEmpty" style="margin-top:14px;text-align:center;padding:16px 0">
+          Nenhuma atividade pendente com os filtros selecionados.
+        </div>
+      </div>
+
+      <!-- VISÃO 2: Desempenho e Notas por Matéria -->
+      <div class="panel tr-view-pane" id="trPaneSubjects" style="display:none">
+        <div style="margin-bottom:14px">
+          <h3 style="margin:0">📚 Desempenho e Notas por Matéria</h3>
+          <div class="note" style="margin-top:3px">
+            Acompanhe o somatório das suas avaliações, veja se já atingiu a média 6.0 e confira quantos pontos faltam disputar.
+          </div>
+        </div>
+        <div id="trSubjectsCards" class="tr-subj-grid"></div>
+        <div class="note" id="trSubjEmpty" style="margin-top:14px;text-align:center;padding:20px 0;display:none">
+          Nenhuma matéria em "Cursando agora". Adicione matérias na aba "Cursando agora" para acompanhar suas notas aqui.
+        </div>
+      </div>
+
+      <!-- VISÃO 3: Calendário & Planejamento de Estudo -->
+      <div class="panel tr-view-pane" id="trPaneCal" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <h3 style="margin:0">🗓️ Calendário e Distribuição de Estudo</h3>
+            <button id="calPrev">◀</button>
+            <b id="calTitle" style="min-width:140px;text-align:center"></b>
+            <button id="calNext">▶</button>
+            <button id="calToday">Hoje</button>
+          </div>
+          <div class="controls" style="margin:0;align-items:center">
+            <label class="inl">Horas de estudo/dia: <b id="capV" style="margin:0 4px"></b>
+              <input type="range" id="trCap" min="1" max="10" step="0.5" style="width:110px">
+            </label>
+            <label class="inl"><input type="checkbox" id="trWk"> Finais de semana</label>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#ef4444"></i>Data de Entrega / Prova</span>
+          <span><i style="background:#2563eb"></i>Horas de Estudo Planejadas</span>
+          <span><i style="background:#22c55e"></i>Atividade Concluída</span>
+        </div>
         <div id="cal"></div>
-      </div>
-      <div class="panel">
-        <h3 style="margin:0 0 4px">✏️ Todas as atividades</h3>
-        <div class="tblwrap"><table class="st" style="min-width:980px"><thead><tr><th>Matéria</th><th>Tipo</th><th>Título</th><th>Data</th><th>Vale</th><th>Obtido</th><th>Esforço (h)</th><th>Feita</th><th></th></tr></thead><tbody id="trAll"></tbody></table></div>
       </div>
     </div>
 
