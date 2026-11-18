@@ -37,8 +37,10 @@
       <button data-tab="t-ac">🏅 Atividades Compl.</button>
       <button data-tab="t-cfg">⚙️ Configurações</button>
       <button data-tab="t-help">❓ Como funciona</button>
+      <button data-tab="t-feedback" title="Mandar sugestão ou relatar problema">💬 Feedback</button>
     </div>
 
+    <!-- Campo Configurações -->
     <div class="tabpane" id="t-cfg">
       <div class="panel">
         <div class="controls">
@@ -85,6 +87,7 @@
       </div>
     </div>
 
+    <!-- Campo Cursando agora -->
     <div class="tabpane" id="t-cur">
       <div class="panel">
         <h3 style="margin:0">📚 Cursando agora · Estatísticas</h3>
@@ -124,6 +127,7 @@
 
     </div>
 
+    <!-- Campo Tarefas, Provas e Notas -->
     <div class="tabpane" id="t-tr">
       <!-- Painel Principal de Controle e Ações -->
       <div class="panel">
@@ -295,6 +299,7 @@
       </div>
     </div>
 
+    <!-- Campo de Horarios de Aula -->
     <div class="tabpane" id="t-hor">
       <div class="panel">
         <h3 style="margin:0">🕒 Horários de aulas</h3>
@@ -319,6 +324,7 @@
 
     </div>
 
+    <!-- Campo Fluxograma -->
     <div class="tabpane" id="t-flow">
       <div class="panel">
         <div class="legend">
@@ -338,6 +344,7 @@
       </div>
     </div>
 
+    <!-- Campo de Plano estimado -->
     <div class="tabpane" id="t-plan">
       <div class="panel">
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
@@ -351,6 +358,7 @@
 
     </div>
 
+    <!-- Campo de Atividades Complementares -->
     <div class="tabpane" id="t-ac">
       <div class="panel">
         <h3 style="margin:0">🏅 Atividades Complementares <span class="note" id="acSum"></span></h3>
@@ -385,6 +393,7 @@
 
     </div>
 
+    <!-- Campo Como funciona -->
     <div class="tabpane" id="t-help">
       <div class="panel">
         <h3 style="margin:0 0 6px">Como a estimativa funciona</h3>
@@ -425,6 +434,46 @@
           <li><b>Trabalhos e Provas — ordem de execução:</b> <i>Importância</i> = peso da atividade na matéria (pontos ÷ total de pontos da matéria, mínimo 10) × (1 + 50% do risco de reprovar na matéria), em escala 0–100. <i>Urgência</i> = 100 quando não há folga; decai com a folga em dias (dias até o prazo − esforço ÷ horas diárias). <i>Prioridade</i> = 55% importância + 45% urgência. O calendário distribui as horas dia a dia: a cada dia recalcula a prioridade e preenche suas horas diárias a partir da atividade mais prioritária; o trabalho termina no dia anterior à entrega. Se as horas não couberem, a atividade aparece como "não cabe".</li>
         </ul>
       </div>
+    </div>
+  </div>
+
+  <!-- Aba Feedback -->
+  <div class="tabpane" id="t-feedback">
+    <div class="panel fb-panel">
+      <h3 class="fb-title">💬 Enviar Feedback ou Sugestão</h3>
+      <p class="note fb-desc">
+        Encontrou algum erro na grade (horas, pré-requisitos, ementa) ou tem alguma sugestão de melhoria para o site? Preencha os campos abaixo para enviar diretamente aos desenvolvedores do projeto!
+      </p>
+
+      <form id="feedbackForm" class="fb-form">
+        <div class="fb-field">
+          <label for="fbType" class="fb-label">Tipo de feedback</label>
+          <select id="fbType" class="fb-select">
+            <option value="Sugestão de melhoria">Sugestão de melhoria</option>
+            <option value="Erro em matéria ou pré-requisito">Erro em matéria ou pré-requisito</option>
+            <option value="Problema ou bug no site">Problema ou bug no site</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+
+        <div class="fb-field">
+          <label for="fbMsg" class="fb-label">Sua mensagem <span class="fb-req">*</span></label>
+          <textarea id="fbMsg" class="fb-textarea" rows="5" required placeholder="Descreva aqui sua sugestão ou o problema detalhadamente..."></textarea>
+        </div>
+
+        <div class="fb-field">
+          <label for="fbContact" class="fb-label">Seu email ou contato (opcional)</label>
+          <input type="text" id="fbContact" class="fb-input" placeholder="ex: seu.email@exemplo.com ou usuário do Discord">
+          <span class="note">Preencha caso deseje receber uma resposta.</span>
+        </div>
+
+        <div class="fb-footer">
+          <div id="fbStatus" class="fb-status"></div>
+          <button type="submit" class="pri fb-submit-btn" id="fbSend">
+            📨 Enviar Mensagem
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -1,5 +1,6 @@
 import { RAW_NOVA } from "./raw_new.js"
 import { RAW_ANTIGA } from "./raw_old.js";
+import { CONFIG } from "./config.js"
 
 // ---------- ABAS ----------
 (function () {
@@ -80,18 +81,18 @@ function syncSubjectGrades() {
         if (r.autoGrade === false) return;
         const ts = (S.tasks || []).filter(t => t.subj === r.id);
         if (ts.length === 0) return;
-        
+
         // Apenas atividades com status 'avaliada' (com nota lançada) entram em nota atual!
         const graded = ts.filter(t => taskStatus(t) === "avaliada" && t.got != null && t.got !== "");
         // Atividades 'pendente' ou 'avaliando' continuam sendo pontos a receber/disputar
         const pendingOrEvaluating = ts.filter(t => taskStatus(t) !== "avaliada");
-        
+
         const sumGot = graded.reduce((acc, t) => acc + (parseFloat(t.got) || 0), 0);
         const sumGradedPts = graded.reduce((acc, t) => acc + (parseFloat(t.pts) || 0), 0);
         const sumPendingPts = pendingOrEvaluating.reduce((acc, t) => acc + (parseFloat(t.pts) || 0), 0);
-        
+
         r.nota = Math.round(sumGot * 100) / 100;
-        
+
         if (pendingOrEvaluating.length > 0) {
             r.pts = Math.round(Math.max(sumPendingPts, 10 - sumGradedPts) * 100) / 100;
         } else {
@@ -656,7 +657,7 @@ function openEditTaskModal(t) {
     if ($("trTitle")) $("trTitle").focus();
 }
 
-window.openNewTaskModal = function(subjId) {
+window.openNewTaskModal = function (subjId) {
     if (window.showTab) window.showTab("t-tr");
     resetTaskForm();
     const wrap = $("trFormWrap");
@@ -666,7 +667,7 @@ window.openNewTaskModal = function(subjId) {
     if ($("trTitle")) $("trTitle").focus();
 };
 
-window.openTasksForSubject = function(subjId) {
+window.openTasksForSubject = function (subjId) {
     if (window.showTab) window.showTab("t-tr");
     S.trFilterSubj = subjId;
     S.trView = "subjects";
@@ -1145,6 +1146,71 @@ const handleTaskEvents = e => {
         }
     }
 };
+
+// ---------- FEEDBACK (Formspree) ----------
+const fbForm = $("feedbackForm");
+if (fbForm) {
+    fbForm.onsubmit = async e => {
+        e.preventDefault();
+        const sendBtn = $("fbSend");
+        const statusEl = $("fbStatus");
+        const typeVal = $("fbType") ? $("fbType").value : "Geral";
+        const msgVal = $("fbMsg") ? $("fbMsg").value.trim() : "";
+        const contactVal = $("fbContact") ? $("fbContact").value.trim() : "";
+
+        const showStatus = (msg, cls) => {
+            statusEl.className = `fb-status ${cls}`;
+            statusEl.textContent = msg;
+        };
+
+        if (!msgVal) {
+            alert("Por favor, digite sua mensagem antes de enviar.");
+            return;
+        }
+
+        const endpoint = CONFIG?.FEEDBACK_URL || CONFIG?.FEEDBACK_ACCESS_KEY;
+        if (!endpoint || endpoint.includes("SEU_ID")) {
+            showStatus("⚠️ Endpoint do formulário não configurado em config.js", "warn");
+            return;
+        }
+
+        sendBtn.disabled = true;
+        sendBtn.textContent = "Enviando...";
+        statusEl.className = "fb-status";
+        statusEl.textContent = "";
+
+        try {
+            const resp = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    assunto: typeVal,
+                    mensagem: msgVal,
+                    contato: contactVal || "Não informado",
+                    email: contactVal.includes("@") ? contactVal : undefined,
+                    _subject: `[Fluxograma BCC] ${typeVal}`
+                })
+            });
+
+            if (resp.ok) {
+                showStatus("✅ Obrigado! Seu feedback foi enviado com sucesso.", "ok");
+                fbForm.reset();
+            } else {
+                const data = await resp.json().catch(() => ({}));
+                const errText = data?.errors?.[0]?.message || "Ocorreu um erro ao enviar. Tente novamente mais tarde.";
+                showStatus(`❌ ${errText}`, "err");
+            }
+        } catch (err) {
+            showStatus("❌ Falha na conexão ao enviar. Verifique sua internet.", "err");
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = "📨 Enviar Mensagem";
+        }
+    };
+}
 
 const tblList = $("tblTrList");
 if (tblList) {
