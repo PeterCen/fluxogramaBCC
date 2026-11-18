@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fluxograma — Bacharelado em Ciência da Computação (IFSP Pres. Epitácio)</title>
   <link rel="stylesheet" href="./assets/css/styles.css">
+  <link rel="icon" href="./assets/img/logo.jpg" type="favicon.png">
 </head>
 
 <body>
@@ -13,10 +14,10 @@
     <h1>🎓 <span>Fluxograma do Curso</span> — Bacharelado em Ciência da Computação</h1>
     <div class="sub"><span id="subTxt"></span></div>
     <div class="cur-add" style="margin-top:8px"><label class="inl">Grade curricular:
-      <select id="curSw">
-        <option value="nova">Nova — PPC 2022 (vigência 1º/2023)</option>
-        <option value="antiga">Antiga — PPC 2018 (ingresso até 2022)</option>
-      </select></label></div>
+        <select id="curSw">
+          <option value="nova">Nova — PPC 2022 (vigência 1º/2023)</option>
+          <option value="antiga">Antiga — PPC 2018 (ingresso até 2022)</option>
+        </select></label></div>
   </header>
   <div class="wrap">
 
@@ -38,207 +39,219 @@
     </div>
 
     <div class="tabpane" id="t-cfg">
-    <div class="panel">
-      <div class="controls">
-        <label>Próximo semestre letivo a cursar
-          <div style="display:flex;gap:6px">
-            <input type="number" id="startYear" min="2020" max="2060" style="width:90px">
-            <select id="startHalf">
-              <option value="1">1º semestre (ímpares)</option>
-              <option value="2">2º semestre (pares)</option>
+      <div class="panel">
+        <div class="controls">
+          <label>Próximo semestre letivo a cursar
+            <div style="display:flex;gap:6px">
+              <input type="number" id="startYear" min="2020" max="2060" style="width:90px">
+              <select id="startHalf">
+                <option value="1">1º semestre (ímpares)</option>
+                <option value="2">2º semestre (pares)</option>
+              </select>
+            </div>
+          </label>
+          <label>Máx. de disciplinas por semestre: <b id="loadV"></b>
+            <input type="range" id="maxLoad" min="3" max="12">
+          </label>
+          <label>Chance de não cursar uma disciplina (não oferta/choque/reprovação): <b id="failV"></b>
+            <input type="range" id="failRate" min="0" max="60" step="1">
+          </label>
+          <label>Aproveitamento esperado nas avaliações que faltam: <b id="expV"></b>
+            <input type="range" id="expect" min="30" max="95" step="5">
+          </label>
+          <label id="tccBaseLbl">Base dos 75% que liberam o TCC 1
+            <select id="tccBase">
+              <option value="total">Carga total do curso (como a barra de progresso)</option>
+              <option value="obr">Só a carga obrigatória</option>
             </select>
-          </div>
-        </label>
-        <label>Máx. de disciplinas por semestre: <b id="loadV"></b>
-          <input type="range" id="maxLoad" min="3" max="12">
-        </label>
-        <label>Chance de não cursar uma disciplina (não oferta/choque/reprovação): <b id="failV"></b>
-          <input type="range" id="failRate" min="0" max="60" step="1">
-        </label>
-        <label>Aproveitamento esperado nas avaliações que faltam: <b id="expV"></b>
-          <input type="range" id="expect" min="30" max="95" step="5">
-        </label>
-        <label id="tccBaseLbl">Base dos 75% que liberam o TCC 1
-          <select id="tccBase">
-            <option value="total">Carga total do curso (como a barra de progresso)</option>
-            <option value="obr">Só a carga obrigatória</option>
-          </select>
-        </label>
-        <label class="inl"><input type="checkbox" id="parity"> Respeitar oferta par/ímpar</label>
-        <label class="inl"><input type="checkbox" id="ac"> <span id="acLbl">Atividades Complementares concluídas</span></label>
+          </label>
+          <label class="inl"><input type="checkbox" id="parity"> Respeitar oferta par/ímpar</label>
+          <label class="inl"><input type="checkbox" id="ac"> <span id="acLbl">Atividades Complementares
+              concluídas</span></label>
+        </div>
+        <div class="controls" style="margin-top:12px">
+          <button class="pri" id="btnSave">💾 Salvar JSON</button>
+          <button id="btnLoad">📂 Carregar JSON</button>
+          <input type="file" id="fileIn" accept=".json,application/json" hidden>
+          <label>Checkpoint rápido:
+            <select id="quick">
+              <option value="">Marcar tudo até o semestre…</option>
+            </select>
+          </label>
+          <button id="btnClear">Limpar progresso</button>
+          <span class="note" id="saveInfo"></span>
+        </div>
       </div>
-      <div class="controls" style="margin-top:12px">
-        <button class="pri" id="btnSave">💾 Salvar JSON</button>
-        <button id="btnLoad">📂 Carregar JSON</button>
-        <input type="file" id="fileIn" accept=".json,application/json" hidden>
-        <label>Checkpoint rápido:
-          <select id="quick">
-            <option value="">Marcar tudo até o semestre…</option>
-          </select>
-        </label>
-        <button id="btnClear">Limpar progresso</button>
-        <span class="note" id="saveInfo"></span>
-      </div>
-    </div>
     </div>
 
     <div class="tabpane" id="t-cur">
-    <div class="panel">
-      <h3 style="margin:0">📚 Cursando agora · Estatísticas</h3>
-      <div class="cur-add">
-        <select id="curSel"></select>
-        <button class="pri" id="curAdd">+ Adicionar matéria</button>
-        <select id="curSort" title="Ordenar a tabela">
-          <option value="add">Ordem de adição</option>
-          <option value="nome">Nome (A–Z)</option>
-          <option value="prio">Prioridade (Alta → Baixa)</option>
-          <option value="risco">Maior risco primeiro</option>
-        </select>
-        <span class="note" id="curAvg"></span>
+      <div class="panel">
+        <h3 style="margin:0">📚 Cursando agora · Estatísticas</h3>
+        <div class="cur-add">
+          <select id="curSel"></select>
+          <button class="pri" id="curAdd">+ Adicionar matéria</button>
+          <select id="curSort" title="Ordenar a tabela">
+            <option value="add">Ordem de adição</option>
+            <option value="nome">Nome (A–Z)</option>
+            <option value="prio">Prioridade (Alta → Baixa)</option>
+            <option value="risco">Maior risco primeiro</option>
+          </select>
+          <span class="note" id="curAvg"></span>
+        </div>
+        <div class="tblwrap">
+          <table class="st">
+            <thead>
+              <tr>
+                <th>Matéria</th>
+                <th>Nota atual</th>
+                <th>Pontos a receber</th>
+                <th>Faltas</th>
+                <th>Aulas (cumpr. / prev.)</th>
+                <th>Risco de reprovar</th>
+                <th>Prioridade</th>
+                <th>Fase</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="curBody"></tbody>
+          </table>
+        </div>
+        <div class="note" id="curEmpty" style="margin-top:8px">Nenhuma matéria adicionada. Escolha acima as que você
+          está
+          cursando neste semestre.</div>
       </div>
-      <div class="tblwrap">
-        <table class="st">
-          <thead>
-            <tr>
-              <th>Matéria</th>
-              <th>Nota atual</th>
-              <th>Pontos a receber</th>
-              <th>Faltas</th>
-              <th>Aulas (cumpr. / prev.)</th>
-              <th>Risco de reprovar</th>
-              <th>Prioridade</th>
-              <th>Fase</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="curBody"></tbody>
-        </table>
-      </div>
-      <div class="note" id="curEmpty" style="margin-top:8px">Nenhuma matéria adicionada. Escolha acima as que você está
-        cursando neste semestre.</div>
-    </div>
 
     </div>
 
     <div class="tabpane" id="t-hor">
-    <div class="panel">
-      <h3 style="margin:0">🕒 Horários de aulas</h3>
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px"><span class="note"
-          id="horNote"></span><button id="horClear">Limpar grade</button></div>
-      <div class="tblwrap">
-        <table class="st hor" style="min-width:1000px">
-          <thead>
-            <tr>
-              <th>Horas</th>
-              <th>Seg</th>
-              <th>Ter</th>
-              <th>Qua</th>
-              <th>Qui</th>
-              <th>Sex</th>
-            </tr>
-          </thead>
-          <tbody id="horBody"></tbody>
-        </table>
+      <div class="panel">
+        <h3 style="margin:0">🕒 Horários de aulas</h3>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px"><span class="note"
+            id="horNote"></span><button id="horClear">Limpar grade</button></div>
+        <div class="tblwrap">
+          <table class="st hor" style="min-width:1000px">
+            <thead>
+              <tr>
+                <th>Horas</th>
+                <th>Seg</th>
+                <th>Ter</th>
+                <th>Qua</th>
+                <th>Qui</th>
+                <th>Sex</th>
+              </tr>
+            </thead>
+            <tbody id="horBody"></tbody>
+          </table>
+        </div>
       </div>
-    </div>
 
     </div>
 
     <div class="tabpane" id="t-flow">
-    <div class="panel">
-      <div class="legend">
-        <span><i style="background:#12331f;border:1.5px solid var(--ok)"></i>Aprovada (checkpoint)</span>
-        <span><i style="background:var(--panel2);border:1.5px solid var(--av)"></i>Disponível (pré-requisitos ok)</span>
-        <span><i style="background:var(--panel2);border:1.5px solid var(--blk)"></i>Bloqueada</span>
-        <span><i style="background:var(--ext)"></i>Extensão</span>
-        <span><i style="background:var(--panel2);border:1.5px solid var(--warn)"></i>Cursando agora</span>
-        <span>Clique = marca/desmarca aprovação · duplo clique = cursando agora (amarelo) · ★ = escolhe eletiva · passe o mouse = vê a cadeia de
-          pré-requisitos</span>
+      <div class="panel">
+        <div class="legend">
+          <span><i style="background:#12331f;border:1.5px solid var(--ok)"></i>Aprovada (checkpoint)</span>
+          <span><i style="background:var(--panel2);border:1.5px solid var(--av)"></i>Disponível (pré-requisitos
+            ok)</span>
+          <span><i style="background:var(--panel2);border:1.5px solid var(--blk)"></i>Bloqueada</span>
+          <span><i style="background:var(--ext)"></i>Extensão</span>
+          <span><i style="background:var(--panel2);border:1.5px solid var(--warn)"></i>Cursando agora</span>
+          <span>Clique = marca/desmarca aprovação · duplo clique = cursando agora (amarelo) · ★ = escolhe eletiva ·
+            passe o mouse = vê a cadeia de
+            pré-requisitos</span>
+        </div>
       </div>
-    </div>
-    <div id="flowScroll">
-      <div id="flow"><svg id="edges"></svg></div>
-    </div>
+      <div id="flowScroll">
+        <div id="flow"><svg id="edges"></svg></div>
+      </div>
     </div>
 
     <div class="tabpane" id="t-plan">
-    <div class="panel">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-        <h3 style="margin:0">📅 Plano estimado</h3><select id="scen">
-          <option value="0">Passo em tudo que estou cursando</option>
-          <option value="1">Reprovo nas matérias com risco ≥ 50%</option>
-        </select>
+      <div class="panel">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <h3 style="margin:0">📅 Plano estimado</h3><select id="scen">
+            <option value="0">Passo em tudo que estou cursando</option>
+            <option value="1">Reprovo nas matérias com risco ≥ 50%</option>
+          </select>
+        </div>
+        <div id="timeline"></div>
       </div>
-      <div id="timeline"></div>
-    </div>
 
     </div>
 
     <div class="tabpane" id="t-ac">
-    <div class="panel">
-      <h3 style="margin:0">🏅 Atividades Complementares <span class="note" id="acSum"></span></h3>
-      <div class="bar">
-        <div id="acBar"></div>
-      </div>
-      <div id="acManual" style="display:none;margin-top:10px">
-        <label>Horas de atividades complementares já validadas
-          <input type="number" id="acHoras" min="0" step="0.5" style="width:120px">
-        </label>
-        <div class="note">A grade antiga não traz tabela de pontuação neste app; informe o total de horas.</div>
-      </div>
-      <details style="margin-top:10px" id="acDet">
-        <summary>Ver e editar atividades (Anexo III)</summary>
-        <div class="tblwrap">
-          <table class="st" style="min-width:760px">
-            <thead>
-              <tr>
-                <th>Atividade</th>
-                <th>Carga unitária</th>
-                <th>Unidades</th>
-                <th>Obtida</th>
-                <th>Contabilizada</th>
-                <th>Máx.</th>
-              </tr>
-            </thead>
-            <tbody id="acBody"></tbody>
-          </table>
+      <div class="panel">
+        <h3 style="margin:0">🏅 Atividades Complementares <span class="note" id="acSum"></span></h3>
+        <div class="bar">
+          <div id="acBar"></div>
         </div>
-      </details>
-    </div>
+        <div id="acManual" style="display:none;margin-top:10px">
+          <label>Horas de atividades complementares já validadas
+            <input type="number" id="acHoras" min="0" step="0.5" style="width:120px">
+          </label>
+          <div class="note">A grade antiga não traz tabela de pontuação neste app; informe o total de horas.</div>
+        </div>
+        <details style="margin-top:10px" id="acDet">
+          <summary>Ver e editar atividades (Anexo III)</summary>
+          <div class="tblwrap">
+            <table class="st" style="min-width:760px">
+              <thead>
+                <tr>
+                  <th>Atividade</th>
+                  <th>Carga unitária</th>
+                  <th>Unidades</th>
+                  <th>Obtida</th>
+                  <th>Contabilizada</th>
+                  <th>Máx.</th>
+                </tr>
+              </thead>
+              <tbody id="acBody"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
 
     </div>
 
     <div class="tabpane" id="t-help">
-    <div class="panel">
-      <h3 style="margin:0 0 6px">Como a estimativa funciona</h3>
-      <ul class="note">
-        <li>Oferta: no 1º semestre do ano são oferecidas as disciplinas dos semestres <b>ímpares</b> (1,3,5,7) e no 2º
-          as dos <b>pares</b> (2,4,6,8). Perder uma disciplina significa esperar 2 semestres para o próximo
-          oferecimento. Eletivas são consideradas ofertadas todo semestre; o TCC 1 é ofertado no 1º semestre e o TCC 2
-          no 2º.</li>
-        <li>Uma disciplina só entra no semestre seguinte ao da aprovação de todos os seus pré-requisitos. O planejador
-          prioriza as que liberam a maior cadeia de disciplinas (caminho crítico).</li>
-        <li><b>Cenário provável / pessimista</b>: simulação Monte Carlo (1000 rodadas) em que cada disciplina planejada
-          pode falhar com a chance configurada. Mediana = provável; percentil 90 = pessimista.</li>
-        <li>Eletivas: são necessárias 126,6h (2 disciplinas). Use ★ para escolher quais; as demais são sugeridas
-          automaticamente. Optativas (Libras, Sist. Microcontrolados) não contam.</li>
-        <li id="helpTccAnt" style="display:none"><b>Grade antiga:</b> o PPC 2018 não fixa percentual para o TCC (100 h = TCC 1 + TCC 2 de 50 h): ele só deve ser feito por quem conclui o curso nos dois semestres seguintes. Aqui o TCC 1 é liberado quando restam no máximo 2× o limite de disciplinas por semestre (obrigatórias + eletivas). Atividades complementares: 80 h. Eletivas: 126,6 h (2 de 63,3 h). Pré-requisitos "FP1 ou FP2 ou FP3" de Projeto Integrado I foram simplificados para FP1.</li>
-        <li>TCC: o PPC permite iniciar após 75% da carga horária obrigatória; aqui é modelado em duas etapas de 30h: TCC
-          1 (1º semestre, liberado quando 75% foi concluído) e TCC 2 (2º semestre, exige o TCC 1). A base dos 75% é
-          escolhida nos controles: carga total do curso (obrigatórias + eletivas + atividades complementares, como a
-          barra de progresso) ou só a carga obrigatória. Confirme no PPC qual vale.</li>
-        <li>Prazo máximo de integralização pelo PPC: 16 semestres; mínimo: 8.</li>
-        <li><b>Matérias em curso</b> não entram mais como pendentes do próximo semestre: o mínimo assume aprovação em
-          todas, e o provável/pessimista sorteiam o resultado de cada uma pelo risco calculado. Quem reprova volta na
-          próxima oferta (par/ímpar).</li>
-        <li><b>Risco por matéria</b> = faltas + nota. Faltas: limite de 25% das aulas previstas, projetando 60% do seu
-          ritmo atual de faltas nas aulas restantes. Nota: compara o % dos pontos a receber que você precisa tirar para
-          chegar a 6 com o aproveitamento esperado; se a nota máxima possível for ≥ 4, a NAF reduz esse risco em 25%. É
-          uma estimativa, não uma previsão.</li>
-        <li><b>Prioridade automática:</b> Alta quando o risco está entre 15% e 75% (onde o esforço muda o resultado);
-          Baixa quando já está seguro ou praticamente perdido.</li>
-      </ul>
-    </div>
+      <div class="panel">
+        <h3 style="margin:0 0 6px">Como a estimativa funciona</h3>
+        <ul class="note">
+          <li>Oferta: no 1º semestre do ano são oferecidas as disciplinas dos semestres <b>ímpares</b> (1,3,5,7) e no 2º
+            as dos <b>pares</b> (2,4,6,8). Perder uma disciplina significa esperar 2 semestres para o próximo
+            oferecimento. Eletivas são consideradas ofertadas todo semestre; o TCC 1 é ofertado no 1º semestre e o TCC 2
+            no 2º.</li>
+          <li>Uma disciplina só entra no semestre seguinte ao da aprovação de todos os seus pré-requisitos. O planejador
+            prioriza as que liberam a maior cadeia de disciplinas (caminho crítico).</li>
+          <li><b>Cenário provável / pessimista</b>: simulação Monte Carlo (1000 rodadas) em que cada disciplina
+            planejada
+            pode falhar com a chance configurada. Mediana = provável; percentil 90 = pessimista.</li>
+          <li>Eletivas: são necessárias 126,6h (2 disciplinas). Use ★ para escolher quais; as demais são sugeridas
+            automaticamente. Optativas (Libras, Sist. Microcontrolados) não contam.</li>
+          <li id="helpTccAnt" style="display:none"><b>Grade antiga:</b> o PPC 2018 não fixa percentual para o TCC (100 h
+            = TCC 1 + TCC 2 de 50 h): ele só deve ser feito por quem conclui o curso nos dois semestres seguintes. Aqui
+            o TCC 1 é liberado quando restam no máximo 2× o limite de disciplinas por semestre (obrigatórias +
+            eletivas). Atividades complementares: 80 h. Eletivas: 126,6 h (2 de 63,3 h). Pré-requisitos "FP1 ou FP2 ou
+            FP3" de Projeto Integrado I foram simplificados para FP1.</li>
+          <li>TCC: o PPC permite iniciar após 75% da carga horária obrigatória; aqui é modelado em duas etapas de 30h:
+            TCC
+            1 (1º semestre, liberado quando 75% foi concluído) e TCC 2 (2º semestre, exige o TCC 1). A base dos 75% é
+            escolhida nos controles: carga total do curso (obrigatórias + eletivas + atividades complementares, como a
+            barra de progresso) ou só a carga obrigatória. Confirme no PPC qual vale.</li>
+          <li>Prazo máximo de integralização pelo PPC: 16 semestres; mínimo: 8.</li>
+          <li><b>Matérias em curso</b> não entram mais como pendentes do próximo semestre: o mínimo assume aprovação em
+            todas, e o provável/pessimista sorteiam o resultado de cada uma pelo risco calculado. Quem reprova volta na
+            próxima oferta (par/ímpar).</li>
+          <li><b>Risco por matéria</b> = faltas + nota. Faltas: limite de 25% das aulas previstas, projetando 60% do seu
+            ritmo atual de faltas nas aulas restantes. Nota: compara o % dos pontos a receber que você precisa tirar
+            para
+            chegar a 6 com o aproveitamento esperado; se a nota máxima possível for ≥ 4, a NAF reduz esse risco em 25%.
+            É
+            uma estimativa, não uma previsão.</li>
+          <li><b>Prioridade automática:</b> Alta quando o risco está entre 15% e 75% (onde o esforço muda o resultado);
+            Baixa quando já está seguro ou praticamente perdido.</li>
+        </ul>
+      </div>
     </div>
   </div>
 
