@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluxograma — Bacharelado em Ciência da Computação (IFSP Pres. Epitácio)</title>
+<style>
+:root{
+  --bg:#0b1020; --panel:#131a30; --panel2:#1a2340; --line:#2a3560; --txt:#e8ecff; --mut:#8e99c7;
+  --ok:#22c55e; --av:#38bdf8; --blk:#475079; --warn:#f59e0b; --acc:#8b5cf6; --ext:#f472b6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,#1b2450 0,transparent 60%),var(--bg);color:var(--txt);font:14px/1.4 system-ui,Segoe UI,Roboto,sans-serif}
+header{padding:20px 28px 8px}
+h1{margin:0;font-size:22px;letter-spacing:.3px}
+h1 span{background:linear-gradient(90deg,#38bdf8,#8b5cf6);-webkit-background-clip:text;color:transparent}
+.sub{color:var(--mut);margin-top:4px;font-size:13px}
+.wrap{padding:0 28px 40px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi b{display:block;font-size:26px}
+.kpi small{color:var(--mut)}
+.kpi.main b{background:linear-gradient(90deg,#38bdf8,#8b5cf6);-webkit-background-clip:text;color:transparent}
+.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+label{display:flex;flex-direction:column;gap:4px;color:var(--mut);font-size:12px}
+label.inl{flex-direction:row;align-items:center;gap:6px;color:var(--txt);font-size:13px}
+input,select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit}
+input[type=range]{padding:0;width:170px}
+button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:inherit;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--acc);background:#232e56}
+button.pri{background:linear-gradient(90deg,#2563eb,#7c3aed);border:0}
+.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--mut);font-size:12px;margin-top:10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:5px;vertical-align:-2px}
+#flowScroll{overflow:auto;border:1px solid var(--line);border-radius:14px;background:rgba(10,14,30,.6);margin-top:14px}
+#flow{position:relative}
+#edges{position:absolute;left:0;top:0;pointer-events:none}
+.colh{position:absolute;top:10px;width:190px;text-align:center;color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.8px}
+.colh small{display:block;font-weight:400;text-transform:none;letter-spacing:0;opacity:.8}
+.card{position:absolute;width:190px;height:66px;border-radius:12px;padding:8px 10px;background:var(--panel2);border:1.5px solid var(--blk);cursor:pointer;transition:.15s;overflow:hidden;user-select:none}
+.card:hover{transform:translateY(-2px)}
+.card .n{font-weight:600;font-size:12px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding-right:18px}
+.card .m{position:absolute;left:10px;bottom:6px;right:8px;display:flex;justify-content:space-between;font-size:10px;color:var(--mut)}
+.card .plan{background:#0b1020aa;border-radius:6px;padding:0 5px;color:#c4b5fd;font-weight:600}
+.card .chk{position:absolute;right:7px;top:7px;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--blk)}
+.card.passed{background:#12331f;border-color:var(--ok)}
+.card.passed .chk{background:var(--ok);border-color:var(--ok)}
+.card.passed .chk::after{content:"✓";color:#05260f;font-size:11px;font-weight:900;position:absolute;left:2px;top:-2px}
+.card.avail{border-color:var(--av);box-shadow:0 0 12px #38bdf833}
+.card.avail .chk{border-color:var(--av)}
+.card.ext{border-left:5px solid var(--ext)}
+.card.off{opacity:.38}
+.card.dim{opacity:.22}
+.card.hl{box-shadow:0 0 0 2px var(--acc),0 0 18px #8b5cf688;opacity:1}
+.star{position:absolute;right:5px;bottom:2px;background:none;border:0;padding:0 2px;font-size:14px;color:var(--mut)}
+.star.on{color:#facc15}
+path.e{fill:none;stroke:#3a4678;stroke-width:1.4;opacity:.7}
+path.e.pass{stroke:#1f7a43}
+path.e.hl{stroke:var(--acc);stroke-width:2.4;opacity:1}
+path.e.dim{opacity:.07}
+#timeline{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:10px}
+.term{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px}
+.term h4{margin:0 0 6px;font-size:13px;display:flex;justify-content:space-between}
+.term h4 span{color:var(--mut);font-weight:400}
+.term ul{margin:0;padding-left:16px;color:#cfd6ff;font-size:12px}
+.term.last{border-color:var(--acc)}
+.note{color:var(--mut);font-size:12.5px}
+.note li{margin:3px 0}
+.bar{height:10px;background:#0b1020;border-radius:8px;overflow:hidden;margin-top:8px}
+.bar div{height:100%;background:linear-gradient(90deg,#22c55e,#38bdf8)}
+.warn{color:var(--warn)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎓 <span>Fluxograma do Curso</span> — Bacharelado em Ciência da Computação</h1>
+  <div class="sub">IFSP Câmpus Presidente Epitácio · PPC 2022 (vigência 1º/2023) · Dados extraídos do PDF do PPC</div>
+</header>
+<div class="wrap">
+
+  <div class="panel">
+    <div class="controls">
+      <label>Próximo semestre letivo a cursar
+        <div style="display:flex;gap:6px">
+          <input type="number" id="startYear" min="2020" max="2060" style="width:90px">
+          <select id="startHalf"><option value="1">1º semestre (ímpares)</option><option value="2">2º semestre (pares)</option></select>
+        </div>
+      </label>
+      <label>Máx. de disciplinas por semestre: <b id="loadV"></b>
+        <input type="range" id="maxLoad" min="3" max="12">
+      </label>
+      <label>Chance de não cursar uma disciplina (não oferta/choque/reprovação): <b id="failV"></b>
+        <input type="range" id="failRate" min="0" max="60" step="1">
+      </label>
+      <label class="inl"><input type="checkbox" id="parity"> Respeitar oferta par/ímpar</label>
+      <label class="inl"><input type="checkbox" id="ac"> Atividades Complementares (65h) concluídas</label>
+    </div>
+    <div class="controls" style="margin-top:12px">
+      <button class="pri" id="btnSave">💾 Salvar JSON</button>
+      <button id="btnLoad">📂 Carregar JSON</button>
+      <input type="file" id="fileIn" accept=".json,application/json" hidden>
+      <label>Checkpoint rápido:
+        <select id="quick"><option value="">Marcar tudo até o semestre…</option></select>
+      </label>
+      <button id="btnClear">Limpar progresso</button>
+      <span class="note" id="saveInfo"></span>
+    </div>
+    <div class="legend">
+      <span><i style="background:#12331f;border:1.5px solid var(--ok)"></i>Aprovada (checkpoint)</span>
+      <span><i style="background:var(--panel2);border:1.5px solid var(--av)"></i>Disponível (pré-requisitos ok)</span>
+      <span><i style="background:var(--panel2);border:1.5px solid var(--blk)"></i>Bloqueada</span>
+      <span><i style="background:var(--ext)"></i>Extensão</span>
+      <span>Clique = marca/desmarca aprovação · ★ = escolhe eletiva · passe o mouse = vê a cadeia de pré-requisitos</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="grid" id="kpis"></div>
+    <div class="bar"><div id="bar"></div></div>
+  </div>
+
+  <div id="flowScroll"><div id="flow"><svg id="edges"></svg></div></div>
+
+  <div class="panel">
+    <h3 style="margin:0">📅 Plano estimado (cenário mínimo, sem imprevistos)</h3>
+    <div id="timeline"></div>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin:0 0 6px">Como a estimativa funciona</h3>
+    <ul class="note">
+      <li>Oferta: no 1º semestre do ano são oferecidas as disciplinas dos semestres <b>ímpares</b> (1,3,5,7) e no 2º as dos <b>pares</b> (2,4,6,8). Perder uma disciplina significa esperar 2 semestres para o próximo oferecimento. Eletivas e TCC são consideradas ofertadas todo semestre.</li>
+      <li>Uma disciplina só entra no semestre seguinte ao da aprovação de todos os seus pré-requisitos. O planejador prioriza as que liberam a maior cadeia de disciplinas (caminho crítico).</li>
+      <li><b>Cenário provável / pessimista</b>: simulação Monte Carlo (1000 rodadas) em que cada disciplina planejada pode falhar com a chance configurada. Mediana = provável; percentil 90 = pessimista.</li>
+      <li>Eletivas: são necessárias 126,6h (2 disciplinas). Use ★ para escolher quais; as demais são sugeridas automaticamente. Optativas (Libras, Sist. Microcontrolados) não contam.</li>
+      <li>TCC: o PPC permite iniciar após 75% da carga horária obrigatória; aqui é modelado como 1 semestre (TCC1+TCC2 agrupados, 60h) liberado quando 75% foi concluído em semestres anteriores.</li>
+      <li>Prazo máximo de integralização pelo PPC: 16 semestres; mínimo: 8.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// ---------- DADOS (PPC) ----------
+// [sigla, nome, semestre, aulas/semana, extensao?, prereqs[]]
+const RAW = [
+ ["ALP1","Algoritmos e Programação 1",1,4,0,[]],["COEX","Comunicação e Expressão",1,2,0,[]],["EDG1","Eletrônica Digital 1",1,2,0,[]],
+ ["FADM","Fundamentos de Administração",1,2,0,[]],["FMAT","Fundamentos de Matemática",1,4,0,[]],["ICCO","Introdução à Ciência da Computação",1,2,0,[]],
+ ["MDIS","Matemática Discreta",1,2,0,[]],
+ ["ALP2","Algoritmos e Programação 2",2,4,0,["ALP1"]],["AROC","Arquitetura e Organização de Computadores",2,4,0,[]],["CLC1","Cálculo 1",2,4,0,["FMAT"]],
+ ["EDG2","Eletrônica Digital 2",2,4,0,["EDG1"]],["GEPN","Gestão de Processos de Negócio",2,2,0,[]],["INGL","Inglês Técnico",2,2,0,[]],
+ ["EXT1","Atividades de Extensão 1",3,2,1,[]],["BDD1","Banco de Dados 1",3,4,0,[]],["CLC2","Cálculo 2",3,2,0,["FMAT"]],["ENGS","Engenharia de Software",3,4,0,[]],
+ ["EDA1","Estruturas de Dados 1",3,4,0,["ALP2"]],["LMON","Linguagem de Montagem",3,2,0,["AROC"]],["LPRO","Linguagens de Programação",3,4,0,[]],
+ ["POOB","Programação Orientada a Objetos",3,4,0,["ALP1"]],["SOP1","Sistemas Operacionais 1",3,4,0,["ALP2"]],
+ ["APRS","Análise e Projeto de Sistemas",4,4,0,[]],["EXT2","Atividades de Extensão 2",4,4,1,[]],["BDD2","Banco de Dados 2",4,4,0,["BDD1"]],
+ ["EDA2","Estruturas de Dados 2",4,4,0,["EDA1"]],["FPR1","Ferramentas de Programação 1",4,4,0,["POOB","BDD1"]],["GEAN","Geometria Analítica",4,4,0,[]],
+ ["MTPE","Metodologia de Pesquisa",4,2,0,[]],["RCO1","Redes de Computadores 1",4,4,0,[]],["SOP2","Sistemas Operacionais 2",4,4,0,["ALP2"]],
+ ["ALGL","Álgebra Linear",5,2,0,[]],["ACAL","Análise e Complexidade de Algoritmos",5,2,0,["EDA1"]],["EXT3","Atividades de Extensão 3",5,4,1,[]],
+ ["CALN","Cálculo Numérico",5,2,0,[]],["INOV","Empreendedorismo e Inovação",5,4,0,[]],["FPR2","Ferramentas de Programação 2",5,4,0,["FPR1"]],
+ ["GEPR","Gestão de Projetos",5,4,0,[]],["RCO2","Redes de Computadores 2",5,4,0,["RCO1"]],["TECO","Teoria da Computação",5,4,0,[]],
+ ["EXT4","Atividades de Extensão 4",6,4,1,[]],["CPLD","Compiladores",6,4,0,["EDA1","TECO"]],["CGRA","Computação Gráfica",6,4,0,["EDA2","ALGL","GEAN"]],
+ ["FPR3","Ferramentas de Programação 3",6,4,0,["FPR1"]],["INHC","Interação Humano-Computador",6,2,0,[]],["PEST","Probabilidade e Estatística",6,4,0,["CLC2"]],
+ ["SDIS","Sistemas Distribuídos",6,4,0,["RCO2"]],
+ ["IART","Inteligência Artificial",7,4,0,["EDA2"]],["PRI1","Projeto Integrado 1",7,2,1,["APRS","FPR2","GEPR"]],["QSOF","Qualidade de Software",7,4,0,[]],
+ ["SEGC","Segurança Cibernética",7,4,0,["RCO2"]],["TGRA","Teoria dos Grafos",7,4,0,["EDA2"]],["VCOM","Visão Computacional",7,4,0,["EDA2","ALGL","GEAN"]],
+ ["APRM","Aprendizado de Máquina",8,4,0,["IART"]],["CDAD","Ciência de Dados",8,4,0,["PEST"]],["CSOC","Computação e Sociedade",8,2,1,[]],
+ ["GOTI","Governança em TI",8,2,0,[]],["PRI2","Projeto Integrado 2",8,4,1,["PRI1"]],
+ // eletivas (sem = 9) e optativas (sem = 10)
+ ["TPRO","Tópicos em Programação",9,4,0,["ALP2"]],["INFR","Tópicos em Infraestrutura",9,4,0,["RCO2"]],["TCOM","Tópicos em Computação",9,4,0,["APRS"]],
+ ["LIBG","Libras (optativa)",10,2,0,[]],["SMIC","Sist. Microcontrolados (optativa)",10,4,0,["ALP2","EDG2"]],
+ // TCC
+ ["TCC","TCC (TCC1 + TCC2)",11,0,0,[]]
+];
+const HRS = a => a*19*50/60;
+const C = {}; const ORDER=[];
+RAW.forEach(([id,name,sem,aulas,ext,pre])=>{C[id]={id,name,sem,aulas,ext:!!ext,pre,h:id==="TCC"?60:HRS(aulas),kind:sem===9?"el":sem===10?"op":id==="TCC"?"tcc":"ob",kids:[]};ORDER.push(id)});
+ORDER.forEach(id=>C[id].pre.forEach(p=>C[p].kids.push(id)));
+const OBR = ORDER.filter(i=>C[i].kind==="ob");
+const OBR_H = OBR.reduce((s,i)=>s+C[i].h,0);         // ~3102,6h
+const EL_DEFAULT=["TPRO","INFR","TCOM"];
+const ELETIVAS=["TPRO","INFR","TCOM"];
+// prioridade = maior cadeia a jusante
+const depth={}; (function d(){const f=id=>depth[id]??(depth[id]=1+Math.max(0,...C[id].kids.map(f)));ORDER.forEach(f)})();
+// ascendentes / descendentes
+const anc=id=>{const s=new Set();const f=x=>C[x].pre.forEach(p=>{if(!s.has(p)){s.add(p);f(p)}});f(id);return s};
+const desc=id=>{const s=new Set();const f=x=>C[x].kids.forEach(p=>{if(!s.has(p)){s.add(p);f(p)}});f(id);return s};
+
+// ---------- ESTADO ----------
+const now=new Date();
+const defaultState=()=>({version:1,passed:[],electivePlan:[],startYear:now.getMonth()>=6?now.getFullYear()+1:now.getFullYear(),
+  startHalf:now.getMonth()>=6?1:2,maxLoad:9,failRate:20,respectParity:true,acDone:false,savedAt:null});
+let S=defaultState();
+const LS="fluxo-ccomp-v1";
+try{const t=localStorage.getItem(LS);if(t)S={...S,...JSON.parse(t)}}catch(e){}
+let fileHandle=null;
+
+// ---------- SIMULAÇÃO ----------
+const half=k=>((S.startHalf-1+k)%2)+1;
+const label=k=>{const y=S.startYear+Math.floor((S.startHalf-1+k)/2);return y+"/"+half(k)};
+function electivesPlanned(passedSet){
+  const passedEl=ELETIVAS.filter(e=>passedSet.has(e)).length;
+  let need=Math.max(0,2-passedEl);
+  const chosen=[];
+  S.electivePlan.filter(e=>!passedSet.has(e)).forEach(e=>{if(chosen.length<need)chosen.push(e)});
+  EL_DEFAULT.forEach(e=>{if(chosen.length<need&&!passedSet.has(e)&&!chosen.includes(e))chosen.push(e)});
+  return chosen;
+}
+function toPlan(passedSet){
+  const pl=OBR.filter(i=>!passedSet.has(i)).concat(electivesPlanned(passedSet));
+  if(!passedSet.has("TCC"))pl.push("TCC");
+  return pl;
+}
+function simulate(fail){
+  const passed=new Set(S.passed), pending=new Set(toPlan(passed)), terms=[];
+  let done=OBR.filter(i=>passed.has(i)).reduce((s,i)=>s+C[i].h,0);
+  let k=0;
+  while(pending.size&&k<60){
+    const par=half(k);
+    const cand=[...pending].filter(id=>{
+      const c=C[id];
+      if(!c.pre.every(p=>passed.has(p)))return false;
+      if(c.kind==="tcc"&&done<0.75*OBR_H)return false;
+      if(S.respectParity&&c.kind==="ob"&&((c.sem%2)?1:2)!==par)return false;
+      return true;
+    }).sort((a,b)=>depth[b]-depth[a]||C[a].sem-C[b].sem);
+    const take=cand.slice(0,S.maxLoad), got=[];
+    take.forEach(id=>{ if(fail>0&&Math.random()<fail)return; got.push(id)});
+    got.forEach(id=>{pending.delete(id)});
+    terms.push({k,taken:got});
+    got.forEach(id=>{passed.add(id);if(C[id].kind==="ob")done+=C[id].h});
+    k++;
+  }
+  return {terms,n:pending.size?Infinity:terms.length};
+}
+function monte(fail){
+  const arr=[];for(let i=0;i<1000;i++)arr.push(simulate(fail).n);
+  arr.sort((a,b)=>a-b);return {med:arr[500],p90:arr[899]};
+}
+
+// ---------- LAYOUT / RENDER ----------
+const CW=190,CH=66,GX=64,GY=14,X0=20,Y0=56;
+const colOf=c=>c.kind==="ob"?c.sem-1:c.kind==="el"?8:c.kind==="op"?8:9;
+const flow=document.getElementById("flow"), svg=document.getElementById("edges");
+const pos={}; const els={};
+function build(){
+  const rows={};
+  ORDER.forEach(id=>{const c=C[id];const col=colOf(c);rows[col]=(rows[col]||0);
+    let r=rows[col]++; if(c.kind==="op"&&col===8)r+=0.4;
+    pos[id]={x:X0+col*(CW+GX),y:Y0+r*(CH+GY)}});
+  // TCC e AC na última coluna
+  pos["TCC"]={x:X0+9*(CW+GX),y:Y0};
+  const heads=["1º sem","2º sem","3º sem","4º sem","5º sem","6º sem","7º sem","8º sem","Eletivas / Optativas","Conclusão"];
+  heads.forEach((h,i)=>{const d=document.createElement("div");d.className="colh";d.style.left=(X0+i*(CW+GX))+"px";
+    d.innerHTML=h+(i<8?`<small>${i%2?"semestre par":"semestre ímpar"}</small>`:i==8?"<small>126,6h de eletivas</small>":"<small>TCC + Complementares</small>");flow.appendChild(d)});
+  ORDER.forEach(id=>{
+    const c=C[id],p=pos[id],d=document.createElement("div");
+    d.className="card"+(c.ext?" ext":"");d.style.left=p.x+"px";d.style.top=p.y+"px";
+    d.innerHTML=`<div class="chk"></div><div class="n">${c.name}</div><div class="m"><span>${id} · ${c.h.toFixed(1).replace(".",",")}h</span><span class="plan"></span></div>`+(c.kind==="el"?`<button class="star" title="Escolher esta eletiva">★</button>`:"");
+    d.onclick=e=>{ if(e.target.classList.contains("star")){togglePlan(id);return} toggle(id)};
+    d.onmouseenter=()=>hover(id);d.onmouseleave=()=>hover(null);
+    flow.appendChild(d);els[id]=d});
+  const W=X0*2+10*(CW+GX)-GX;flow.style.width=W+"px";flow.style.height=(Y0+9.6*(CH+GY)+20)+"px";
+  svg.setAttribute("width",W);svg.setAttribute("height",parseFloat(flow.style.height));
+  // arestas
+  ORDER.forEach(id=>C[id].pre.forEach(p=>{
+    const a=pos[p],b=pos[id];const x1=a.x+CW,y1=a.y+CH/2,x2=b.x,y2=b.y+CH/2;const dx=Math.max(40,(x2-x1)/2);
+    const e=document.createElementNS("http://www.w3.org/2000/svg","path");
+    e.setAttribute("d",`M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`);e.setAttribute("class","e");e.dataset.f=p;e.dataset.t=id;svg.appendChild(e)}));
+  // TCC: seta de todas obrigatórias do 7º/8º semestre seria poluição; deixado como regra textual
+  els.TCC.querySelector(".n").innerHTML="TCC <span style='font-weight:400;color:var(--mut)'>(libera com 75% da carga)</span>";
+}
+function hover(id){
+  const cards=Object.values(els),edges=[...svg.children];
+  if(!id){cards.forEach(c=>c.classList.remove("dim","hl"));edges.forEach(e=>e.classList.remove("dim","hl"));return}
+  const A=anc(id),D=desc(id);const set=new Set([id,...A,...D]);
+  ORDER.forEach(i=>{els[i].classList.toggle("dim",!set.has(i));els[i].classList.toggle("hl",set.has(i)&&i!==id)});
+  edges.forEach(e=>{const on=set.has(e.dataset.f)&&set.has(e.dataset.t);e.classList.toggle("hl",on);e.classList.toggle("dim",!on)});
+}
+function toggle(id){
+  const P=new Set(S.passed);
+  if(P.has(id)){P.delete(id);desc(id).forEach(x=>P.delete(x))}
+  else{P.add(id);anc(id).forEach(x=>P.add(x))}   // checkpoint: passou nela ⇒ passou nos pré-requisitos
+  S.passed=[...P];update()
+}
+function togglePlan(id){
+  const s=new Set(S.electivePlan);s.has(id)?s.delete(id):s.add(id);S.electivePlan=[...s];update()
+}
+
+let lastPlan=null;
+function update(){
+  const P=new Set(S.passed);
+  const plan=simulate(0);lastPlan=plan;
+  const when={};plan.terms.forEach(t=>t.taken.forEach(id=>when[id]=t.k));
+  const chosen=electivesPlanned(P);
+  ORDER.forEach(id=>{
+    const c=C[id],el=els[id];
+    const ready=c.pre.every(p=>P.has(p));
+    el.classList.toggle("passed",P.has(id));
+    el.classList.toggle("avail",!P.has(id)&&ready&&c.kind!=="tcc");
+    el.classList.toggle("off",(c.kind==="el"&&!P.has(id)&&!chosen.includes(id))||c.kind==="op"&&!P.has(id));
+    const pl=el.querySelector(".plan");
+    pl.textContent=(!P.has(id)&&when[id]!==undefined)?label(when[id]):"";
+    const st=el.querySelector(".star");if(st)st.classList.toggle("on",S.electivePlan.includes(id)||(chosen.includes(id)));
+  });
+  svg.querySelectorAll("path.e").forEach(e=>e.classList.toggle("pass",P.has(e.dataset.f)));
+  // KPIs
+  const doneH=OBR.filter(i=>P.has(i)).reduce((s,i)=>s+C[i].h,0)+ELETIVAS.filter(i=>P.has(i)).slice(0,2).reduce((s,i)=>s+C[i].h,0)+(P.has("TCC")?60:0)+(S.acDone?65:0);
+  const totalH=3354.2, pct=Math.min(100,doneH/totalH*100);
+  const pend=OBR.filter(i=>!P.has(i)).length;
+  const min=plan.n, mc=monte(S.failRate/100);
+  const fin=n=>n===Infinity?"—":label(n-1);
+  const f=n=>n===Infinity?"∞":n;
+  document.getElementById("kpis").innerHTML=`
+   <div class="kpi main"><b>${f(min)} sem.</b><small>Mínimo restante · conclui em ${fin(min)}</small></div>
+   <div class="kpi"><b>${f(mc.med)} sem.</b><small>Provável (${S.failRate}% de falha) · ${fin(mc.med)}</small></div>
+   <div class="kpi"><b class="${mc.p90>16?'warn':''}">${f(mc.p90)} sem.</b><small>Pessimista (P90) · ${fin(mc.p90)}</small></div>
+   <div class="kpi"><b>${pct.toFixed(1).replace(".",",")}%</b><small>${doneH.toFixed(0)}h de ${totalH}h</small></div>
+   <div class="kpi"><b>${pend}</b><small>obrigatórias pendentes</small></div>
+   <div class="kpi"><b>${P.size?[...P].filter(i=>C[i].kind==="ob").length:0}/${OBR.length}</b><small>obrigatórias aprovadas</small></div>`;
+  document.getElementById("bar").style.width=pct+"%";
+  // timeline
+  const T=document.getElementById("timeline");T.innerHTML="";
+  plan.terms.forEach((t,i)=>{if(!t.taken.length&&i<plan.terms.length-1&&false)return;
+    const h=t.taken.reduce((s,id)=>s+C[id].h,0);
+    const d=document.createElement("div");d.className="term"+(i==plan.terms.length-1?" last":"");
+    d.innerHTML=`<h4>${i+1}º período · ${label(t.k)}<span>${t.taken.length} disc. · ${h.toFixed(0)}h</span></h4>`+
+      (t.taken.length?`<ul>${t.taken.map(id=>`<li>${C[id].name}</li>`).join("")}</ul>`:`<div class="note">Nenhuma disciplina disponível neste semestre (espera pela oferta).</div>`);
+    T.appendChild(d)});
+  if(plan.n===Infinity)T.innerHTML="<div class='note warn'>Não foi possível montar o plano (verifique o limite de disciplinas/oferta).</div>";
+  if(!plan.terms.length)T.innerHTML="<div class='note'>🎉 Todas as disciplinas obrigatórias, eletivas e o TCC estão marcados como concluídos. Falta apenas confirmar as atividades complementares se não marcou.</div>";
+  // controles
+  document.getElementById("startYear").value=S.startYear;
+  document.getElementById("startHalf").value=S.startHalf;
+  document.getElementById("maxLoad").value=S.maxLoad;document.getElementById("loadV").textContent=S.maxLoad;
+  document.getElementById("failRate").value=S.failRate;document.getElementById("failV").textContent=S.failRate+"%";
+  document.getElementById("parity").checked=S.respectParity;
+  document.getElementById("ac").checked=S.acDone;
+  persist();
+}
+function persist(){
+  S.savedAt=new Date().toISOString();
+  try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
+  document.getElementById("saveInfo").textContent="Autosave no navegador: "+new Date().toLocaleTimeString()+(fileHandle?" · arquivo vinculado: "+fileHandle.name:"");
+  if(fileHandle&&!persist.busy){persist.busy=true;fileHandle.createWritable().then(w=>w.write(JSON.stringify(S,null,2)).then(()=>w.close())).catch(()=>{}).finally(()=>persist.busy=false)}
+}
+
+// ---------- EVENTOS ----------
+const $=id=>document.getElementById(id);
+$("startYear").onchange=e=>{S.startYear=+e.target.value;update()};
+$("startHalf").onchange=e=>{S.startHalf=+e.target.value;update()};
+$("maxLoad").oninput=e=>{S.maxLoad=+e.target.value;update()};
+$("failRate").oninput=e=>{S.failRate=+e.target.value;update()};
+$("parity").onchange=e=>{S.respectParity=e.target.checked;update()};
+$("ac").onchange=e=>{S.acDone=e.target.checked;update()};
+$("btnClear").onclick=()=>{if(confirm("Limpar todas as aprovações marcadas?")){S.passed=[];S.electivePlan=[];update()}};
+for(let i=1;i<=8;i++){const o=document.createElement("option");o.value=i;o.textContent="…até o "+i+"º semestre";$("quick").appendChild(o)}
+$("quick").onchange=e=>{const n=+e.target.value;if(!n)return;
+  const P=new Set(S.passed);OBR.filter(i=>C[i].sem<=n).forEach(i=>P.add(i));S.passed=[...P];e.target.value="";update()};
+$("btnSave").onclick=async()=>{
+  const txt=JSON.stringify(S,null,2);
+  if(window.showSaveFilePicker){
+    try{fileHandle=await showSaveFilePicker({suggestedName:"estado-curso.json",types:[{description:"JSON",accept:{"application/json":[".json"]}}]});
+      const w=await fileHandle.createWritable();await w.write(txt);await w.close();update();return}catch(e){if(e.name==="AbortError")return}
+  }
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));a.download="estado-curso.json";a.click();
+};
+$("btnLoad").onclick=()=>$("fileIn").click();
+$("fileIn").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+  try{const j=JSON.parse(await f.text());
+    S={...defaultState(),...j,passed:(j.passed||[]).filter(i=>C[i]),electivePlan:(j.electivePlan||[]).filter(i=>C[i])};update()}
+  catch(err){alert("JSON inválido: "+err.message)}
+  e.target.value=""};
+
+build();update();
+</script>
+</body>
+</html>
