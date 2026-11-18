@@ -715,7 +715,7 @@
         <span><i style="background:var(--panel2);border:1.5px solid var(--blk)"></i>Bloqueada</span>
         <span><i style="background:var(--ext)"></i>Extensão</span>
         <span><i style="background:var(--panel2);border:1.5px solid var(--warn)"></i>Cursando agora</span>
-        <span>Clique = marca/desmarca aprovação · ★ = escolhe eletiva · passe o mouse = vê a cadeia de
+        <span>Clique = marca/desmarca aprovação · duplo clique = cursando agora (amarelo) · ★ = escolhe eletiva · passe o mouse = vê a cadeia de
           pré-requisitos</span>
       </div>
     </div>
@@ -1063,7 +1063,20 @@
         const c = C[id], p = pos[id], d = document.createElement("div");
         d.className = "card" + (c.ext ? " ext" : ""); d.style.left = p.x + "px"; d.style.top = p.y + "px";
         d.innerHTML = `<div class="chk"></div><div class="n">${c.name}</div><div class="m"><span>${id} · ${c.h.toFixed(1).replace(".", ",")}h</span><span class="plan"></span></div>` + (c.kind === "el" ? `<button class="star" title="Escolher esta eletiva">★</button>` : "");
-        d.onclick = e => { if (e.target.classList.contains("star")) { togglePlan(id); return } toggle(id) };
+        let clickT = null;
+        d.onclick = e => {
+          if (e.target.classList.contains("star")) { togglePlan(id); return }
+          if (e.detail > 1) return;               // 2º clique do duplo clique: tratado em ondblclick
+          clearTimeout(clickT); clickT = setTimeout(() => toggle(id), 260);
+        };
+        d.ondblclick = e => {
+          if (e.target.classList.contains("star")) return;
+          clearTimeout(clickT);
+          const cur = S.current || [];
+          if (cur.some(r => r.id === id)) S.current = cur.filter(r => r.id !== id);        // 2 cliques de novo = remove de "cursando"
+          else if (!passedSet().has(id) && C[id].kind !== "tcc") S.current = [...cur, fixCur({ id })];
+          update();
+        };
         d.onmouseenter = () => hover(id); d.onmouseleave = () => hover(null);
         flow.appendChild(d); els[id] = d
       });
