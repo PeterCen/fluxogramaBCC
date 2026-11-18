@@ -31,6 +31,7 @@
     <div class="tabs" id="tabs">
       <button data-tab="t-flow">🗺️ Fluxograma</button>
       <button data-tab="t-cur">📚 Cursando agora</button>
+      <button data-tab="t-tr">📝 Trabalhos e Provas</button>
       <button data-tab="t-hor">🕒 Horários</button>
       <button data-tab="t-plan">📅 Plano estimado</button>
       <button data-tab="t-ac">🏅 Atividades Compl.</button>
@@ -121,6 +122,45 @@
           cursando neste semestre.</div>
       </div>
 
+    </div>
+
+    <div class="tabpane" id="t-tr">
+      <div class="panel">
+        <h3 style="margin:0">📝 Trabalhos e Provas · por matéria</h3>
+        <div class="note">Matérias vêm de "Cursando agora". Cadastre cada avaliação; o app calcula importância, urgência e sugere a ordem de execução.</div>
+        <div class="controls" style="margin-top:10px">
+          <label>Matéria<select id="trSubj"></select></label>
+          <label>Tipo<select id="trType"><option>Trabalho</option><option>Prova</option><option>Seminário</option><option>Outro</option></select></label>
+          <label>Título<input id="trTitle" placeholder="ex.: Lista 3" style="width:170px"></label>
+          <label>Entrega / data<input type="date" id="trDue"></label>
+          <label>Pontos que vale<input type="number" id="trPts" min="0" step="0.5" value="2" style="width:90px"></label>
+          <label>Esforço (h)<input type="number" id="trEff" min="0.5" step="0.5" value="3" style="width:80px"></label>
+          <button class="pri" id="trAdd">+ Adicionar</button>
+        </div>
+        <div class="controls" style="margin-top:12px">
+          <label>Horas de estudo por dia: <b id="capV"></b><input type="range" id="trCap" min="1" max="10" step="0.5"></label>
+          <label class="inl"><input type="checkbox" id="trWk"> Estudar nos fins de semana</label>
+        </div>
+      </div>
+      <div class="panel"><h3 style="margin:0 0 4px">📚 Resumo por matéria</h3><div id="trSubjects" class="grid"></div></div>
+      <div class="panel">
+        <h3 style="margin:0 0 4px">🎯 Ordem sugerida de execução</h3>
+        <div class="note">Prioridade = importância (peso na matéria, ajustado pelo risco de reprovar) + urgência (prazo menos o tempo que o esforço exige). Veja "Como funciona".</div>
+        <div class="tblwrap"><table class="st" style="min-width:900px"><thead><tr><th>#</th><th>Atividade</th><th>Prazo</th><th>Pontos</th><th>Importância</th><th>Urgência</th><th>Prioridade</th><th>Início ideal</th><th>Situação</th></tr></thead><tbody id="trRank"></tbody></table></div>
+        <div class="note" id="trEmpty" style="margin-top:8px">Nenhuma atividade pendente.</div>
+      </div>
+      <div class="panel">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <h3 style="margin:0">🗓️ Calendário</h3>
+          <button id="calPrev">◀</button><b id="calTitle" style="min-width:140px;text-align:center"></b><button id="calNext">▶</button><button id="calToday">Hoje</button>
+        </div>
+        <div class="legend"><span><i style="background:#ef4444"></i>Entrega/prova</span><span><i style="background:#2563eb"></i>Trabalhar neste dia (plano)</span><span><i style="background:#22c55e"></i>Concluída</span></div>
+        <div id="cal"></div>
+      </div>
+      <div class="panel">
+        <h3 style="margin:0 0 4px">✏️ Todas as atividades</h3>
+        <div class="tblwrap"><table class="st" style="min-width:980px"><thead><tr><th>Matéria</th><th>Tipo</th><th>Título</th><th>Data</th><th>Vale</th><th>Obtido</th><th>Esforço (h)</th><th>Feita</th><th></th></tr></thead><tbody id="trAll"></tbody></table></div>
+      </div>
     </div>
 
     <div class="tabpane" id="t-hor">
@@ -250,6 +290,7 @@
             uma estimativa, não uma previsão.</li>
           <li><b>Prioridade automática:</b> Alta quando o risco está entre 15% e 75% (onde o esforço muda o resultado);
             Baixa quando já está seguro ou praticamente perdido.</li>
+          <li><b>Trabalhos e Provas — ordem de execução:</b> <i>Importância</i> = peso da atividade na matéria (pontos ÷ total de pontos da matéria, mínimo 10) × (1 + 50% do risco de reprovar na matéria), em escala 0–100. <i>Urgência</i> = 100 quando não há folga; decai com a folga em dias (dias até o prazo − esforço ÷ horas diárias). <i>Prioridade</i> = 55% importância + 45% urgência. O calendário distribui as horas dia a dia: a cada dia recalcula a prioridade e preenche suas horas diárias a partir da atividade mais prioritária; o trabalho termina no dia anterior à entrega. Se as horas não couberem, a atividade aparece como "não cabe".</li>
         </ul>
       </div>
     </div>

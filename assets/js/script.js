@@ -48,7 +48,7 @@ const desc = id => { const s = new Set(); const f = x => C[x].kids.forEach(p => 
 const now = new Date();
 const defaultState = () => ({
     version: 1, curriculo: KEY, passed: [], electivePlan: [], startYear: now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear(),
-    startHalf: now.getMonth() >= 6 ? 1 : 2, maxLoad: 9, failRate: 20, respectParity: true, acDone: false, expect: 70, scen: 0, hor: { cells: {} }, ac: {}, tccBase: "total", curSort: "add", current: [], savedAt: null
+    startHalf: now.getMonth() >= 6 ? 1 : 2, maxLoad: 9, failRate: 20, respectParity: true, acDone: false, expect: 70, scen: 0, hor: { cells: {} }, ac: {}, tccBase: "total", curSort: "add", current: [], tasks: [], cap: 3, weekend: true, savedAt: null
 });
 let S = defaultState();
 const LS = CUR.ls;
@@ -58,6 +58,7 @@ const fixCur = r => {
 };
 try { const t = localStorage.getItem(LS); if (t) S = { ...S, ...JSON.parse(t) } } catch (e) { }
 S.current = (S.current || []).filter(r => C[r.id]).map(fixCur);
+S.tasks = (S.tasks || []).filter(t => C[t.subj]);
 S.passed = (S.passed || []).flatMap(i => i === "TCC" ? ["TCC1", "TCC2"] : [i]).filter(i => C[i]);
 S.electivePlan = (S.electivePlan || []).filter(i => C[i]);
 let fileHandle = null;
@@ -261,7 +262,7 @@ function update() {
     document.getElementById("ac").checked = S.acDone;
     document.getElementById("tccBase").value = S.tccBase || "total"; document.getElementById("expect").value = S.expect; document.getElementById("expV").textContent = S.expect + "%";
     document.getElementById("scen").value = S.scen || 0;
-    renderCurrent(); renderHor(); renderAC();
+    renderCurrent(); renderTasks(); renderHor(); renderAC();
     persist();
 }
 function persist() {
@@ -440,4 +441,114 @@ $("helpTccAnt").style.display = CUR.tccRest ? "" : "none";
 $("curSw").value = KEY;
 $("curSw").onchange = e => { persist(); try { localStorage.setItem("curriculo-ativo", e.target.value) } catch (x) { } location.reload() };
 document.title = "Fluxograma — Ciência da Computação (" + (KEY === "nova" ? "grade nova" : "grade antiga") + ")";
+
+// ---------- TRABALHOS E PROVAS ----------
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const pd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d) };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x };
+const dayDiff = (a, b) => Math.round((pd(ymd(b)) - pd(ymd(a))) / 864e5);
+const dfmt = s => pd(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+const TYPE_ICON = { "Trabalho": "📄", "Prova": "📝", "Seminário": "🎤", "Outro": "📌" };
+let calMonth = new Date(); calMonth.setDate(1);
+
+function subjTotals(id) {
+    const ts = S.tasks.filter(t => t.subj === id);
+    const total = Math.max(10, ts.reduce((s, t) => s + t.pts, 0));
+    return { ts, total, got: ts.reduce((s, t) => s + (t.got != null ? t.got : 0), 0), graded: ts.filter(t => t.got != null).reduce((s, t) => s + t.pts, 0) };
+}
+function importance(t) {
+    const w = t.pts / subjTotals(t.subj).total, cr = (S.current || []).find(r => r.id === t.subj), rp = cr ? risk(cr).p : 0;
+    return Math.min(100, w * 100 * (1 + .5 * rp) * 1.6);   // 1.6: uma prova de 6/10 já ≈ 100
+}
+function urgency(t, today, remH) {
+    const slack = dayDiff(today, pd(t.due)) - remH / (+S.cap || 3);
+    return slack <= 0 ? 100 : 100 / (1 + slack / 3);
+}
+const prioOf = (t, today, remH) => .55 * importance(t) + .45 * urgency(t, today, remH);
+const prioLbl = p => p >= 70 ? ["Crítica", "r"] : p >= 50 ? ["Alta", "y"] : p >= 30 ? ["Média", "b"] : ["Baixa", "g"];
+
+function planTasks() {
+    const today = pd(ymd(new Date())), pend = S.tasks.filter(t => !t.done && t.due).map(t => ({ t, rem: t.eff, start: null, plan: {} }));
+    const cap = +S.cap || 3, pending = [], res = {};
+    let last = today; pend.forEach(p => { const d = pd(p.t.due); if (d > last) last = d });
+    for (let d = new Date(today), n = 0; d <= last && n < 400; d = addDays(d, 1), n++) {
+        const wk = d.getDay() === 0 || d.getDay() === 6;
+        if (wk && !S.weekend) continue;
+        let left = cap;
+        const elig = pend.filter(p => p.rem > 0 && (dayDiff(d, pd(p.t.due)) >= 1 || (dayDiff(today, pd(p.t.due)) <= 0 && dayDiff(d, today) === 0)));
+        elig.sort((a, b) => prioOf(b.t, d, b.rem) - prioOf(a.t, d, a.rem));
+        for (const p of elig) {
+            if (left <= 0) break;
+            const h = Math.min(left, p.rem); p.rem -= h; left -= h;
+            p.plan[ymd(d)] = h; if (!p.start) p.start = ymd(d);
+        }
+    }
+    pend.forEach(p => res[p.t.id] = p);
+    return res;
+}
+function renderTasks() {
+    const cur = S.current || [], T = S.tasks, today = pd(ymd(new Date()));
+    const sel = $("trSubj"), prev = sel.value;
+    sel.innerHTML = cur.map(r => `<option value="${r.id}">${esc(C[r.id].name)}</option>`).join("") || `<option value="">(adicione matérias em "Cursando agora")</option>`;
+    if (prev) sel.value = prev;
+    if (!$("trDue").value) $("trDue").value = ymd(addDays(today, 7));
+    $("trCap").value = S.cap; $("capV").textContent = S.cap + " h"; $("trWk").checked = S.weekend;
+    const plan = planTasks(), pend = T.filter(t => !t.done && t.due);
+    // resumo por matéria
+    const subs = [...new Set(T.map(t => t.subj))];
+    $("trSubjects").innerHTML = subs.length ? subs.map(id => {
+        const s = subjTotals(id), cr = cur.find(r => r.id === id), np = s.ts.filter(t => !t.done).length;
+        const items = s.ts.slice().sort((a, b) => (a.due || "").localeCompare(b.due || "")).map(t => `<li class="${t.done ? "dn" : ""}">${TYPE_ICON[t.type] || "📌"} ${esc(t.title)} · ${t.due ? dfmt(t.due) : "s/ data"} · ${t.got != null ? fmt(t.got) + "/" : ""}${fmt(t.pts)} pts</li>`).join("");
+        return `<div class="kpi"><b style="font-size:15px">${esc(C[id].name)}</b><small>${cr ? "nota atual " + fmt(cr.nota) + " · " : ""}${np} pendente(s)</small>
+<div class="bar" title="pontos obtidos / avaliados / total"><div style="width:${s.got / s.total * 100}%"></div></div>
+<small>${fmt(s.got)} obtidos de ${fmt(s.graded)} corrigidos · ${fmt(s.total)} pts totais</small><ul class="tl">${items}</ul></div>`;
+    }).join("") : `<div class="note">Sem atividades cadastradas.</div>`;
+    // ranking
+    const rows = pend.map(t => { const p = plan[t.id], rem = p ? p.rem : 0, pr = prioOf(t, today, t.eff); return { t, p, rem, pr, im: importance(t), ur: urgency(t, today, t.eff) } }).sort((a, b) => b.pr - a.pr);
+    $("trRank").innerHTML = rows.map((r, i) => {
+        const t = r.t, d = dayDiff(today, pd(t.due)), [lb, cl] = prioLbl(r.pr);
+        const sit = d < 0 ? `<span class="warn">atrasada ${-d}d</span>` : r.rem > .01 ? `<span style="color:#f87171">não cabe (faltam ${fmt(r.rem)} h)</span>` : `<span style="color:var(--ok)">cabe no plano</span>`;
+        return `<tr><td><b>${i + 1}</b></td><td><b>${TYPE_ICON[t.type] || ""} ${esc(t.title)}</b><div class="note">${esc(C[t.subj].name)}</div></td><td>${dfmt(t.due)}<div class="note">${d < 0 ? "vencida" : d === 0 ? "hoje" : "em " + d + " dia(s)"}</div></td><td>${fmt(t.pts)} <span class="note">(${Math.round(t.pts / subjTotals(t.subj).total * 100)}% da matéria)</span></td><td>${Math.round(r.im)}</td><td>${Math.round(r.ur)}</td><td><span class="tag ${cl}" style="padding:2px 8px;border-radius:6px;font-weight:600">${lb} · ${Math.round(r.pr)}</span></td><td>${r.p && r.p.start ? dfmt(r.p.start) : "—"}</td><td>${sit}</td></tr>`;
+    }).join("");
+    $("trEmpty").style.display = rows.length ? "none" : "";
+    // lista completa
+    $("trAll").innerHTML = T.slice().sort((a, b) => (a.due || "").localeCompare(b.due || "")).map(t => `<tr data-id="${t.id}" class="${t.done ? "fin" : ""}"><td>${esc(C[t.subj].name)}</td><td><select data-k="type">${optList(["Trabalho", "Prova", "Seminário", "Outro"], t.type)}</select></td><td><input data-k="title" value="${esc(t.title)}" style="width:150px"></td><td><input type="date" data-k="due" value="${t.due || ""}"></td><td><div class="mini"><input type="number" min="0" step="0.5" data-k="pts" value="${t.pts}"></div></td><td><div class="mini"><input type="number" min="0" step="0.1" data-k="got" value="${t.got ?? ""}" placeholder="—"></div></td><td><div class="mini"><input type="number" min="0.5" step="0.5" data-k="eff" value="${t.eff}"></div></td><td><input type="checkbox" data-k="done" ${t.done ? "checked" : ""}></td><td><button class="x" data-rm title="Remover">✕</button></td></tr>`).join("");
+    renderCal(plan);
+}
+function renderCal(plan) {
+    const y = calMonth.getFullYear(), m = calMonth.getMonth(), todayS = ymd(new Date());
+    $("calTitle").textContent = calMonth.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const first = new Date(y, m, 1), start = addDays(first, -first.getDay()), ev = {};
+    S.tasks.forEach(t => { if (t.due) (ev[t.due] = ev[t.due] || []).push({ k: "due", t }) });
+    Object.values(plan).forEach(p => Object.entries(p.plan).forEach(([d, h]) => (ev[d] = ev[d] || []).push({ k: "work", t: p.t, h, p })));
+    let h = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(d => `<div class="ch">${d}</div>`).join("");
+    for (let i = 0; i < 42; i++) {
+        const d = addDays(start, i), s = ymd(d), items = (ev[s] || []).sort((a, b) => (a.k === "due" ? 0 : 1) - (b.k === "due" ? 0 : 1));
+        h += `<div class="cd${d.getMonth() !== m ? " oth" : ""}${s === todayS ? " tdy" : ""}"><span class="dn">${d.getDate()}</span>` + items.map(e => e.k === "due"
+            ? `<div class="ev due${e.t.done ? " ok" : ""}" title="${esc(C[e.t.subj].name)} · vale ${fmt(e.t.pts)} pts">${TYPE_ICON[e.t.type] || ""} ${esc(e.t.title)}</div>`
+            : `<div class="ev wk" title="${esc(C[e.t.subj].name)}">${fmt(e.h)}h · ${esc(e.t.title)}</div>`).join("") + "</div>";
+    }
+    $("cal").innerHTML = h;
+}
+$("calPrev").onclick = () => { calMonth.setMonth(calMonth.getMonth() - 1); renderTasks() };
+$("calNext").onclick = () => { calMonth.setMonth(calMonth.getMonth() + 1); renderTasks() };
+$("calToday").onclick = () => { calMonth = new Date(); calMonth.setDate(1); renderTasks() };
+$("trCap").oninput = e => { S.cap = +e.target.value; update() };
+$("trWk").onchange = e => { S.weekend = e.target.checked; update() };
+$("trAdd").onclick = () => {
+    const subj = $("trSubj").value, title = $("trTitle").value.trim(), due = $("trDue").value;
+    if (!subj) return alert("Adicione primeiro uma matéria em \"Cursando agora\".");
+    if (!title || !due) return alert("Informe título e data.");
+    S.tasks.push({ id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), subj, type: $("trType").value, title, due, pts: Math.max(0, +$("trPts").value || 0), got: null, eff: Math.max(.5, +$("trEff").value || 1), done: false });
+    $("trTitle").value = ""; update();
+};
+$("trAll").onchange = e => {
+    const tr = e.target.closest("tr"), k = e.target.dataset.k; if (!tr || !k) return;
+    const t = S.tasks.find(x => x.id === tr.dataset.id), v = e.target;
+    t[k] = k === "done" ? v.checked : k === "got" ? (v.value === "" ? null : Math.max(0, +v.value)) : ["pts", "eff"].includes(k) ? Math.max(k === "eff" ? .5 : 0, +v.value || 0) : v.value;
+    if (k === "got" && t.got != null) t.done = true;
+    update();
+};
+$("trAll").onclick = e => { if (!e.target.hasAttribute("data-rm")) return; const id = e.target.closest("tr").dataset.id; S.tasks = S.tasks.filter(x => x.id !== id); update() };
 build(); update();
