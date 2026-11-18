@@ -5,6 +5,11 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 
 ## O que foi feito
 
+- **Duas grades**: seletor no topo alterna entre a grade **nova** (PPC 2022) e a **antiga** (PPC 2018, `PPC-CienciadaComputacao-Epitacio-antiga.pdf`), com as mesmas funcionalidades (fluxograma, cursando agora, horários, plano, atividades complementares). Cada grade tem seu progresso salvo separadamente; o JSON exportado guarda o campo `curriculo`.
+  - Grade antiga: 55 obrigatórias, 9 eletivas (mínimo 2 = 126,6 h), Libras optativa, TCC de 100 h (2×50 h), 80 h de atividades complementares, total 3251 h. O TCC 1 é liberado quando restam no máx. 2× o limite de disciplinas/semestre (o PPC antigo não fixa %). "FP1 ou FP2 ou FP3" de Projeto Integrado I foi simplificado para FP1. Atividades complementares: apenas o total de horas.
+
+- **Abas**: a página é dividida em Fluxograma, Cursando agora, Horários, Plano estimado, Atividades Compl., Configurações e Como funciona. O resumo (KPIs e barra de progresso) fica sempre visível no topo; a última aba usada é lembrada.
+
 - **Fluxograma** com as disciplinas em colunas por semestre (1º ao 8º), eletivas/optativas e TCC, ligadas por setas de pré-requisito.
   - Passar o mouse numa disciplina destaca toda a cadeia de pré-requisitos e das disciplinas que ela libera.
   - Cores: aprovada (verde), disponível (azul), bloqueada (cinza); disciplinas de extensão com faixa rosa.

@@ -563,16 +563,44 @@
       border-color: #ef4444;
       background: #ef444455
     }
+
+    .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line)}
+    .tabs button{border-radius:10px 10px 0 0;color:var(--mut)}
+    .tabs button.act{color:var(--txt);border-color:var(--acc);background:linear-gradient(90deg,#2563eb55,#7c3aed55)}
+    .tabpane{display:none}.tabpane.act{display:block}
   </style>
 </head>
 
 <body>
   <header>
     <h1>🎓 <span>Fluxograma do Curso</span> — Bacharelado em Ciência da Computação</h1>
-    <div class="sub">IFSP Câmpus Presidente Epitácio · PPC 2022 (vigência 1º/2023) · Dados extraídos do PDF do PPC</div>
+    <div class="sub"><span id="subTxt"></span></div>
+    <div class="cur-add" style="margin-top:8px"><label class="inl">Grade curricular:
+      <select id="curSw">
+        <option value="nova">Nova — PPC 2022 (vigência 1º/2023)</option>
+        <option value="antiga">Antiga — PPC 2018 (ingresso até 2022)</option>
+      </select></label></div>
   </header>
   <div class="wrap">
 
+    <div class="panel" id="kpiPanel">
+      <div class="grid" id="kpis"></div>
+      <div class="bar">
+        <div id="bar"></div>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs">
+      <button data-tab="t-flow">🗺️ Fluxograma</button>
+      <button data-tab="t-cur">📚 Cursando agora</button>
+      <button data-tab="t-hor">🕒 Horários</button>
+      <button data-tab="t-plan">📅 Plano estimado</button>
+      <button data-tab="t-ac">🏅 Atividades Compl.</button>
+      <button data-tab="t-cfg">⚙️ Configurações</button>
+      <button data-tab="t-help">❓ Como funciona</button>
+    </div>
+
+    <div class="tabpane" id="t-cfg">
     <div class="panel">
       <div class="controls">
         <label>Próximo semestre letivo a cursar
@@ -593,14 +621,14 @@
         <label>Aproveitamento esperado nas avaliações que faltam: <b id="expV"></b>
           <input type="range" id="expect" min="30" max="95" step="5">
         </label>
-        <label>Base dos 75% que liberam o TCC 1
+        <label id="tccBaseLbl">Base dos 75% que liberam o TCC 1
           <select id="tccBase">
             <option value="total">Carga total do curso (como a barra de progresso)</option>
             <option value="obr">Só a carga obrigatória</option>
           </select>
         </label>
         <label class="inl"><input type="checkbox" id="parity"> Respeitar oferta par/ímpar</label>
-        <label class="inl"><input type="checkbox" id="ac"> Atividades Complementares (65h) concluídas</label>
+        <label class="inl"><input type="checkbox" id="ac"> <span id="acLbl">Atividades Complementares concluídas</span></label>
       </div>
       <div class="controls" style="margin-top:12px">
         <button class="pri" id="btnSave">💾 Salvar JSON</button>
@@ -614,24 +642,10 @@
         <button id="btnClear">Limpar progresso</button>
         <span class="note" id="saveInfo"></span>
       </div>
-      <div class="legend">
-        <span><i style="background:#12331f;border:1.5px solid var(--ok)"></i>Aprovada (checkpoint)</span>
-        <span><i style="background:var(--panel2);border:1.5px solid var(--av)"></i>Disponível (pré-requisitos ok)</span>
-        <span><i style="background:var(--panel2);border:1.5px solid var(--blk)"></i>Bloqueada</span>
-        <span><i style="background:var(--ext)"></i>Extensão</span>
-        <span><i style="background:var(--panel2);border:1.5px solid var(--warn)"></i>Cursando agora</span>
-        <span>Clique = marca/desmarca aprovação · ★ = escolhe eletiva · passe o mouse = vê a cadeia de
-          pré-requisitos</span>
-      </div>
+    </div>
     </div>
 
-    <div class="panel">
-      <div class="grid" id="kpis"></div>
-      <div class="bar">
-        <div id="bar"></div>
-      </div>
-    </div>
-
+    <div class="tabpane" id="t-cur">
     <div class="panel">
       <h3 style="margin:0">📚 Cursando agora · Estatísticas</h3>
       <div class="cur-add">
@@ -667,6 +681,9 @@
         cursando neste semestre.</div>
     </div>
 
+    </div>
+
+    <div class="tabpane" id="t-hor">
     <div class="panel">
       <h3 style="margin:0">🕒 Horários de aulas</h3>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px"><span class="note"
@@ -688,10 +705,26 @@
       </div>
     </div>
 
+    </div>
+
+    <div class="tabpane" id="t-flow">
+    <div class="panel">
+      <div class="legend">
+        <span><i style="background:#12331f;border:1.5px solid var(--ok)"></i>Aprovada (checkpoint)</span>
+        <span><i style="background:var(--panel2);border:1.5px solid var(--av)"></i>Disponível (pré-requisitos ok)</span>
+        <span><i style="background:var(--panel2);border:1.5px solid var(--blk)"></i>Bloqueada</span>
+        <span><i style="background:var(--ext)"></i>Extensão</span>
+        <span><i style="background:var(--panel2);border:1.5px solid var(--warn)"></i>Cursando agora</span>
+        <span>Clique = marca/desmarca aprovação · ★ = escolhe eletiva · passe o mouse = vê a cadeia de
+          pré-requisitos</span>
+      </div>
+    </div>
     <div id="flowScroll">
       <div id="flow"><svg id="edges"></svg></div>
     </div>
+    </div>
 
+    <div class="tabpane" id="t-plan">
     <div class="panel">
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
         <h3 style="margin:0">📅 Plano estimado</h3><select id="scen">
@@ -702,12 +735,21 @@
       <div id="timeline"></div>
     </div>
 
+    </div>
+
+    <div class="tabpane" id="t-ac">
     <div class="panel">
       <h3 style="margin:0">🏅 Atividades Complementares <span class="note" id="acSum"></span></h3>
       <div class="bar">
         <div id="acBar"></div>
       </div>
-      <details style="margin-top:10px">
+      <div id="acManual" style="display:none;margin-top:10px">
+        <label>Horas de atividades complementares já validadas
+          <input type="number" id="acHoras" min="0" step="0.5" style="width:120px">
+        </label>
+        <div class="note">A grade antiga não traz tabela de pontuação neste app; informe o total de horas.</div>
+      </div>
+      <details style="margin-top:10px" id="acDet">
         <summary>Ver e editar atividades (Anexo III)</summary>
         <div class="tblwrap">
           <table class="st" style="min-width:760px">
@@ -727,6 +769,9 @@
       </details>
     </div>
 
+    </div>
+
+    <div class="tabpane" id="t-help">
     <div class="panel">
       <h3 style="margin:0 0 6px">Como a estimativa funciona</h3>
       <ul class="note">
@@ -740,6 +785,7 @@
           pode falhar com a chance configurada. Mediana = provável; percentil 90 = pessimista.</li>
         <li>Eletivas: são necessárias 126,6h (2 disciplinas). Use ★ para escolher quais; as demais são sugeridas
           automaticamente. Optativas (Libras, Sist. Microcontrolados) não contam.</li>
+        <li id="helpTccAnt" style="display:none"><b>Grade antiga:</b> o PPC 2018 não fixa percentual para o TCC (100 h = TCC 1 + TCC 2 de 50 h): ele só deve ser feito por quem conclui o curso nos dois semestres seguintes. Aqui o TCC 1 é liberado quando restam no máximo 2× o limite de disciplinas por semestre (obrigatórias + eletivas). Atividades complementares: 80 h. Eletivas: 126,6 h (2 de 63,3 h). Pré-requisitos "FP1 ou FP2 ou FP3" de Projeto Integrado I foram simplificados para FP1.</li>
         <li>TCC: o PPC permite iniciar após 75% da carga horária obrigatória; aqui é modelado em duas etapas de 30h: TCC
           1 (1º semestre, liberado quando 75% foi concluído) e TCC 2 (2º semestre, exige o TCC 1). A base dos 75% é
           escolhida nos controles: carga total do curso (obrigatórias + eletivas + atividades complementares, como a
@@ -756,12 +802,26 @@
           Baixa quando já está seguro ou praticamente perdido.</li>
       </ul>
     </div>
+    </div>
   </div>
 
   <script>
+    // ---------- ABAS ----------
+    (function () {
+      const btns = [...document.querySelectorAll('#tabs button')];
+      function show(id) {
+        if (!document.getElementById(id)) id = 't-flow';
+        btns.forEach(b => b.classList.toggle('act', b.dataset.tab === id));
+        document.querySelectorAll('.tabpane').forEach(p => p.classList.toggle('act', p.id === id));
+        try { localStorage.setItem('aba-ativa', id) } catch (e) { }
+      }
+      btns.forEach(b => b.onclick = () => show(b.dataset.tab));
+      let a = 't-flow'; try { a = localStorage.getItem('aba-ativa') || a } catch (e) { }
+      show(a);
+    })();
     // ---------- DADOS (PPC) ----------
     // [sigla, nome, semestre, aulas/semana, extensao?, prereqs[]]
-    const RAW = [
+    const RAW_NOVA = [
       //modulo 1
       ["ALP1", "Algoritmos e Programação 1", 1, 4, 0, []], 
       ["COEX", "Comunicação e Expressão", 1, 2, 0, []], 
@@ -838,14 +898,61 @@
       ["TCC1", "TCC 1", 11, 2, 0, []], 
       ["TCC2", "TCC 2", 12, 2, 0, ["TCC1"]]
     ];
+    const RAW_ANTIGA = [
+      // módulo 1
+      ["ADMC1", "Administração", 1, 2, 0, []], ["AP1C1", "Algoritmos e Programação I", 1, 4, 0, []], ["EL1C1", "Eletrônica Digital I", 1, 4, 0, []],
+      ["FMTC1", "Fundamentos de Matemática", 1, 4, 0, []], ["INGC1", "Inglês Instrumental", 1, 4, 0, []], ["ICCC1", "Introdução à Ciência da Computação", 1, 2, 0, []],
+      ["LACC1", "Laboratório de Computação", 1, 2, 0, []], ["LOGC1", "Lógica", 1, 2, 0, []],
+      // módulo 2
+      ["AP2C2", "Algoritmos e Programação II", 2, 6, 0, ["AP1C1"]], ["AOCC2", "Arquitetura e Organização de Computadores", 2, 4, 0, []], ["CL1C2", "Cálculo I", 2, 4, 0, ["FMTC1"]],
+      ["COEC2", "Comunicação e Expressão", 2, 2, 0, []], ["EL2C2", "Eletrônica Digital II", 2, 4, 0, []], ["FDSC2", "Fundamentos de Sistemas", 2, 2, 0, []],
+      ["MADC2", "Matemática Discreta", 2, 2, 0, []], ["MTPC2", "Metodologia de Pesquisa", 2, 2, 0, []],
+      // módulo 3
+      ["BD1C3", "Banco de Dados I", 3, 4, 0, []], ["CL2C3", "Cálculo II", 3, 4, 0, ["CL1C2"]], ["ENGC3", "Engenharia de Software", 3, 4, 0, []],
+      ["ED1C3", "Estruturas de Dados I", 3, 4, 0, ["AP2C2"]], ["GPNC3", "Gestão de Processos de Negócio", 3, 2, 0, []], ["LMOC3", "Linguagem de Montagem", 3, 2, 0, ["AOCC2"]],
+      ["POOC3", "Programação Orientada a Objetos", 3, 4, 0, ["AP1C1"]], ["SOPC3", "Sistemas Operacionais", 3, 4, 0, ["AP2C2"]],
+      // módulo 4
+      ["APSC4", "Análise e Projeto de Sistemas", 4, 4, 0, ["POOC3"]], ["BD2C4", "Banco de Dados II", 4, 4, 0, ["BD1C3"]], ["ED2C4", "Estruturas de Dados II", 4, 4, 0, ["ED1C3"]],
+      ["FP1C4", "Ferramentas de Programação I", 4, 4, 0, ["POOC3", "BD1C3"]], ["FNCC4", "Finanças e Custos", 4, 2, 0, []], ["GEAC4", "Geometria Analítica", 4, 4, 0, []],
+      ["LPRC4", "Linguagens de Programação", 4, 4, 0, ["POOC3"]], ["RC1C4", "Redes de Computadores I", 4, 4, 0, ["EL1C1"]],
+      // módulo 5
+      ["ALIC5", "Álgebra Linear", 5, 4, 0, []], ["CANC5", "Cálculo Numérico", 5, 2, 0, []], ["EMPC5", "Empreendedorismo", 5, 4, 0, []],
+      ["FP2C5", "Ferramentas de Programação II", 5, 4, 0, ["POOC3", "BD1C3"]], ["GPRC5", "Gestão de Projetos", 5, 4, 0, []], ["RC2C5", "Redes de Computadores II", 5, 4, 0, ["EL1C1"]],
+      ["TCOC5", "Teoria da Computação", 5, 4, 0, []], ["TBDC5", "Tópicos em Banco de Dados", 5, 2, 0, ["BD1C3"]],
+      // módulo 6
+      ["CPLC6", "Compiladores", 6, 4, 0, ["ED2C4", "LPRC4", "TCOC5"]], ["CEMC6", "Computação Embarcada", 6, 2, 0, ["AP2C2", "EL2C2"]], ["CGRC6", "Computação Gráfica", 6, 4, 0, ["ED2C4"]],
+      ["FP3C6", "Ferramentas de Programação III", 6, 4, 0, ["POOC3", "BD1C3"]], ["GTIC6", "Gestão da Tecnologia da Informação", 6, 4, 0, []], ["IHCC6", "Interação Humano-Computador", 6, 2, 0, []],
+      ["PREC6", "Probabilidade e Estatística", 6, 4, 0, ["CL2C3"]], ["SIDC6", "Sistemas Distribuídos", 6, 4, 0, ["RC2C5"]],
+      // módulo 7
+      ["IARC7", "Inteligência Artificial", 7, 4, 0, ["ED2C4"]], ["PI1C7", "Projeto Integrado I", 7, 2, 0, ["APSC4", "FP1C4"]], ["QSFC7", "Qualidade de Software", 7, 4, 0, []],
+      ["SEGC7", "Segurança e Auditoria de Sistemas", 7, 4, 0, []], ["TGRC7", "Teoria dos Grafos", 7, 4, 0, ["ED2C4"]],
+      // módulo 8
+      ["CESC8", "Computação e Sociedade", 8, 2, 0, []], ["PI2C8", "Projeto Integrado II", 8, 2, 0, ["PI1C7"]],
+      // eletivas (9) e optativa (10)
+      ["TEPC0", "Tópicos Especiais", 9, 4, 0, ["POOC3"]], ["TPRC0", "Tópicos em Programação", 9, 4, 0, ["BD1C3", "POOC3"]], ["TPWC0", "Tópicos em Programação Web", 9, 4, 0, ["BD1C3", "POOC3"]],
+      ["TSOC0", "Tópicos em Sist. Operacionais", 9, 4, 0, ["SOPC3"]], ["IDSC0", "Implantação de Servidores", 9, 4, 0, ["SOPC3"]], ["TESC0", "Tópicos em Eng. de Software", 9, 4, 0, ["ENGC3"]],
+      ["VCOC0", "Visão Computacional", 9, 4, 0, ["ED2C4"]], ["RENC0", "Redes Neurais Artificiais", 9, 4, 0, ["ED2C4"]], ["CIDC0", "Ciência de Dados", 9, 4, 0, ["BD2C4"]],
+      ["LBSC0", "Libras (optativa)", 10, 2, 0, []],
+      // TCC
+      ["TCC1", "TCC 1", 11, 2, 0, []], ["TCC2", "TCC 2", 12, 2, 0, ["TCC1"]]
+    ];
+    const CURS = {
+      nova: { raw: RAW_NOVA, sub: "IFSP Câmpus Presidente Epitácio · PPC 2022 (vigência 1º/2023) · Dados extraídos do PDF do PPC", ls: "fluxo-ccomp-v1", tccH: 30, acReq: 65, totalH: 3354.2, acTable: true, tccRest: false,
+        eletDef: ["TPRO", "INFR", "TCOM"], eletivas: ["TPRO", "INFR", "TCOM"], tccLbl: "libera com 75% da carga" },
+      antiga: { raw: RAW_ANTIGA, sub: "IFSP Câmpus Presidente Epitácio · PPC 2018 (grade antiga, 3251 h) · Dados extraídos do PDF do PPC antigo", ls: "fluxo-ccomp-v1-antiga", tccH: 50, acReq: 80, totalH: 3251, acTable: false, tccRest: true,
+        eletDef: ["TEPC0", "TPRC0", "TPWC0", "TSOC0", "TESC0", "IDSC0", "VCOC0", "RENC0", "CIDC0"], eletivas: ["TEPC0", "TPRC0", "TPWC0", "TSOC0", "IDSC0", "TESC0", "VCOC0", "RENC0", "CIDC0"], tccLbl: "libera nos 2 últimos semestres" }
+    };
+    let KEY = "nova"; try { KEY = localStorage.getItem("curriculo-ativo") || "nova" } catch (e) { }
+    if (!CURS[KEY]) KEY = "nova";
+    const CUR = CURS[KEY], RAW = CUR.raw;
     const HRS = a => a * 19 * 50 / 60;
     const C = {}; const ORDER = [];
-    RAW.forEach(([id, name, sem, aulas, ext, pre]) => { C[id] = { id, name, sem, aulas, ext: !!ext, pre, h: id.startsWith("TCC") ? 30 : HRS(aulas), kind: sem === 9 ? "el" : sem === 10 ? "op" : id.startsWith("TCC") ? "tcc" : "ob", kids: [] }; ORDER.push(id) });
+    RAW.forEach(([id, name, sem, aulas, ext, pre]) => { C[id] = { id, name, sem, aulas, ext: !!ext, pre, h: id.startsWith("TCC") ? CUR.tccH : HRS(aulas), kind: sem === 9 ? "el" : sem === 10 ? "op" : id.startsWith("TCC") ? "tcc" : "ob", kids: [] }; ORDER.push(id) });
     ORDER.forEach(id => C[id].pre.forEach(p => C[p].kids.push(id)));
     const OBR = ORDER.filter(i => C[i].kind === "ob");
     const OBR_H = OBR.reduce((s, i) => s + C[i].h, 0);         // ~3102,6h
-    const EL_DEFAULT = ["TPRO", "INFR", "TCOM"];
-    const ELETIVAS = ["TPRO", "INFR", "TCOM"];
+    const EL_DEFAULT = CUR.eletDef;
+    const ELETIVAS = CUR.eletivas;
     // prioridade = maior cadeia a jusante
     const depth = {}; (function d() { const f = id => depth[id] ?? (depth[id] = 1 + Math.max(0, ...C[id].kids.map(f))); ORDER.forEach(f) })();
     // ascendentes / descendentes
@@ -855,11 +962,11 @@
     // ---------- ESTADO ----------
     const now = new Date();
     const defaultState = () => ({
-      version: 1, passed: [], electivePlan: [], startYear: now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear(),
+      version: 1, curriculo: KEY, passed: [], electivePlan: [], startYear: now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear(),
       startHalf: now.getMonth() >= 6 ? 1 : 2, maxLoad: 9, failRate: 20, respectParity: true, acDone: false, expect: 70, scen: 0, hor: { cells: {} }, ac: {}, tccBase: "total", curSort: "add", current: [], savedAt: null
     });
     let S = defaultState();
-    const LS = "fluxo-ccomp-v1";
+    const LS = CUR.ls;
     const fixCur = r => {
       const prev = r.prev ?? C[r.id].aulas * 19, cum = r.cum ?? prev, nota = r.nota ?? 0;
       return { id: r.id, nota, pts: r.pts ?? Math.max(0, 10 - nota), prev, cum, falt: r.falt ?? Math.round((1 - (r.freq ?? 100) / 100) * cum), prio: r.prio && r.prio !== "Média" ? r.prio : "Auto", fase: r.fase || "Consumindo" }
@@ -901,7 +1008,8 @@
     // mode 0: passa em tudo que cursa · 1: reprova com risco ≥ 50% · 2: sorteia pelo risco
     const acH = () => S.acDone ? AC_REQ : Math.min(AC_REQ, acTotal());
     const gateH = P => OBR.filter(i => P.has(i)).reduce((a, i) => a + C[i].h, 0) + (S.tccBase === "obr" ? 0 : ELETIVAS.filter(i => P.has(i)).slice(0, 2).reduce((a, i) => a + C[i].h, 0) + acH());
-    const gateNeed = () => 0.75 * (S.tccBase === "obr" ? OBR_H : 3354.2);
+    const gateNeed = () => 0.75 * (S.tccBase === "obr" ? OBR_H : CUR.totalH);
+    const tccOpen = P => CUR.tccRest ? OBR.filter(i => !P.has(i)).length + electivesPlanned(P).length <= 2 * S.maxLoad : gateH(P) >= gateNeed();
     function passedSet() { const P = new Set(S.passed); (S.current || []).forEach(r => { if (r.fase === "Finalizada") { P.add(r.id); anc(r.id).forEach(x => P.add(x)) } }); return P }
     function simulate(fail, mode = 0, rm = riskMap()) {
       const passed = passedSet();
@@ -914,7 +1022,7 @@
         const cand = [...pending].filter(id => {
           const c = C[id];
           if (!c.pre.every(p => passed.has(p))) return false;
-          if (c.kind === "tcc" && gateH(passed) < gateNeed()) return false;
+          if (c.kind === "tcc" && !tccOpen(passed)) return false;
           if (S.respectParity && (c.kind === "ob" || c.kind === "tcc") && ((c.sem % 2) ? 1 : 2) !== par) return false;
           return true;
         }).sort((a, b) => depth[b] - depth[a] || C[a].sem - C[b].sem);
@@ -959,7 +1067,7 @@
         d.onmouseenter = () => hover(id); d.onmouseleave = () => hover(null);
         flow.appendChild(d); els[id] = d
       });
-      const W = X0 * 2 + 10 * (CW + GX) - GX; flow.style.width = W + "px"; flow.style.height = (Y0 + 9.6 * (CH + GY) + 20) + "px";
+      const W = X0 * 2 + 10 * (CW + GX) - GX; flow.style.width = W + "px"; flow.style.height = (Y0 + (Math.max(...Object.values(rows)) + 0.6) * (CH + GY) + 20) + "px";
       svg.setAttribute("width", W); svg.setAttribute("height", parseFloat(flow.style.height));
       // arestas
       ORDER.forEach(id => C[id].pre.forEach(p => {
@@ -968,7 +1076,7 @@
         e.setAttribute("d", `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`); e.setAttribute("class", "e"); e.dataset.f = p; e.dataset.t = id; svg.appendChild(e)
       }));
       // TCC: seta de todas obrigatórias do 7º/8º semestre seria poluição; deixado como regra textual
-      els.TCC1.querySelector(".n").innerHTML = "TCC 1 <span style='font-weight:400;color:var(--mut)'>(libera com 75% da carga)</span>";
+      els.TCC1.querySelector(".n").innerHTML = `TCC 1 <span style='font-weight:400;color:var(--mut)'>(${CUR.tccLbl})</span>`;
     }
     function hover(id) {
       const cards = Object.values(els), edges = [...svg.children];
@@ -1020,8 +1128,8 @@
       });
       svg.querySelectorAll("path.e").forEach(e => e.classList.toggle("pass", P.has(e.dataset.f)));
       // KPIs
-      const doneH = OBR.filter(i => P.has(i)).reduce((s, i) => s + C[i].h, 0) + ELETIVAS.filter(i => P.has(i)).slice(0, 2).reduce((s, i) => s + C[i].h, 0) + (P.has("TCC1") ? 30 : 0) + (P.has("TCC2") ? 30 : 0) + (S.acDone ? 65 : Math.min(65, acTotal()));
-      const totalH = 3354.2, pct = Math.min(100.0, doneH / totalH * 100.0);
+      const doneH = OBR.filter(i => P.has(i)).reduce((s, i) => s + C[i].h, 0) + ELETIVAS.filter(i => P.has(i)).slice(0, 2).reduce((s, i) => s + C[i].h, 0) + (P.has("TCC1") ? CUR.tccH : 0) + (P.has("TCC2") ? CUR.tccH : 0) + (S.acDone ? AC_REQ : Math.min(AC_REQ, acTotal()));
+      const totalH = CUR.totalH, pct = Math.min(100.0, doneH / totalH * 100.0);
       const pend = OBR.filter(i => !P.has(i)).length;
       const min = best.n, mc = monte(S.failRate / 100), exp = (S.current || []).filter(r => !P.has(r.id)).reduce((s, r) => s + risk(r).p, 0);
       const fin = n => n === Infinity ? "—" : label(n - 1);
@@ -1098,6 +1206,7 @@
       const f = e.target.files[0]; if (!f) return;
       try {
         const j = JSON.parse(await f.text());
+        if ((j.curriculo || "nova") !== KEY) { localStorage.setItem(CURS[j.curriculo || "nova"].ls, JSON.stringify(j)); localStorage.setItem("curriculo-ativo", j.curriculo || "nova"); location.reload(); return }
         S = { ...defaultState(), ...j, passed: (j.passed || []).filter(i => C[i]), electivePlan: (j.electivePlan || []).filter(i => C[i]), current: (j.current || []).filter(r => C[r.id]).map(fixCur) }; update()
       }
       catch (err) { alert("JSON inválido: " + err.message) }
@@ -1187,7 +1296,7 @@
 
     // ---------- ATIVIDADES COMPLEMENTARES (Anexo III) ----------
     // [seção, atividade, h por unidade, unidade, máx. de horas, máx. de unidades, grupo (máx. compartilhado)]
-    const AC_REQ = 65, AC_SEC = { I: "Pesquisa e inovação tecnológica", II: "Extensão", III: "Ensino", IV: "Outras atividades" };
+    const AC_REQ = CUR.acReq, AC_SEC = { I: "Pesquisa e inovação tecnológica", II: "Extensão", III: "Ensino", IV: "Outras atividades" };
     const AC = [
       ["I", "Artigo completo em revista internacional", 40, "artigo", 40, 1, "A"], ["I", "Artigo completo em revista nacional", 30, "artigo", 40, 1, "A"],
       ["I", "Artigo completo em anais de evento internacional", 40, "artigo", 40, 1, "A"], ["I", "Artigo completo em anais de evento nacional", 30, "artigo", 40, 1, "A"],
@@ -1202,14 +1311,18 @@
       ["III", "Curso ou palestra da área (fora das semanas)", 1, "hora", 10, 10], ["III", "Treinamento de maratona (mais de 80% dos encontros)", 10, "participação", 10, 1],
       ["IV", "Aplicação desenvolvida e implantada", 10, "aplicação", 10, 1], ["IV", "ENADE – realização da prova", 10, "prova", 10, 1], ["IV", "POSCOMP – realização da prova", 5, "prova", 5, 1]];
     function acCalc() {
+      if (!CUR.acTable) return { rows: [], g: {}, tot: +S.acHoras || 0 };
       const g = {}, rows = AC.map((a, i) => { const u = Math.min(+S.ac[i] || 0, a[5]), ob = u * a[2], k = a[6] || "i" + i; (g[k] = g[k] || { ob: 0, max: a[4] }).ob += ob; return { u, ob, k } });
       let tot = 0; Object.values(g).forEach(x => { x.ct = Math.min(x.ob, x.max); tot += x.ct });
       return { rows, g, tot };
     }
     const acTotal = () => acCalc().tot;
     function renderAC() {
+      document.getElementById("acDet").style.display = CUR.acTable ? "" : "none";
+      document.getElementById("acManual").style.display = CUR.acTable ? "none" : "";
+      document.getElementById("acHoras").value = S.acHoras || "";
       const { rows, g, tot } = acCalc(), seen = {}; let sec = "", h = "";
-      AC.forEach((a, i) => {
+      (CUR.acTable ? AC : []).forEach((a, i) => {
         const r = rows[i], v = +S.ac[i] || 0;
         if (a[0] !== sec) { sec = a[0]; h += `<tr class="sec"><td colspan="6"><b>${sec} – ${AC_SEC[sec]}</b></td></tr>` }
         const f = !seen[r.k]; seen[r.k] = 1;
@@ -1219,8 +1332,16 @@
       document.getElementById("acBar").style.width = Math.min(100, tot / AC_REQ * 100) + "%";
       document.getElementById("acSum").textContent = `${fmt(tot)} h de ${AC_REQ} h` + (tot >= AC_REQ ? " · meta atingida ✓" : ` · faltam ${fmt(AC_REQ - tot)} h`);
     }
+    document.getElementById("acHoras").onchange = e => { S.acHoras = Math.max(0, parseFloat(e.target.value) || 0); update() };
     document.getElementById("acBody").onchange = e => { const i = e.target.dataset.ac; if (i == null) return; S.ac[i] = Math.max(0, parseFloat(e.target.value) || 0); update() };
 
+    $("subTxt").textContent = CUR.sub;
+    $("acLbl").textContent = `Atividades Complementares (${AC_REQ}h) concluídas`;
+    $("tccBaseLbl").style.display = CUR.tccRest ? "none" : "";
+    $("helpTccAnt").style.display = CUR.tccRest ? "" : "none";
+    $("curSw").value = KEY;
+    $("curSw").onchange = e => { persist(); try { localStorage.setItem("curriculo-ativo", e.target.value) } catch (x) { } location.reload() };
+    document.title = "Fluxograma — Ciência da Computação (" + (KEY === "nova" ? "grade nova" : "grade antiga") + ")";
     build(); update();
   </script>
 </body>
