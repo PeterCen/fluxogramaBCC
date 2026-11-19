@@ -22,7 +22,7 @@ if (fbForm) {
 
         const endpoint = CONFIG?.FEEDBACK_URL;
         if (!endpoint || endpoint.includes("SEU_ID")) {
-            showStatus("⚠️ Endpoint do formulário não configurado em config.js", "warn");
+            showStatus("Endpoint do formulário não configurado em config.js", "warn");
             return;
         }
 
@@ -53,13 +53,13 @@ if (fbForm) {
             } else {
                 const data = await resp.json().catch(() => ({}));
                 const errText = data?.errors?.[0]?.message || "Ocorreu um erro ao enviar. Tente novamente mais tarde.";
-                showStatus(`❌ ${errText}`, "err");
+                showStatus(`${errText}`, "err");
             }
         } catch (err) {
-            showStatus("❌ Falha na conexão ao enviar. Verifique sua internet.", "err");
+            showStatus("Falha na conexão ao enviar. Verifique sua internet.", "err");
         } finally {
             sendBtn.disabled = false;
-            sendBtn.textContent = "📨 Enviar Mensagem";
+            sendBtn.textContent = "Enviar Mensagem";
         }
     };
 }

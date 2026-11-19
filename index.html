@@ -145,7 +145,7 @@
             </div>
           </div>
           <div class="tr-action-btns">
-            <button class="pri" id="btnToggleForm" title="Cadastrar uma prova, trabalho ou tarefa">+ Nova Avaliação / Tarefa</button>
+            <button class="pri" id="btnToggleForm" title="Cadastrar uma prova, trabalho ou tarefa">Adicionar</button>
           </div>
         </div>
 
@@ -161,8 +161,8 @@
             </label>
             <label>Tipo de avaliação
               <select id="trType">
-                <option value="Prova">📝 Prova</option>
                 <option value="Trabalho">📄 Trabalho</option>
+                <option value="Prova">📝 Prova</option>
                 <option value="Seminário">🎤 Seminário</option>
                 <option value="Outro">📌 Outro</option>
               </select>
@@ -191,7 +191,7 @@
             </label>
           </div>
           <div class="tr-form-actions">
-            <button class="pri" id="trAdd" title="Salva esta avaliação">Salvar Avaliação</button>
+            <button class="pri" id="trAdd" title="Salva esta avaliação">Salvar</button>
             <button type="button" id="trCancel" title="Fecha o formulário sem salvar">Cancelar</button>
           </div>
         </div>
@@ -215,8 +215,8 @@
               <option value="Outro">Outros</option>
             </select>
             <select id="trFilterStatus" title="Filtrar por status">
-              <option value="unresolved" selected>⏳ Não avaliadas (A Fazer + Avaliando)</option>
               <option value="all">Todas as atividades</option>
+              <option value="unresolved" selected>⏳ Não avaliadas (A Fazer + Avaliando)</option>
               <option value="pendente">⏳ Apenas A Fazer</option>
               <option value="avaliando">🔍 Apenas Avaliando</option>
               <option value="avaliada">✅ Apenas Avaliadas</option>
@@ -477,7 +477,7 @@
         <div class="fb-footer">
           <div id="fbStatus" class="fb-status"></div>
           <button type="submit" class="pri fb-submit-btn" id="fbSend" title="Enviar feedback">
-            📨 Enviar Mensagem
+            Enviar Mensagem
           </button>
         </div>
       </form>
