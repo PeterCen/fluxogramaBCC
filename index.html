@@ -29,14 +29,14 @@
     </div>
 
     <div class="tabs" id="tabs">
-      <button data-tab="t-flow">🗺️ Fluxograma</button>
-      <button data-tab="t-cur">📚 Cursando agora</button>
-      <button data-tab="t-tr">📝 Tarefas, Provas e Notas</button>
-      <button data-tab="t-hor">🕒 Horários</button>
-      <button data-tab="t-plan">📅 Plano estimado</button>
-      <button data-tab="t-ac">🏅 Atividades Compl.</button>
-      <button data-tab="t-cfg">⚙️ Configurações</button>
-      <button data-tab="t-help">❓ Como funciona</button>
+      <button data-tab="t-flow" title="Mapa das disciplinas por semestre, com pré-requisitos">🗺️ Fluxograma</button>
+      <button data-tab="t-cur" title="Matérias deste semestre: notas, faltas e risco de reprovar">📚 Cursando agora</button>
+      <button data-tab="t-tr" title="Provas e trabalhos, com prioridade sugerida e calendário">📝 Tarefas, Provas e Notas</button>
+      <button data-tab="t-hor" title="Grade semanal de aulas e salas">🕒 Horários</button>
+      <button data-tab="t-plan" title="Previsão de quando você conclui o curso">📅 Plano estimado</button>
+      <button data-tab="t-ac" title="Horas de atividades complementares">🏅 Atividades Compl.</button>
+      <button data-tab="t-cfg" title="Ajustes do plano, salvar/carregar progresso">⚙️ Configurações</button>
+      <button data-tab="t-help" title="Regras e simplificações do modelo">❓ Como funciona</button>
       <button data-tab="t-feedback" title="Mandar sugestão ou relatar problema">💬 Feedback</button>
     </div>
 
@@ -52,36 +52,41 @@
                 <option value="2">2º semestre (pares)</option>
               </select>
             </div>
+            <span class="hint">Semestre em que você vai começar as próximas matérias. A previsão do plano parte daqui.</span>
           </label>
           <label>Máx. de disciplinas por semestre: <b id="loadV"></b>
             <input type="range" id="maxLoad" min="3" max="12">
+            <span class="hint">Quantas matérias você aguenta fazer no mesmo semestre. Quanto maior, mais rápido termina o curso no plano.</span>
           </label>
           <label>Chance de não cursar uma disciplina (não oferta/choque/reprovação): <b id="failV"></b>
             <input type="range" id="failRate" min="0" max="60" step="1">
+            <span class="hint">Probabilidade de cada matéria não ser concluída no semestre planejado. Só afeta os cenários "provável" e "pessimista". Se não souber, deixe como está.</span>
           </label>
           <label>Aproveitamento esperado nas avaliações que faltam: <b id="expV"></b>
             <input type="range" id="expect" min="30" max="95" step="5">
+            <span class="hint">Quanto % dos pontos que ainda faltam você acha que vai conseguir. Ex.: 70% = tirar 7 em cada 10 pontos restantes. Usado no risco de reprovar.</span>
           </label>
           <label id="tccBaseLbl">Base dos 75% que liberam o TCC 1
             <select id="tccBase">
               <option value="total">Carga total do curso (como a barra de progresso)</option>
               <option value="obr">Só a carga obrigatória</option>
             </select>
+            <span class="hint">O TCC 1 só é liberado após cumprir 75% do curso. Escolha sobre qual carga horária esse percentual é calculado.</span>
           </label>
-          <label class="inl"><input type="checkbox" id="parity"> Respeitar oferta par/ímpar</label>
+          <label class="inl"><input type="checkbox" id="parity"> Respeitar oferta par/ímpar <span class="hint">Marcado: matérias de semestre ímpar só são oferecidas no 1º semestre do ano, e as pares no 2º.</span></label>
           <label class="inl"><input type="checkbox" id="ac"> <span id="acLbl">Atividades Complementares
-              concluídas</span></label>
+              concluídas</span> <span class="hint">Marque se já cumpriu as horas exigidas. Detalhe as horas na aba Atividades Compl.</span></label>
         </div>
         <div class="controls" style="margin-top:12px">
-          <button class="pri" id="btnSave">💾 Salvar JSON</button>
-          <button id="btnLoad">📂 Carregar JSON</button>
+          <button class="pri" id="btnSave" title="Baixa um arquivo JSON com todo o seu progresso">💾 Salvar JSON</button>
+          <button id="btnLoad" title="Carrega um JSON salvo anteriormente (substitui o progresso atual)">📂 Carregar JSON</button>
           <input type="file" id="fileIn" accept=".json,application/json" hidden>
-          <label>Checkpoint rápido:
+          <label title="Marca como aprovadas todas as matérias dos semestres anteriores de uma vez">Checkpoint rápido:
             <select id="quick">
               <option value="">Marcar tudo até o semestre…</option>
             </select>
           </label>
-          <button id="btnClear">Limpar progresso</button>
+          <button id="btnClear" title="Apaga todo o progresso desta grade">Limpar progresso</button>
           <span class="note" id="saveInfo"></span>
         </div>
       </div>
@@ -93,7 +98,7 @@
         <h3 style="margin:0">📚 Cursando agora · Estatísticas</h3>
         <div class="cur-add">
           <select id="curSel"></select>
-          <button class="pri" id="curAdd">+ Adicionar matéria</button>
+          <button class="pri" id="curAdd" title="Adiciona a matéria escolhida à lista de cursando agora">+ Adicionar matéria</button>
           <select id="curSort" title="Ordenar a tabela">
             <option value="add">Ordem de adição</option>
             <option value="nome">Nome (A–Z)</option>
@@ -102,18 +107,19 @@
           </select>
           <span class="note" id="curAvg"></span>
         </div>
+        <div class="note" style="margin-top:6px">💡 Passe o mouse (ou toque) em <b>?</b> nos títulos das colunas para ver o que preencher. Campos em vermelho precisam de atenção.</div>
         <div class="tblwrap">
           <table class="st">
             <thead>
               <tr>
                 <th>Matéria</th>
-                <th>Nota atual</th>
-                <th>Pontos a receber</th>
-                <th>Faltas</th>
-                <th>Aulas (cumpr. / prev.)</th>
-                <th>Risco de reprovar</th>
-                <th>Prioridade</th>
-                <th>Fase</th>
+                <th title="Média atual da matéria (0 a 10). A aprovação exige 6.">Nota atual <span class="q">?</span></th>
+                <th title="Pontos das avaliações que ainda não aconteceram. Ex.: se faltam uma prova de 3 pts e um trabalho de 2 pts, preencha 5.">Pontos a receber <span class="q">?</span></th>
+                <th title="Número de aulas que você já faltou. O limite é 25% das aulas previstas.">Faltas <span class="q">?</span></th>
+                <th title="Aulas já dadas / total previsto no semestre">Aulas (cumpr. / prev.) <span class="q">?</span></th>
+                <th title="Estimativa combinando faltas e nota. Não é uma previsão exata.">Risco de reprovar <span class="q">?</span></th>
+                <th title="Auto: o sistema decide (Alta quando há risco, mas ainda dá para reverter). Ou escolha manualmente.">Prioridade <span class="q">?</span></th>
+                <th title="Consumindo: em andamento · Revisando: só falta revisar/NAF · Finalizada: matéria concluída">Fase <span class="q">?</span></th>
                 <th></th>
               </tr>
             </thead>
@@ -139,7 +145,7 @@
             </div>
           </div>
           <div class="tr-action-btns">
-            <button class="pri" id="btnToggleForm">+ Nova Avaliação / Tarefa</button>
+            <button class="pri" id="btnToggleForm" title="Cadastrar uma prova, trabalho ou tarefa">+ Nova Avaliação / Tarefa</button>
           </div>
         </div>
 
@@ -185,17 +191,17 @@
             </label>
           </div>
           <div class="tr-form-actions">
-            <button class="pri" id="trAdd">Salvar Avaliação</button>
-            <button type="button" id="trCancel">Cancelar</button>
+            <button class="pri" id="trAdd" title="Salva esta avaliação">Salvar Avaliação</button>
+            <button type="button" id="trCancel" title="Fecha o formulário sem salvar">Cancelar</button>
           </div>
         </div>
 
         <!-- Barra de Modos de Exibição e Filtros -->
         <div class="tr-toolbar">
           <div class="tr-views" id="trViewSw">
-            <button class="tr-v-btn act" data-v="list">📋 Lista de Atividades</button>
-            <button class="tr-v-btn" data-v="subjects">📚 Por Matéria &amp; Notas</button>
-            <button class="tr-v-btn" data-v="cal">🗓️ Calendário &amp; Planejador</button>
+            <button class="tr-v-btn act" data-v="list" title="Todas as avaliações em uma lista ordenada por prioridade">📋 Lista de Atividades</button>
+            <button class="tr-v-btn" data-v="subjects" title="Notas e pontos por matéria">📚 Por Matéria &amp; Notas</button>
+            <button class="tr-v-btn" data-v="cal" title="Calendário mensal com as horas de estudo planejadas">🗓️ Calendário &amp; Planejador</button>
           </div>
           <div class="tr-filters">
             <select id="trFilterSubj" title="Filtrar por matéria">
@@ -278,10 +284,10 @@
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px">
           <div style="display:flex;gap:10px;align-items:center">
             <h3 style="margin:0">🗓️ Calendário e Distribuição de Estudo</h3>
-            <button id="calPrev">◀</button>
+            <button id="calPrev" title="Mês anterior">◀</button>
             <b id="calTitle" style="min-width:140px;text-align:center"></b>
-            <button id="calNext">▶</button>
-            <button id="calToday">Hoje</button>
+            <button id="calNext" title="Próximo mês">▶</button>
+            <button id="calToday" title="Voltar para o mês atual">Hoje</button>
           </div>
           <div class="controls" style="margin:0;align-items:center">
             <label class="inl">Horas de estudo/dia: <b id="capV" style="margin:0 4px"></b>
@@ -304,7 +310,7 @@
       <div class="panel">
         <h3 style="margin:0">🕒 Horários de aulas</h3>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px"><span class="note"
-            id="horNote"></span><button id="horClear">Limpar grade</button></div>
+            id="horNote"></span><button id="horClear" title="Apaga todas as aulas e salas da grade">Limpar grade</button></div>
         <div class="tblwrap">
           <table class="st hor" style="min-width:1000px">
             <thead>
@@ -327,6 +333,7 @@
     <!-- Campo Fluxograma -->
     <div class="tabpane" id="t-flow">
       <div class="panel">
+        <div class="note" style="margin-bottom:6px">💡 <b>Clique</b> numa disciplina para marcar como aprovada · <b>clique duplo</b> para marcar como "cursando agora" · passe o mouse para ver pré-requisitos e o que ela libera.</div>
         <div class="legend">
           <span><i style="background:#12331f;border:1.5px solid var(--ok)"></i>Aprovada (checkpoint)</span>
           <span><i style="background:var(--panel2);border:1.5px solid var(--av)"></i>Disponível (pré-requisitos
@@ -469,7 +476,7 @@
 
         <div class="fb-footer">
           <div id="fbStatus" class="fb-status"></div>
-          <button type="submit" class="pri fb-submit-btn" id="fbSend">
+          <button type="submit" class="pri fb-submit-btn" id="fbSend" title="Enviar feedback">
             📨 Enviar Mensagem
           </button>
         </div>

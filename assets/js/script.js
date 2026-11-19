@@ -450,6 +450,12 @@ document.getElementById("curAdd").onclick = () => {
     const id = document.getElementById("curSel").value; if (!id) return;
     S.current = [...(S.current || []), fixCur({ id })]; update()
 };
+function toast(msg) {
+    let t = document.getElementById("toast");
+    if (!t) { t = document.createElement("div"); t.id = "toast"; t.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#7f1d1d;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;z-index:9999"; document.body.appendChild(t) }
+    t.textContent = "⚠️ " + msg; t.style.display = "block";
+    clearTimeout(t._t); t._t = setTimeout(() => t.style.display = "none", 3500);
+}
 const cb = document.getElementById("curBody");
 cb.onchange = e => {
     const tr = e.target.closest("tr"), k = e.target.dataset.k; if (!tr || !k) return;
@@ -457,7 +463,12 @@ cb.onchange = e => {
     if (k === "nota" || k === "pts") {
         r.autoGrade = false;
     }
-    r[k] = e.target.type === "number" ? Math.max(0, parseFloat(e.target.value) || 0) : e.target.value; update()
+    let v = e.target.type === "number" ? Math.max(0, parseFloat(e.target.value) || 0) : e.target.value;
+    if ((k === "nota" || k === "pts") && v > 10) { v = 10; toast("Valor máximo é 10."); }
+    r[k] = v;
+    if (k === "cum" && r.prev && r.cum > r.prev) toast("Aulas cumpridas não podem passar das aulas previstas.");
+    if (k === "falt" && r.prev && r.falt > r.prev) toast("Faltas não podem passar das aulas previstas.");
+    update()
 };
 cb.onclick = e => {
     const act = e.target.dataset.act;
