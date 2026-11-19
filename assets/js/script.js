@@ -241,7 +241,7 @@ function toggle(id) {
     }
     else {
         P.add(id);
-        //anc(id).forEach(x => P.add(x)) 
+        anc(id).forEach(x => P.add(x)) 
     }   // checkpoint: passou nela ⇒ passou nos pré-requisitos
     S.passed = [...P]; update()
 }
@@ -657,7 +657,7 @@ function resetTaskForm() {
     if ($("trStatus")) $("trStatus").value = "pendente";
     if ($("trPts")) $("trPts").value = "2.0";
     if ($("trEff")) $("trEff").value = "3.0";
-    if ($("trAdd")) $("trAdd").textContent = "Salvar Avaliação";
+    if ($("trAdd")) $("trAdd").textContent = "Salvar";
 }
 
 function openEditTaskModal(t) {
