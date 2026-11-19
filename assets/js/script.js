@@ -1179,7 +1179,7 @@ if (fbForm) {
             return;
         }
 
-        const endpoint = CONFIG?.FEEDBACK_URL || CONFIG?.FEEDBACK_ACCESS_KEY;
+        const endpoint = CONFIG?.FEEDBACK_URL;
         if (!endpoint || endpoint.includes("SEU_ID")) {
             showStatus("⚠️ Endpoint do formulário não configurado em config.js", "warn");
             return;
