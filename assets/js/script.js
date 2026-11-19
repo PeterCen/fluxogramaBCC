@@ -1,6 +1,5 @@
 import { RAW_NOVA } from "./raw_new.js"
 import { RAW_ANTIGA } from "./raw_old.js";
-import { CONFIG } from "./config.js"
 
 // ---------- ABAS ----------
 (function () {
@@ -529,18 +528,30 @@ document.getElementById("horClear").onclick = e => confirma(e.currentTarget, "Cl
 // [seção, atividade, h por unidade, unidade, máx. de horas, máx. de unidades, grupo (máx. compartilhado)]
 const AC_REQ = CUR.acReq, AC_SEC = { I: "Pesquisa e inovação tecnológica", II: "Extensão", III: "Ensino", IV: "Outras atividades" };
 const AC = [
-    ["I", "Artigo completo em revista internacional", 40, "artigo", 40, 1, "A"], ["I", "Artigo completo em revista nacional", 30, "artigo", 40, 1, "A"],
-    ["I", "Artigo completo em anais de evento internacional", 40, "artigo", 40, 1, "A"], ["I", "Artigo completo em anais de evento nacional", 30, "artigo", 40, 1, "A"],
-    ["I", "Resumo em anais de evento", 5, "resumo", 40, 8, "A"], ["I", "Iniciação científica (bolsista ou voluntário)", 25, "projeto", 50, 2],
-    ["II", "Projeto de extensão (bolsista ou voluntário)", 25, "projeto", 50, 2], ["II", "Maratona SBC – classificação para a final nacional", 40, "evento", 40, 1],
-    ["II", "Maratona SBC – fase regional", 5, "evento", 10, 2], ["II", "Maratona IFSP – participação", 5, "evento", 10, 2],
-    ["II", "Semana de Computação – participação (mín. 12 h)", 5, "evento", 20, 4], ["II", "Semana de Computação – organização/equipe", 5, "evento", 20, 4],
-    ["II", "Semana Nac. de Ciência e Tecnologia – participação (mín. 12 h)", 5, "evento", 20, 4], ["II", "Semana Nac. de Ciência e Tecnologia – organização/equipe", 5, "evento", 20, 4],
+    ["I", "Artigo completo em revista internacional", 40, "artigo", 40, 1, "A"], 
+    ["I", "Artigo completo em revista nacional", 30, "artigo", 40, 1, "A"],
+    ["I", "Artigo completo em anais de evento internacional", 40, "artigo", 40, 1, "A"], 
+    ["I", "Artigo completo em anais de evento nacional", 30, "artigo", 40, 1, "A"],
+    ["I", "Resumo em anais de evento", 5, "resumo", 40, 8, "A"], 
+    ["I", "Iniciação científica (bolsista ou voluntário)", 25, "projeto", 50, 2],
+    ["II", "Projeto de extensão (bolsista ou voluntário)", 25, "projeto", 50, 2], 
+    ["II", "Maratona SBC – classificação para a final nacional", 40, "evento", 40, 1],
+    ["II", "Maratona SBC – fase regional", 5, "evento", 10, 2], 
+    ["II", "Maratona IFSP – participação", 5, "evento", 10, 2],
+    ["II", "Semana de Computação – participação (mín. 12 h)", 5, "evento", 20, 4], 
+    ["II", "Semana de Computação – organização/equipe", 5, "evento", 20, 4],
+    ["II", "Semana Nac. de Ciência e Tecnologia – participação (mín. 12 h)", 5, "evento", 20, 4], 
+    ["II", "Semana Nac. de Ciência e Tecnologia – organização/equipe", 5, "evento", 20, 4],
     ["II", "Visitas técnicas", 2, "evento", 6, 3], ["II", "Atividades culturais e/ou esportivas", 1, "hora", 10, 10], ["II", "Proficiência em língua estrangeira", 20, "certificado", 20, 1],
-    ["III", "Projeto de ensino (bolsista ou voluntário)", 25, "projeto", 50, 2], ["III", "Certificação tecnológica concluída", 20, "certificado", 20, 1],
-    ["III", "ENADE – preparação (mais de 80% dos encontros)", 20, "participação", 20, 1], ["III", "Ministrante de curso ou palestra da área", 5, "curso", 10, 2],
-    ["III", "Curso ou palestra da área (fora das semanas)", 1, "hora", 10, 10], ["III", "Treinamento de maratona (mais de 80% dos encontros)", 10, "participação", 10, 1],
-    ["IV", "Aplicação desenvolvida e implantada", 10, "aplicação", 10, 1], ["IV", "ENADE – realização da prova", 10, "prova", 10, 1], ["IV", "POSCOMP – realização da prova", 5, "prova", 5, 1]];
+    ["III", "Projeto de ensino (bolsista ou voluntário)", 25, "projeto", 50, 2], 
+    ["III", "Certificação tecnológica concluída", 20, "certificado", 20, 1],
+    ["III", "ENADE – preparação (mais de 80% dos encontros)", 20, "participação", 20, 1], 
+    ["III", "Ministrante de curso ou palestra da área", 5, "curso", 10, 2],
+    ["III", "Curso ou palestra da área (fora das semanas)", 1, "hora", 10, 10], 
+    ["III", "Treinamento de maratona (mais de 80% dos encontros)", 10, "participação", 10, 1],
+    ["IV", "Aplicação desenvolvida e implantada", 10, "aplicação", 10, 1], 
+    ["IV", "ENADE – realização da prova", 10, "prova", 10, 1], 
+    ["IV", "POSCOMP – realização da prova", 5, "prova", 5, 1]];
 function acCalc() {
     if (!CUR.acTable) return { rows: [], g: {}, tot: +S.acHoras || 0 };
     const g = {}, rows = AC.map((a, i) => { const u = Math.min(+S.ac[i] || 0, a[5]), ob = u * a[2], k = a[6] || "i" + i; (g[k] = g[k] || { ob: 0, max: a[4] }).ob += ob; return { u, ob, k } });
@@ -1159,69 +1170,7 @@ const handleTaskEvents = e => {
 };
 
 // ---------- FEEDBACK (Formspree) ----------
-const fbForm = $("feedbackForm");
-if (fbForm) {
-    fbForm.onsubmit = async e => {
-        e.preventDefault();
-        const sendBtn = $("fbSend");
-        const statusEl = $("fbStatus");
-        const typeVal = $("fbType") ? $("fbType").value : "Geral";
-        const msgVal = $("fbMsg") ? $("fbMsg").value.trim() : "";
-        const contactVal = $("fbContact") ? $("fbContact").value.trim() : "";
 
-        const showStatus = (msg, cls) => {
-            statusEl.className = `fb-status ${cls}`;
-            statusEl.textContent = msg;
-        };
-
-        if (!msgVal) {
-            alert("Por favor, digite sua mensagem antes de enviar.");
-            return;
-        }
-
-        const endpoint = CONFIG?.FEEDBACK_URL;
-        if (!endpoint || endpoint.includes("SEU_ID")) {
-            showStatus("⚠️ Endpoint do formulário não configurado em config.js", "warn");
-            return;
-        }
-
-        sendBtn.disabled = true;
-        sendBtn.textContent = "Enviando...";
-        statusEl.className = "fb-status";
-        statusEl.textContent = "";
-
-        try {
-            const resp = await fetch(endpoint, {
-                method: "POST",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    assunto: typeVal,
-                    mensagem: msgVal,
-                    contato: contactVal || "Não informado",
-                    email: contactVal.includes("@") ? contactVal : undefined,
-                    _subject: `[Fluxograma BCC] ${typeVal}`
-                })
-            });
-
-            if (resp.ok) {
-                showStatus("✅ Obrigado! Seu feedback foi enviado com sucesso.", "ok");
-                fbForm.reset();
-            } else {
-                const data = await resp.json().catch(() => ({}));
-                const errText = data?.errors?.[0]?.message || "Ocorreu um erro ao enviar. Tente novamente mais tarde.";
-                showStatus(`❌ ${errText}`, "err");
-            }
-        } catch (err) {
-            showStatus("❌ Falha na conexão ao enviar. Verifique sua internet.", "err");
-        } finally {
-            sendBtn.disabled = false;
-            sendBtn.textContent = "📨 Enviar Mensagem";
-        }
-    };
-}
 
 const tblList = $("tblTrList");
 if (tblList) {
