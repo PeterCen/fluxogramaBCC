@@ -37,6 +37,8 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 
 - `index.html` — página do Bacharelado em Ciência da Computação (abas, controles e tabelas).
 - `assets/js/script.js` — dados das grades, simulação, risco, trabalhos e provas, renderização e salvamento.
+- `assets/js/raw_(nome)` — dados das grades
+- `assets/js/feedback` — Chamada para envio de feedback nvia e-mail.
 - `assets/css/styles.css` e `assets/img/` — estilos e ícone.
 - `pedagogia/index.html` — fluxograma da Licenciatura em Pedagogia (página separada).
 - PDFs na raiz — PPCs usados como fonte dos dados (Ciência da Computação nova e antiga, e Pedagogia).
