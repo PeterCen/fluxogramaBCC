@@ -651,7 +651,7 @@ function resetTaskForm() {
     editingTaskId = null;
     const wrap = $("trFormWrap");
     if (wrap) wrap.style.display = "none";
-    if ($("trFormLegend")) $("trFormLegend").textContent = "Adicionar nova avaliação";
+    if ($("trFormLegend")) $("trFormLegend").textContent = "Adicionar nova atividade";
     if ($("trTitle")) $("trTitle").value = "";
     if ($("trGot")) $("trGot").value = "";
     if ($("trStatus")) $("trStatus").value = "pendente";

@@ -31,7 +31,7 @@
     <div class="tabs" id="tabs">
       <button data-tab="t-flow" title="Mapa das disciplinas por semestre, com pré-requisitos">🗺️ Fluxograma</button>
       <button data-tab="t-cur" title="Matérias deste semestre: notas, faltas e risco de reprovar">📚 Cursando agora</button>
-      <button data-tab="t-tr" title="Provas e trabalhos, com prioridade sugerida e calendário">📝 Tarefas, Provas e Notas</button>
+      <button data-tab="t-tr" title="Provas e trabalhos, com prioridade sugerida e calendário">📝 Prazos</button>
       <button data-tab="t-hor" title="Grade semanal de aulas e salas">🕒 Horários</button>
       <button data-tab="t-plan" title="Previsão de quando você conclui o curso">📅 Plano estimado</button>
       <button data-tab="t-ac" title="Horas de atividades complementares">🏅 Atividades Compl.</button>
@@ -95,7 +95,7 @@
     <!-- Campo Cursando agora -->
     <div class="tabpane" id="t-cur">
       <div class="panel">
-        <h3 style="margin:0">📚 Cursando agora · Estatísticas</h3>
+        <h3 style="margin:0">📚 Estatísticas</h3>
         <div class="cur-add">
           <select id="curSel"></select>
           <button class="pri" id="curAdd" title="Adiciona a matéria escolhida à lista de cursando agora">Adicionar matéria</button>
@@ -152,7 +152,7 @@
         <!-- Campo Formulário -->
         <div id="trFormWrap" class="tr-form-wrap" style="display:none">
           <div class="tr-form-title">
-            <span id="trFormLegend">Adicionar nova avaliação</span>
+            <span id="trFormLegend">Adicionar nova atividade</span>
             <button type="button" class="btn-ghost" id="btnCloseForm" title="Fechar formulário">✕</button>
           </div>
           <div class="tr-form-grid">
