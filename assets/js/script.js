@@ -1,19 +1,68 @@
 import { RAW_NOVA } from "./raw_new.js"
 import { RAW_ANTIGA } from "./raw_old.js";
 
-// ---------- ABAS ----------
-(function () {
-    const btns = [...document.querySelectorAll('#tabs button')];
-    function show(id) {
-        if (!document.getElementById(id)) id = 't-flow';
-        btns.forEach(b => b.classList.toggle('act', b.dataset.tab === id));
-        document.querySelectorAll('.tabpane').forEach(p => p.classList.toggle('act', p.id === id));
-        try { localStorage.setItem('aba-ativa', id) } catch (e) { }
+// ---------- ABAS (WAI-ARIA + NAVEGAÇÃO POR TECLADO) ----------
+export function bindTablist(container, btns, getVal, onSelect) {
+    btns.forEach((b, idx) => {
+        b.onclick = () => onSelect(getVal(b), false);
+        b.onkeydown = e => {
+            let nextIdx = null;
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") nextIdx = (idx + 1) % btns.length;
+            else if (e.key === "ArrowLeft" || e.key === "ArrowUp") nextIdx = (idx - 1 + btns.length) % btns.length;
+            else if (e.key === "Home") nextIdx = 0;
+            else if (e.key === "End") nextIdx = btns.length - 1;
+            else if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(getVal(b), true);
+                return;
+            }
+            if (nextIdx !== null) {
+                e.preventDefault();
+                onSelect(getVal(btns[nextIdx]), true);
+            }
+        };
+    });
+    if (container) {
+        container.onkeydown = e => {
+            if (e.target && btns.includes(e.target)) return;
+            const curIdx = Math.max(0, btns.findIndex(b => b.getAttribute("aria-selected") === "true"));
+            let nextIdx = null;
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") nextIdx = (curIdx + 1) % btns.length;
+            else if (e.key === "ArrowLeft" || e.key === "ArrowUp") nextIdx = (curIdx - 1 + btns.length) % btns.length;
+            else if (e.key === "Home") nextIdx = 0;
+            else if (e.key === "End") nextIdx = btns.length - 1;
+            if (nextIdx !== null) {
+                e.preventDefault();
+                onSelect(getVal(btns[nextIdx]), true);
+            }
+        };
     }
-    btns.forEach(b => b.onclick = () => show(b.dataset.tab));
+}
+
+(function () {
+    const tablist = document.getElementById("tabs");
+    const btns = [...document.querySelectorAll("#tabs button")];
+    function show(id, focusBtn = false) {
+        if (!document.getElementById(id)) id = "t-flow";
+        btns.forEach(b => {
+            const act = b.dataset.tab === id;
+            b.classList.toggle("act", act);
+            b.setAttribute("aria-selected", act ? "true" : "false");
+            b.setAttribute("tabindex", act ? "0" : "-1");
+            if (act && focusBtn && typeof b.focus === "function") b.focus();
+        });
+        document.querySelectorAll(".tabpane").forEach(p => {
+            const act = p.id === id;
+            p.classList.toggle("act", act);
+            p.hidden = !act;
+            p.setAttribute("aria-hidden", act ? "false" : "true");
+        });
+        try { localStorage.setItem("aba-ativa", id) } catch (e) { }
+    }
+    bindTablist(tablist, btns, b => b.dataset.tab, show);
     window.showTab = show;
-    let a = 't-flow'; try { a = localStorage.getItem('aba-ativa') || a } catch (e) { }
-    show(a);
+    let a = "t-flow"; try { a = localStorage.getItem("aba-ativa") || a } catch (e) { }
+    show(a, false);
 })();
 
 const CURS = {
@@ -298,41 +347,139 @@ function monte(fail) {
 // ---------- LAYOUT / RENDER ----------
 const CW = 190, CH = 66, GX = 64, GY = 14, X0 = 20, Y0 = 56;
 const colOf = c => c.kind === "ob" ? c.sem - 1 : c.kind === "el" ? 8 : c.kind === "op" ? 8 : 9;
+const HEADS = ["1º sem", "2º sem", "3º sem", "4º sem", "5º sem", "6º sem", "7º sem", "8º sem", "Eletivas / Optativas", "Conclusão"];
 const flow = document.getElementById("flow"), svg = document.getElementById("edges");
-const pos = {}; const els = {};
+const pos = {}; const els = {}; const colItems = {};
+let flowMode = "pass"; // "pass" | "cur" | "info"
+let pinnedId = null;
+const isMobileViewport = () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(max-width: 700px)").matches;
+let flowView = "graph";
+try {
+    const savedView = localStorage.getItem("fluxo-visao");
+    flowView = (savedView === "list" || savedView === "graph") ? savedView : (isMobileViewport() ? "list" : "graph");
+} catch (e) { }
+
+function toggleCur(id) {
+    if (!hasCourse(id) || C[id].kind === "tcc") return;
+    const cur = S.current || [];
+    if (cur.some(r => r.id === id)) {
+        S.current = cur.filter(r => r.id !== id);
+    } else if (!passedSet().has(id)) {
+        S.current = [...cur, fixCur({ id })];
+    }
+    update();
+}
+
+function inspectCard(id) {
+    pinnedId = (id && hasCourse(id) && pinnedId !== id) ? id : null;
+    hover(pinnedId);
+    renderFlowInspect();
+}
+
+function navigateCardGrid(currentId, key) {
+    const c = C[currentId];
+    if (!c) return;
+    const col = colOf(c);
+    const list = colItems[col] || [];
+    const rowIdx = list.indexOf(currentId);
+    let targetId = null;
+    if (key === "ArrowDown" && rowIdx < list.length - 1) targetId = list[rowIdx + 1];
+    else if (key === "ArrowUp" && rowIdx > 0) targetId = list[rowIdx - 1];
+    else if (key === "ArrowRight" || key === "ArrowLeft") {
+        const dir = key === "ArrowRight" ? 1 : -1;
+        for (let nc = col + dir; nc >= 0 && nc <= 9; nc += dir) {
+            const nList = colItems[nc] || [];
+            if (nList.length) {
+                targetId = nList[Math.min(Math.max(0, rowIdx), nList.length - 1)];
+                break;
+            }
+        }
+    }
+    if (targetId && els[targetId] && typeof els[targetId].focus === "function") {
+        els[targetId].focus();
+    }
+}
+
 function build() {
     const rows = {};
     ORDER.forEach(id => {
         const c = C[id]; const col = colOf(c); rows[col] = (rows[col] || 0);
+        (colItems[col] = colItems[col] || []).push(id);
         let r = rows[col]++; if (c.kind === "op" && col === 8) r += 0.4;
         pos[id] = { x: X0 + col * (CW + GX), y: Y0 + r * (CH + GY) }
     });
     // TCC e AC na última coluna
     pos["TCC"] = { x: X0 + 9 * (CW + GX), y: Y0 };
-    const heads = ["1º sem", "2º sem", "3º sem", "4º sem", "5º sem", "6º sem", "7º sem", "8º sem", "Eletivas / Optativas", "Conclusão"];
-    heads.forEach((h, i) => {
+    HEADS.forEach((h, i) => {
         const d = document.createElement("div"); d.className = "colh"; d.style.left = (X0 + i * (CW + GX)) + "px";
         d.innerHTML = esc(h) + (i < 8 ? `<small>${i % 2 ? "semestre par" : "semestre ímpar"}</small>` : i == 8 ? "<small>126,6h de eletivas</small>" : "<small>TCC + Complementares</small>"); flow.appendChild(d)
     });
     ORDER.forEach(id => {
         const c = C[id], p = pos[id], d = document.createElement("div");
         d.className = "card" + (c.ext ? " ext" : ""); d.style.left = p.x + "px"; d.style.top = p.y + "px";
-        d.innerHTML = `<div class="chk"></div><div class="n">${esc(c.name)}</div><div class="m"><span>${esc(id)} · ${esc(c.h.toFixed(1).replace(".", ","))}h</span><span class="plan"></span></div>` + (c.kind === "el" ? `<button class="star" title="Escolher esta eletiva">★</button>` : "");
+        d.setAttribute("role", "button");
+        d.setAttribute("tabindex", "0");
+        d.dataset.id = id;
+        const curBtnHtml = c.kind !== "tcc" ? `<button type="button" class="card-act card-cur" data-card-act="cur" title="Marcar/desmarcar como Cursando agora (atalho: tecla C)" aria-label="Cursando agora">📚</button>` : "";
+        const infoBtnHtml = `<button type="button" class="card-act card-info" data-card-act="info" title="Ver pré-requisitos e disciplinas que libera (atalho: tecla I)" aria-label="Ver pré-requisitos">🔍</button>`;
+        const starBtnHtml = c.kind === "el" ? `<button type="button" class="star" data-card-act="star" title="Escolher esta eletiva" aria-label="Escolher eletiva">★</button>` : "";
+        d.innerHTML = `<div class="chk"></div><div class="card-acts">${infoBtnHtml}${curBtnHtml}</div><div class="n">${esc(c.name)}</div><div class="m"><span>${esc(id)} · ${esc(c.h.toFixed(1).replace(".", ","))}h</span><span class="plan"></span></div>` + starBtnHtml;
         let clickT = null;
+        let lastTouch = 0;
+        d.ontouchstart = () => { lastTouch = Date.now(); };
         d.onclick = e => {
-            if (e.target.classList.contains("star")) { togglePlan(id); return }
+            const actBtn = e.target.closest && e.target.closest("[data-card-act]");
+            const cardAct = actBtn ? actBtn.dataset.cardAct : e.target.dataset?.cardAct;
+            if (cardAct === "star" || e.target.classList.contains("star")) { togglePlan(id); return; }
+            if (cardAct === "cur") { toggleCur(id); return; }
+            if (cardAct === "info") { inspectCard(id); return; }
+
+            if (flowMode === "cur") { toggleCur(id); return; }
+            if (flowMode === "info") { inspectCard(id); return; }
+
+            // Em toque/mobile, não espera 260ms por duplo clique
+            const isTouch = (Date.now() - lastTouch < 600) || (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(hover: none)").matches);
+            if (isTouch) {
+                clearTimeout(clickT);
+                toggle(id);
+                return;
+            }
             if (e.detail > 1) return;               // 2º clique do duplo clique: tratado em ondblclick
-            clearTimeout(clickT); clickT = setTimeout(() => toggle(id), 260);
+            clearTimeout(clickT); clickT = setTimeout(() => toggle(id), 240);
         };
         d.ondblclick = e => {
-            if (e.target.classList.contains("star")) return;
+            if (e.target.classList.contains("star") || e.target.dataset?.cardAct) return;
             clearTimeout(clickT);
-            const cur = S.current || [];
-            if (cur.some(r => r.id === id)) S.current = cur.filter(r => r.id !== id);        // 2 cliques de novo = remove de "cursando"
-            else if (!passedSet().has(id) && C[id].kind !== "tcc") S.current = [...cur, fixCur({ id })];
-            update();
+            toggleCur(id);
         };
-        d.onmouseenter = () => hover(id); d.onmouseleave = () => hover(null);
+        d.onkeydown = e => {
+            if (e.target !== d) return;
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (flowMode === "cur") toggleCur(id);
+                else if (flowMode === "info") inspectCard(id);
+                else toggle(id);
+            } else if (e.key === "c" || e.key === "C") {
+                e.preventDefault();
+                toggleCur(id);
+            } else if (e.key === "i" || e.key === "I") {
+                e.preventDefault();
+                inspectCard(id);
+            } else if ((e.key === "s" || e.key === "S") && c.kind === "el") {
+                e.preventDefault();
+                togglePlan(id);
+            } else if (e.key === "Escape" && pinnedId) {
+                e.preventDefault();
+                inspectCard(null);
+            } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+                e.preventDefault();
+                navigateCardGrid(id, e.key);
+            }
+        };
+        d.onmouseenter = () => hover(id);
+        d.onmouseleave = () => hover(pinnedId);
+        d.onfocus = () => hover(id);
+        d.onblur = () => hover(pinnedId);
         flow.appendChild(d); els[id] = d
     });
     const W = X0 * 2 + 10 * (CW + GX) - GX; flow.style.width = W + "px"; flow.style.height = (Y0 + (Math.max(...Object.values(rows)) + 0.6) * (CH + GY) + 20) + "px";
@@ -347,11 +494,136 @@ function build() {
     els.TCC1.querySelector(".n").innerHTML = `TCC 1 <span style='font-weight:400;color:var(--mut)'>(${esc(CUR.tccLbl)})</span>`;
 }
 function hover(id) {
+    const activeId = id || pinnedId;
     const cards = Object.values(els), edges = [...svg.children];
-    if (!id) { cards.forEach(c => c.classList.remove("dim", "hl")); edges.forEach(e => e.classList.remove("dim", "hl")); return }
-    const A = anc(id), D = desc(id); const set = new Set([id, ...A, ...D]);
-    ORDER.forEach(i => { els[i].classList.toggle("dim", !set.has(i)); els[i].classList.toggle("hl", set.has(i) && i !== id) });
+    if (!activeId || !C[activeId]) { cards.forEach(c => c.classList.remove("dim", "hl", "pinned")); edges.forEach(e => e.classList.remove("dim", "hl")); return }
+    const A = anc(activeId), D = desc(activeId); const set = new Set([activeId, ...A, ...D]);
+    ORDER.forEach(i => {
+        els[i].classList.toggle("dim", !set.has(i));
+        els[i].classList.toggle("hl", set.has(i) && i !== activeId);
+        els[i].classList.toggle("pinned", i === pinnedId);
+    });
     edges.forEach(e => { const on = set.has(e.dataset.f) && set.has(e.dataset.t); e.classList.toggle("hl", on); e.classList.toggle("dim", !on) });
+}
+
+function renderFlowInspect() {
+    const box = document.getElementById("flowInspect");
+    if (!box) return;
+    if (!pinnedId || !C[pinnedId]) {
+        box.hidden = true;
+        box.innerHTML = "";
+        return;
+    }
+    const c = C[pinnedId];
+    const P = passedSet();
+    const isPassed = P.has(pinnedId);
+    const isCur = !isPassed && (S.current || []).some(r => r.id === pinnedId);
+    const isReady = c.pre.every(p => P.has(p));
+    const statusText = isPassed ? "✓ Aprovada" : isCur ? "📚 Cursando agora" : isReady ? "Disponível" : "🔒 Bloqueada";
+    const statusCls = isPassed ? "g" : isCur ? "y" : isReady ? "b" : "r";
+
+    const preChips = c.pre.length
+        ? c.pre.map(p => `<button type="button" class="fi-chip ${P.has(p) ? 'ok' : 'pend'}" data-fi-jump="${esc(p)}">${P.has(p) ? "✓" : "🔒"} ${esc(p)} · ${esc(C[p].name)}</button>`).join("")
+        : `<span class="note">Nenhum (liberada desde o início)</span>`;
+    const kidChips = c.kids.length
+        ? c.kids.map(k => `<button type="button" class="fi-chip" data-fi-jump="${esc(k)}">→ ${esc(k)} · ${esc(C[k].name)}</button>`).join("")
+        : `<span class="note">Nenhuma diretamente</span>`;
+
+    const passBtnLbl = isPassed ? "✓ Aprovada (desmarcar)" : "✓ Marcar aprovada";
+    const curBtnHtml = c.kind !== "tcc"
+        ? `<button type="button" class="btn-sm ${isCur ? 'pri' : ''}" data-fi-act="cur" data-id="${esc(pinnedId)}">${isCur ? "📚 Cursando (remover)" : "📚 Marcar cursando"}</button>`
+        : "";
+    const starBtnHtml = c.kind === "el"
+        ? `<button type="button" class="btn-sm ${S.electivePlan.includes(pinnedId) ? 'pri' : ''}" data-fi-act="star" data-id="${esc(pinnedId)}">★ ${S.electivePlan.includes(pinnedId) ? "Eletiva escolhida" : "Escolher eletiva"}</button>`
+        : "";
+
+    box.hidden = false;
+    box.innerHTML = `<div class="fi-head">
+        <div>
+            <b>${esc(c.name)}</b> <span class="note">(${esc(c.id)} · ${esc(c.h.toFixed(1).replace(".", ","))}h · ${esc(HEADS[colOf(c)])})</span>
+            <span class="tag ${esc(statusCls)}" style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;margin-left:6px">${esc(statusText)}</span>
+        </div>
+        <div class="fi-actions">
+            <button type="button" class="btn-sm ${isPassed ? 'pri' : ''}" data-fi-act="pass" data-id="${esc(pinnedId)}">${esc(passBtnLbl)}</button>
+            ${curBtnHtml}
+            ${starBtnHtml}
+            <button type="button" class="btn-ghost" data-fi-act="close" title="Fechar inspeção" aria-label="Fechar inspeção">✕</button>
+        </div>
+    </div>
+    <div class="fi-chains">
+        <div><small>Pré-requisitos diretos (${esc(anc(pinnedId).size)} na cadeia):</small> <div class="fi-chip-list">${preChips}</div></div>
+        <div><small>Libera diretamente (${esc(desc(pinnedId).size)} na cadeia):</small> <div class="fi-chip-list">${kidChips}</div></div>
+    </div>`;
+}
+
+function renderFlowFallback(P, when, chosen) {
+    const fb = document.getElementById("flowFallback");
+    if (!fb) return;
+    const groups = HEADS.map((title, colIdx) => ({
+        title,
+        sub: colIdx < 8 ? (colIdx % 2 ? "semestre par" : "semestre ímpar") : colIdx === 8 ? "126,6h de eletivas" : "TCC + Complementares",
+        items: ORDER.filter(id => colOf(C[id]) === colIdx)
+    }));
+
+    fb.innerHTML = groups.map(g => {
+        const doneCount = g.items.filter(id => P.has(id)).length;
+        const cardsHtml = g.items.map(id => {
+            const c = C[id];
+            const isPassed = P.has(id);
+            const isCur = !isPassed && (S.current || []).some(r => r.id === id);
+            const isReady = c.pre.every(p => P.has(p));
+            const isOff = (c.kind === "el" && !isPassed && !chosen.includes(id)) || (c.kind === "op" && !isPassed);
+            const cr = (S.current || []).find(r => r.id === id);
+            const rp = cr && !isPassed ? risk(cr).p : 0;
+            const planTxt = cr && !isPassed ? "⚠ Risco " + Math.round(rp * 100) + "%" : ((!isPassed && when[id] !== undefined) ? "Previsto: " + label(when[id]) : "");
+
+            const stBadge = isPassed
+                ? `<span class="tag g">✓ Aprovada</span>`
+                : isCur
+                    ? `<span class="tag y">📚 Cursando</span>`
+                    : isReady
+                        ? `<span class="tag b">Disponível</span>`
+                        : `<span class="tag r">🔒 Bloqueada</span>`;
+
+            const preHtml = c.pre.length
+                ? `<div class="fb-card-rel"><b>Pré-requisitos:</b> ${c.pre.map(p => `<span class="${P.has(p) ? 'rel-ok' : 'rel-pend'}">${P.has(p) ? "✓" : "🔒"} ${esc(C[p].name)} (${esc(p)})</span>`).join(" · ")}</div>`
+                : "";
+            const kidsHtml = c.kids.length
+                ? `<div class="fb-card-rel"><b>Libera:</b> ${c.kids.map(k => `<span>${esc(C[k].name)} (${esc(k)})</span>`).join(" · ")}</div>`
+                : "";
+            const curBtnHtml = c.kind !== "tcc"
+                ? `<button type="button" class="btn-xs ${isCur ? 'pri' : ''}" data-fb-act="cur" data-id="${esc(id)}" aria-pressed="${isCur ? 'true' : 'false'}">${isCur ? "📚 Cursando" : "+ Cursando"}</button>`
+                : "";
+            const starBtnHtml = c.kind === "el"
+                ? `<button type="button" class="btn-xs ${S.electivePlan.includes(id) || chosen.includes(id) ? 'pri' : ''}" data-fb-act="star" data-id="${esc(id)}" aria-pressed="${S.electivePlan.includes(id) ? 'true' : 'false'}">★ Eletiva</button>`
+                : "";
+
+            return `<div class="fb-card ${isPassed ? 'passed' : isCur ? 'cur' : isReady ? 'avail' : ''} ${isOff ? 'off' : ''} ${c.ext ? 'ext' : ''}" data-id="${esc(id)}">
+                <div class="fb-card-top">
+                    <div>
+                        <div class="fb-card-title">${esc(c.name)}</div>
+                        <div class="fb-card-meta">${esc(id)} · ${esc(c.h.toFixed(1).replace(".", ","))}h${c.ext ? " · Extensão" : ""}${planTxt ? " · " + esc(planTxt) : ""}</div>
+                    </div>
+                    <div class="fb-card-badges">${stBadge}</div>
+                </div>
+                ${preHtml}
+                ${kidsHtml}
+                <div class="fb-card-actions">
+                    <button type="button" class="btn-xs ${isPassed ? 'pri' : ''}" data-fb-act="pass" data-id="${esc(id)}" aria-pressed="${isPassed ? 'true' : 'false'}">${isPassed ? "✓ Aprovada" : "Marcar aprovada"}</button>
+                    ${curBtnHtml}
+                    ${starBtnHtml}
+                </div>
+            </div>`;
+        }).join("");
+
+        return `<section class="fb-sem-group">
+            <header class="fb-sem-head">
+                <h4>${esc(g.title)} <small>${esc(g.sub)}</small></h4>
+                <span class="note">${esc(doneCount)}/${esc(g.items.length)} concluídas</span>
+            </header>
+            <div class="fb-sem-list">${cardsHtml}</div>
+        </section>`;
+    }).join("");
 }
 function toggle(id) {
     const fr = (S.current || []).find(x => x.id === id);
@@ -385,17 +657,27 @@ function update() {
     ORDER.forEach(id => {
         const c = C[id], el = els[id];
         const ready = c.pre.every(p => P.has(p));
-        el.classList.toggle("passed", P.has(id));
-        el.classList.toggle("cur", !P.has(id) && (S.current || []).some(r => r.id === id));
-        el.classList.toggle("avail", !P.has(id) && ready && c.kind !== "tcc");
-        el.classList.toggle("off", (c.kind === "el" && !P.has(id) && !chosen.includes(id)) || c.kind === "op" && !P.has(id));
+        const isPassed = P.has(id);
+        const isCur = !isPassed && (S.current || []).some(r => r.id === id);
+        el.classList.toggle("passed", isPassed);
+        el.classList.toggle("cur", isCur);
+        el.classList.toggle("avail", !isPassed && ready && c.kind !== "tcc");
+        el.classList.toggle("off", (c.kind === "el" && !isPassed && !chosen.includes(id)) || c.kind === "op" && !isPassed);
+        el.setAttribute("aria-pressed", isPassed ? "true" : "false");
+        const stText = isPassed ? "Aprovada" : isCur ? "Cursando agora" : ready ? "Disponível" : "Bloqueada";
+        el.setAttribute("aria-label", `${c.name} (${id}), ${c.h.toFixed(1).replace(".", ",")}h, ${stText}`);
         const pl = el.querySelector(".plan");
-        const cr = (S.current || []).find(r => r.id === id), rp = cr && !P.has(id) ? risk(cr).p : 0;
+        const cr = (S.current || []).find(r => r.id === id), rp = cr && !isPassed ? risk(cr).p : 0;
         el.classList.toggle("hi", rp >= .6);
-        pl.textContent = cr && !P.has(id) ? "⚠ " + Math.round(rp * 100) + "%" : ((!P.has(id) && when[id] !== undefined) ? label(when[id]) : "");
+        pl.textContent = cr && !isPassed ? "⚠ " + Math.round(rp * 100) + "%" : ((!isPassed && when[id] !== undefined) ? label(when[id]) : "");
         const st = el.querySelector(".star"); if (st) st.classList.toggle("on", S.electivePlan.includes(id) || (chosen.includes(id)));
+        const curBtn = el.querySelector(".card-cur"); if (curBtn) curBtn.classList.toggle("on", isCur);
+        const infoBtn = el.querySelector(".card-info"); if (infoBtn) infoBtn.classList.toggle("on", pinnedId === id);
     });
     svg.querySelectorAll("path.e").forEach(e => e.classList.toggle("pass", P.has(e.dataset.f)));
+    hover(pinnedId);
+    renderFlowInspect();
+    renderFlowFallback(P, when, chosen);
     // KPIs
     const doneH = OBR.filter(i => P.has(i)).reduce((s, i) => s + C[i].h, 0) + ELETIVAS.filter(i => P.has(i)).slice(0, 2).reduce((s, i) => s + C[i].h, 0) + (P.has("TCC1") ? CUR.tccH : 0) + (P.has("TCC2") ? CUR.tccH : 0) + (S.acDone ? AC_REQ : Math.min(AC_REQ, acTotal()));
     const totalH = CUR.totalH, pct = Math.min(100.0, doneH / totalH * 100.0);
@@ -870,10 +1152,22 @@ function renderTasks() {
     const plan = planTasks();
 
     const activeView = S.trView || "list";
-    document.querySelectorAll(".tr-v-btn").forEach(b => b.classList.toggle("act", b.dataset.v === activeView));
-    if ($("trPaneList")) $("trPaneList").style.display = activeView === "list" ? "" : "none";
-    if ($("trPaneSubjects")) $("trPaneSubjects").style.display = activeView === "subjects" ? "" : "none";
-    if ($("trPaneCal")) $("trPaneCal").style.display = activeView === "cal" ? "" : "none";
+    document.querySelectorAll(".tr-v-btn").forEach(b => {
+        const act = b.dataset.v === activeView;
+        b.classList.toggle("act", act);
+        b.setAttribute("aria-selected", act ? "true" : "false");
+        b.setAttribute("tabindex", act ? "0" : "-1");
+    });
+    const setPane = (id, show) => {
+        const el = $(id);
+        if (!el) return;
+        el.style.display = show ? "" : "none";
+        el.hidden = !show;
+        el.setAttribute("aria-hidden", show ? "false" : "true");
+    };
+    setPane("trPaneList", activeView === "list");
+    setPane("trPaneSubjects", activeView === "subjects");
+    setPane("trPaneCal", activeView === "cal");
 
     renderTasksList(plan, today);
     renderTasksSubjects();
@@ -1169,12 +1463,87 @@ $("btnToggleForm").onclick = () => {
 $("btnCloseForm").onclick = resetTaskForm;
 $("trCancel").onclick = resetTaskForm;
 
-document.querySelectorAll(".tr-v-btn").forEach(btn => {
-    btn.onclick = () => {
-        S.trView = btn.dataset.v;
-        update();
-    };
+const trViewBtns = [...document.querySelectorAll(".tr-v-btn")];
+bindTablist($("trViewSw"), trViewBtns, b => b.dataset.v, (v, focusBtn) => {
+    S.trView = VALID_VIEWS_TR.includes(v) ? v : "list";
+    update();
+    if (focusBtn) {
+        const active = trViewBtns.find(b => b.dataset.v === S.trView);
+        if (active && typeof active.focus === "function") active.focus();
+    }
 });
+
+// Controles de modo de toque/clique e alternância Grafo vs. Lista (Fallback) no Fluxograma
+const flowModeBtns = [...document.querySelectorAll(".flow-mode-btn")];
+function setFlowMode(mode) {
+    flowMode = ["pass", "cur", "info"].includes(mode) ? mode : "pass";
+    flowModeBtns.forEach(b => {
+        const act = b.dataset.mode === flowMode;
+        b.classList.toggle("act", act);
+        b.setAttribute("aria-pressed", act ? "true" : "false");
+    });
+}
+flowModeBtns.forEach(b => {
+    b.onclick = () => setFlowMode(b.dataset.mode);
+});
+
+const flowViewBtns = [...document.querySelectorAll(".flow-view-btn")];
+function setFlowView(v, focusBtn = false) {
+    flowView = v === "list" ? "list" : "graph";
+    flowViewBtns.forEach(b => {
+        const act = b.dataset.fview === flowView;
+        b.classList.toggle("act", act);
+        b.setAttribute("aria-selected", act ? "true" : "false");
+        b.setAttribute("tabindex", act ? "0" : "-1");
+        if (act && focusBtn && typeof b.focus === "function") b.focus();
+    });
+    const sc = $("flowScroll"), fb = $("flowFallback");
+    if (sc) {
+        sc.style.display = flowView === "graph" ? "" : "none";
+        sc.hidden = flowView !== "graph";
+    }
+    if (fb) {
+        fb.style.display = flowView === "list" ? "" : "none";
+        fb.hidden = flowView !== "list";
+    }
+    try { localStorage.setItem("fluxo-visao", flowView) } catch (e) { }
+}
+bindTablist($("flowViewSw"), flowViewBtns, b => b.dataset.fview, setFlowView);
+setFlowView(flowView, false);
+
+const fiBox = $("flowInspect");
+if (fiBox) {
+    fiBox.onclick = e => {
+        const jump = e.target.closest && e.target.closest("[data-fi-jump]");
+        const jumpId = jump ? jump.dataset.fiJump : e.target.dataset?.fiJump;
+        if (jumpId && hasCourse(jumpId)) {
+            pinnedId = jumpId;
+            hover(pinnedId);
+            renderFlowInspect();
+            return;
+        }
+        const actBtn = e.target.closest && e.target.closest("[data-fi-act]");
+        const act = actBtn ? actBtn.dataset.fiAct : e.target.dataset?.fiAct;
+        const id = actBtn ? actBtn.dataset.id : e.target.dataset?.id;
+        if (act === "close") inspectCard(null);
+        else if (act === "pass" && hasCourse(id)) toggle(id);
+        else if (act === "cur" && hasCourse(id)) toggleCur(id);
+        else if (act === "star" && hasCourse(id)) togglePlan(id);
+    };
+}
+
+const fbBox = $("flowFallback");
+if (fbBox) {
+    fbBox.onclick = e => {
+        const actBtn = e.target.closest && e.target.closest("[data-fb-act]");
+        const act = actBtn ? actBtn.dataset.fbAct : e.target.dataset?.fbAct;
+        const id = actBtn ? actBtn.dataset.id : e.target.dataset?.id;
+        if (!act || !hasCourse(id)) return;
+        if (act === "pass") toggle(id);
+        else if (act === "cur") toggleCur(id);
+        else if (act === "star") togglePlan(id);
+    };
+}
 
 if ($("trFilterSubj")) $("trFilterSubj").onchange = e => { S.trFilterSubj = e.target.value; update(); };
 if ($("trFilterType")) $("trFilterType").onchange = e => { S.trFilterType = e.target.value; update(); };

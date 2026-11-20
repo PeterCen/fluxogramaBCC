@@ -46,7 +46,16 @@ const SAFE_HTML_FRAGMENTS = new Set([
     "optList(PRIO, prioKey)",
     "optList(FASE, faseKey)",
     'cur.map(x => op(x, sel)).join("")',
-    'disp.map(x => op(x, sel)).join("")'
+    'disp.map(x => op(x, sel)).join("")',
+    "curBtnHtml",
+    "infoBtnHtml",
+    "starBtnHtml",
+    "preChips",
+    "kidChips",
+    "stBadge",
+    "preHtml",
+    "kidsHtml",
+    "cardsHtml"
 ]);
 
 /**
@@ -290,7 +299,7 @@ globalThis.document = {
     querySelectorAll() { return []; }
 };
 
-const { esc, sanitizeState } = await import("../assets/js/script.js");
+const { esc, sanitizeState, bindTablist } = await import("../assets/js/script.js");
 
 assert.equal(esc('<script>alert("xss")</script>'), "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;");
 assert.equal(esc(`' onload='alert(1)`), "&#39; onload=&#39;alert(1)");
@@ -459,6 +468,7 @@ await fileIn.onchange({
 // Verifica o innerHTML de todos os containers renderizados
 const containersToVerify = [
     "flow",
+    "flowFallback",
     "kpis",
     "timeline",
     "curSel",
@@ -517,4 +527,66 @@ assert.ok(
 );
 ok("index.html possui Content-Security-Policy ativa bloqueando scripts inline/injetados.");
 
-console.log(`\n🎉 Todas as ${passedChecks} verificações de segurança passaram com sucesso!\n`);
+// ============================================================================
+// 5. TESTE DE ACESSIBILIDADE (WAI-ARIA TABLIST, TECLADO, MOBILE & FALLBACK)
+// ============================================================================
+console.log("\n♿ [5/5] Verificando WAI-ARIA tablist, navegação por teclado, mobile e fallback...");
+
+// 5.1 Verifica atributos WAI-ARIA e <noscript> no HTML
+assert.ok(indexHtml.includes('role="tablist"'), 'index.html deve conter role="tablist" nas abas');
+assert.ok(indexHtml.includes('role="tab"'), 'index.html deve conter role="tab" nos botões de aba');
+assert.ok(indexHtml.includes('role="tabpanel"'), 'index.html deve conter role="tabpanel" nos painéis');
+assert.ok(indexHtml.includes('aria-selected="true"'), 'index.html deve conter aria-selected nos botões de aba');
+assert.ok(indexHtml.includes("<noscript>"), "index.html deve possuir bloco <noscript> de fallback");
+assert.ok(indexHtml.includes('id="flowFallback"'), "index.html deve possuir container #flowFallback para visão em lista");
+assert.ok(indexHtml.includes('id="flowInspect"'), "index.html deve possuir painel #flowInspect para inspeção sem hover");
+
+const pedHtml = fs.readFileSync(path.join(ROOT, "pedagogia/index.html"), "utf8");
+assert.ok(pedHtml.includes('role="tablist"') && pedHtml.includes("<noscript>") && pedHtml.includes('id="flowFallback"'),
+    "pedagogia/index.html também deve possuir role='tablist', <noscript> e #flowFallback");
+ok("Atributos WAI-ARIA (tablist/tab/tabpanel/aria-selected) e fallbacks (<noscript> + #flowFallback) presentes.");
+
+// 5.2 Testa navegação por teclado (ArrowRight, ArrowLeft, Home, End) em bindTablist
+let selectedTabVal = "a";
+let focusedTabVal = null;
+const mockTabs = ["a", "b", "c"].map(v => {
+    const b = createMockElement("button");
+    b.dataset.tab = v;
+    b.focus = () => { focusedTabVal = v; };
+    return b;
+});
+const mockTablist = createMockElement("div");
+bindTablist(mockTablist, mockTabs, b => b.dataset.tab, (val, focus) => {
+    selectedTabVal = val;
+    if (focus) {
+        const target = mockTabs.find(x => x.dataset.tab === val);
+        if (target) target.focus();
+    }
+});
+
+// ArrowRight de 'a' (0) -> 'b' (1)
+mockTabs[0].onkeydown({ key: "ArrowRight", preventDefault() {} });
+assert.equal(selectedTabVal, "b");
+assert.equal(focusedTabVal, "b");
+
+// ArrowLeft de 'a' (0) -> 'c' (2) (wrap-around)
+mockTabs[0].onkeydown({ key: "ArrowLeft", preventDefault() {} });
+assert.equal(selectedTabVal, "c");
+assert.equal(focusedTabVal, "c");
+
+// Home de 'c' (2) -> 'a' (0)
+mockTabs[2].onkeydown({ key: "Home", preventDefault() {} });
+assert.equal(selectedTabVal, "a");
+
+// End de 'a' (0) -> 'c' (2)
+mockTabs[0].onkeydown({ key: "End", preventDefault() {} });
+assert.equal(selectedTabVal, "c");
+ok("Navegação por teclado nas abas (ArrowRight, ArrowLeft, Home, End) funcionando conforme padrão WAI-ARIA.");
+
+// 5.3 Verifica que o fallback em lista (#flowFallback) renderizou os semestres e botões de 1 toque
+const fallbackHtml = getMockEl("flowFallback").innerHTML;
+assert.ok(fallbackHtml.includes("fb-sem-group") && fallbackHtml.includes("data-fb-act=\"pass\"") && fallbackHtml.includes("data-fb-act=\"cur\""),
+    "#flowFallback deve renderizar os grupos de semestre com botões diretos de Aprovada e Cursando");
+ok("Fallback responsivo em lista (#flowFallback) e controles de toque renderizados com sucesso.");
+
+console.log(`\n🎉 Todas as ${passedChecks} verificações de segurança e acessibilidade passaram com sucesso!\n`);

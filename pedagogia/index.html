@@ -88,6 +88,25 @@ path.e.dim{opacity:.07}
 .bar{height:10px;background:#0b1020;border-radius:8px;overflow:hidden;margin-top:8px}
 .bar div{height:100%;background:linear-gradient(90deg,#22c55e,#38bdf8)}
 .warn{color:var(--warn)}
+.card:focus-visible,button:focus-visible{outline:2px solid var(--av);outline-offset:2px}
+.card.pinned{box-shadow:0 0 0 2.5px var(--av),0 0 18px #38bdf888;opacity:1!important}
+.card-acts{position:absolute;right:26px;top:5px;display:flex;gap:2px;z-index:2}
+.card-act{background:rgba(11,16,32,.72);border:1px solid transparent;border-radius:5px;padding:1px 3px;font-size:10px;line-height:1.1;color:var(--mut)}
+.flow-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.flow-view-group,.flow-mode-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.flow-view-btn.act,.flow-mode-btn.act{background:linear-gradient(90deg,#2563eb,#7c3aed);border-color:transparent;color:#fff;font-weight:600}
+.flow-fallback{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px}
+.fb-sem-group{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.fb-sem-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:8px}
+.fb-sem-head h4{margin:0;font-size:14px}
+.fb-sem-list{display:flex;flex-direction:column;gap:8px}
+.fb-card{background:var(--panel2);border:1.5px solid var(--blk);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.fb-card.passed{background:#12331f;border-color:var(--ok)}
+.fb-card.avail{border-color:var(--av)}
+.fb-card.ext{border-left:5px solid var(--ext)}
+.fb-card-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.fb-card-actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn-xs{padding:3px 8px;font-size:11px;border-radius:5px}
 </style>
 </head>
 <body>
@@ -96,6 +115,12 @@ path.e.dim{opacity:.07}
   <div class="sub">IFSP Câmpus Presidente Epitácio · PPC 2023 (Res. 278/2023) · noturno · Dados extraídos do PDF do PPC</div>
 </header>
 <div class="wrap">
+  <noscript>
+    <div class="panel" style="border-color:var(--warn)">
+      <strong>⚠️ JavaScript desativado:</strong> Este planejador acadêmico requer JavaScript para simular o progresso. Consulte o documento oficial:
+      <a href="../2023.03.07-PPC-LIC-Pedagogia-PEP-Reformulação.pdf" style="color:var(--av)">PPC 2023 Licenciatura em Pedagogia (PDF)</a>.
+    </div>
+  </noscript>
 
   <div class="panel">
     <div class="controls">
@@ -129,7 +154,18 @@ path.e.dim{opacity:.07}
       <span><i style="background:var(--panel2);border:1.5px solid var(--av)"></i>Disponível (pré-requisitos ok)</span>
       <span><i style="background:var(--panel2);border:1.5px solid var(--blk)"></i>Bloqueada</span>
       <span><i style="background:var(--ext)"></i>Extensão</span>
-      <span>Clique = marca/desmarca aprovação · ★ = escolhe eletiva · passe o mouse = vê a cadeia de pré-requisitos</span>
+      <span>Toque/clique = marca/desmarca aprovação · ★ = escolhe eletiva · 🔍 = vê cadeia de pré-requisitos</span>
+    </div>
+    <div class="flow-toolbar">
+      <div class="flow-mode-group" role="group" aria-label="Modo de toque ou clique no fluxograma">
+        <span class="note">Ação ao tocar:</span>
+        <button type="button" class="flow-mode-btn act" data-mode="pass" aria-pressed="true">✓ Aprovar</button>
+        <button type="button" class="flow-mode-btn" data-mode="info" aria-pressed="false">🔍 Pré-requisitos</button>
+      </div>
+      <div class="flow-view-group" id="flowViewSw" role="tablist" aria-label="Modo de exibição do fluxograma">
+        <button type="button" role="tab" id="tab-ped-graph" class="flow-view-btn act" data-fview="graph" aria-controls="flowScroll" aria-selected="true" tabindex="0">🗺️ Grafo Visual</button>
+        <button type="button" role="tab" id="tab-ped-list" class="flow-view-btn" data-fview="list" aria-controls="flowFallback" aria-selected="false" tabindex="-1">📋 Lista por Semestre</button>
+      </div>
     </div>
   </div>
 
@@ -138,7 +174,8 @@ path.e.dim{opacity:.07}
     <div class="bar"><div id="bar"></div></div>
   </div>
 
-  <div id="flowScroll"><div id="flow"><svg id="edges"></svg></div></div>
+  <div id="flowScroll" role="tabpanel" aria-labelledby="tab-ped-graph"><div id="flow"><svg id="edges" aria-hidden="true"></svg></div></div>
+  <div id="flowFallback" class="flow-fallback" role="tabpanel" aria-labelledby="tab-ped-list" hidden></div>
 
   <div class="panel">
     <h3 style="margin:0">📅 Plano estimado (cenário mínimo, sem imprevistos)</h3>
@@ -278,22 +315,26 @@ function monte(fail){
 // ---------- LAYOUT / RENDER ----------
 const CW=190,CH=66,GX=64,GY=14,X0=20,Y0=56;
 const colOf=c=>c.kind==="el"?8:c.sem-1;
+const HEADS=["1º sem","2º sem","3º sem","4º sem","5º sem","6º sem","7º sem","8º sem","Eletivas"];
 const flow=document.getElementById("flow"), svg=document.getElementById("edges");
 const pos={}; const els={};
+let flowMode="pass", pinnedId=null, flowView=(typeof window!=="undefined"&&window.matchMedia&&window.matchMedia("(max-width: 700px)").matches)?"list":"graph";
+function inspectCard(id){pinnedId=(id&&hasCourse(id)&&pinnedId!==id)?id:null;hover(pinnedId)}
 function build(){
   const rows={};
   ORDER.forEach(id=>{const c=C[id];const col=colOf(c);rows[col]=(rows[col]||0);
     let r=rows[col]++;
     pos[id]={x:X0+col*(CW+GX),y:Y0+r*(CH+GY)}});
-  const heads=["1º sem","2º sem","3º sem","4º sem","5º sem","6º sem","7º sem","8º sem","Eletivas"];
-  heads.forEach((h,i)=>{const d=document.createElement("div");d.className="colh";d.style.left=(X0+i*(CW+GX))+"px";
+  HEADS.forEach((h,i)=>{const d=document.createElement("div");d.className="colh";d.style.left=(X0+i*(CW+GX))+"px";
     d.innerHTML=esc(h)+(i<8?`<small>${i%2?"semestre par":"semestre ímpar"}</small>`:"<small>66,6h (escolher 2 de 4)</small>");flow.appendChild(d)});
   ORDER.forEach(id=>{
     const c=C[id],p=pos[id],d=document.createElement("div");
     d.className="card"+(c.ext?" ext":"");d.title=c.name;d.style.left=p.x+"px";d.style.top=p.y+"px";
-    d.innerHTML=`<div class="chk"></div><div class="n">${esc(c.name)}</div><div class="m"><span>${esc(id)} · ${esc(c.h.toFixed(1).replace(".",","))}h</span><span class="plan"></span></div>`+(c.kind==="el"?`<button class="star" title="Escolher esta eletiva">★</button>`:"");
-    d.onclick=e=>{ if(e.target.classList.contains("star")){togglePlan(id);return} toggle(id)};
-    d.onmouseenter=()=>hover(id);d.onmouseleave=()=>hover(null);
+    d.setAttribute("role","button");d.setAttribute("tabindex","0");
+    d.innerHTML=`<div class="chk"></div><div class="card-acts"><button type="button" class="card-act" data-card-act="info" title="Ver pré-requisitos">🔍</button></div><div class="n">${esc(c.name)}</div><div class="m"><span>${esc(id)} · ${esc(c.h.toFixed(1).replace(".",","))}h</span><span class="plan"></span></div>`+(c.kind==="el"?`<button type="button" class="star" title="Escolher esta eletiva">★</button>`:"");
+    d.onclick=e=>{ if(e.target.classList.contains("star")){togglePlan(id);return} if(e.target.dataset?.cardAct==="info"||flowMode==="info"){inspectCard(id);return} toggle(id)};
+    d.onkeydown=e=>{ if(e.target!==d)return; if(e.key==="Enter"||e.key===" "){e.preventDefault();flowMode==="info"?inspectCard(id):toggle(id)} else if(e.key==="i"||e.key==="I"){e.preventDefault();inspectCard(id)}};
+    d.onmouseenter=()=>hover(id);d.onmouseleave=()=>hover(pinnedId);d.onfocus=()=>hover(id);d.onblur=()=>hover(pinnedId);
     flow.appendChild(d);els[id]=d});
   const W=X0*2+9*(CW+GX)-GX;flow.style.width=W+"px";flow.style.height=(Y0+7*(CH+GY)+20)+"px";
   svg.setAttribute("width",W);svg.setAttribute("height",parseFloat(flow.style.height));
@@ -304,11 +345,31 @@ function build(){
     e.setAttribute("d",`M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`);e.setAttribute("class","e");e.dataset.f=p;e.dataset.t=id;svg.appendChild(e)}));
 }
 function hover(id){
+  const activeId=id||pinnedId;
   const cards=Object.values(els),edges=[...svg.children];
-  if(!id){cards.forEach(c=>c.classList.remove("dim","hl"));edges.forEach(e=>e.classList.remove("dim","hl"));return}
-  const A=anc(id),D=desc(id);const set=new Set([id,...A,...D]);
-  ORDER.forEach(i=>{els[i].classList.toggle("dim",!set.has(i));els[i].classList.toggle("hl",set.has(i)&&i!==id)});
+  if(!activeId||!C[activeId]){cards.forEach(c=>c.classList.remove("dim","hl","pinned"));edges.forEach(e=>e.classList.remove("dim","hl"));return}
+  const A=anc(activeId),D=desc(activeId);const set=new Set([activeId,...A,...D]);
+  ORDER.forEach(i=>{els[i].classList.toggle("dim",!set.has(i));els[i].classList.toggle("hl",set.has(i)&&i!==activeId);els[i].classList.toggle("pinned",i===pinnedId)});
   edges.forEach(e=>{const on=set.has(e.dataset.f)&&set.has(e.dataset.t);e.classList.toggle("hl",on);e.classList.toggle("dim",!on)});
+}
+function renderFlowFallback(P,when,chosen){
+  const fb=document.getElementById("flowFallback");if(!fb)return;
+  fb.innerHTML=HEADS.map((title,colIdx)=>{
+    const items=ORDER.filter(id=>colOf(C[id])===colIdx);
+    const doneCount=items.filter(id=>P.has(id)).length;
+    const cardsHtml=items.map(id=>{
+      const c=C[id],isPassed=P.has(id),isReady=c.pre.every(p=>P.has(p));
+      const planTxt=(!isPassed&&when[id]!==undefined)?"Previsto: "+label(when[id]):"";
+      const preHtml=c.pre.length?`<div class="note">Pré-req: ${c.pre.map(p=>`${esc(C[p].name)} (${esc(p)})`).join(" · ")}</div>`:"";
+      const starBtnHtml=c.kind==="el"?`<button type="button" class="btn-xs ${S.electivePlan.includes(id)||chosen.includes(id)?'pri':''}" data-fb-act="star" data-id="${esc(id)}">★ Eletiva</button>`:"";
+      return `<div class="fb-card ${isPassed?'passed':isReady?'avail':''} ${c.ext?'ext':''}">
+        <div class="fb-card-top"><div><b>${esc(c.name)}</b><div class="note">${esc(id)} · ${esc(c.h.toFixed(1).replace(".",","))}h${planTxt?" · "+esc(planTxt):""}</div></div></div>
+        ${preHtml}
+        <div class="fb-card-actions"><button type="button" class="btn-xs ${isPassed?'pri':''}" data-fb-act="pass" data-id="${esc(id)}">${isPassed?"✓ Aprovada":"Marcar aprovada"}</button>${starBtnHtml}</div>
+      </div>`;
+    }).join("");
+    return `<section class="fb-sem-group"><header class="fb-sem-head"><h4>${esc(title)}</h4><span class="note">${esc(doneCount)}/${esc(items.length)}</span></header><div class="fb-sem-list">${cardsHtml}</div></section>`;
+  }).join("");
 }
 function toggle(id){
   const P=new Set(S.passed);
@@ -337,6 +398,7 @@ function update(){
     const st=el.querySelector(".star");if(st)st.classList.toggle("on",S.electivePlan.includes(id)||(chosen.includes(id)));
   });
   svg.querySelectorAll("path.e").forEach(e=>e.classList.toggle("pass",P.has(e.dataset.f)));
+  renderFlowFallback(P,when,chosen);
   // KPIs
   const doneH=OBR.filter(i=>P.has(i)).reduce((s,i)=>s+C[i].h,0)+ELETIVAS.filter(i=>P.has(i)).slice(0,2).reduce((s,i)=>s+C[i].h,0)+EST.filter(i=>P.has(i)).reduce((s,i)=>s+C[i].h,0)+(S.acDone?200:0);
   const totalH=TOTAL_H, pct=Math.min(100,doneH/totalH*100);
@@ -405,6 +467,39 @@ $("fileIn").onchange=async e=>{const f=e.target.files[0];if(!f)return;
     S=sanitizeState(j);update()}
   catch(err){alert("JSON inválido: "+err.message)}
   e.target.value=""};
+
+document.querySelectorAll(".flow-mode-btn").forEach(b=>{
+  b.onclick=()=>{
+    flowMode=b.dataset.mode==="info"?"info":"pass";
+    document.querySelectorAll(".flow-mode-btn").forEach(x=>{const act=x.dataset.mode===flowMode;x.classList.toggle("act",act);x.setAttribute("aria-pressed",act?"true":"false")});
+  };
+});
+const pedViewBtns=[...document.querySelectorAll(".flow-view-btn")];
+function setPedView(v,focusBtn=false){
+  flowView=v==="list"?"list":"graph";
+  pedViewBtns.forEach(b=>{const act=b.dataset.fview===flowView;b.classList.toggle("act",act);b.setAttribute("aria-selected",act?"true":"false");b.setAttribute("tabindex",act?"0":"-1");if(act&&focusBtn)b.focus()});
+  $("flowScroll").hidden=flowView!=="graph";$("flowScroll").style.display=flowView==="graph"?"":"none";
+  $("flowFallback").hidden=flowView!=="list";$("flowFallback").style.display=flowView==="list"?"":"none";
+}
+pedViewBtns.forEach((b,idx)=>{
+  b.onclick=()=>setPedView(b.dataset.fview,false);
+  b.onkeydown=e=>{
+    let next=null;
+    if(e.key==="ArrowRight"||e.key==="ArrowDown")next=(idx+1)%pedViewBtns.length;
+    else if(e.key==="ArrowLeft"||e.key==="ArrowUp")next=(idx-1+pedViewBtns.length)%pedViewBtns.length;
+    else if(e.key==="Home")next=0;
+    else if(e.key==="End")next=pedViewBtns.length-1;
+    if(next!==null){e.preventDefault();setPedView(pedViewBtns[next].dataset.fview,true)}
+  };
+});
+setPedView(flowView,false);
+$("flowFallback").onclick=e=>{
+  const btn=e.target.closest&&e.target.closest("[data-fb-act]");
+  const act=btn?btn.dataset.fbAct:e.target.dataset?.fbAct;
+  const id=btn?btn.dataset.id:e.target.dataset?.id;
+  if(!act||!hasCourse(id))return;
+  if(act==="pass")toggle(id);else if(act==="star")togglePlan(id);
+};
 
 build();update();
 </script>

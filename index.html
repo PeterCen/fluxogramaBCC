@@ -39,6 +39,13 @@
         </select></label></div>
   </header>
   <div class="wrap">
+    <noscript>
+      <div class="panel" style="border-color:var(--warn)">
+        <strong>⚠️ JavaScript desativado:</strong> Este planejador acadêmico precisa de JavaScript para simular o progresso e interagir com o fluxograma. Você ainda pode consultar os Projetos Pedagógicos de Curso originais em PDF:
+        <a href="./2022.12.06-PPC-BAC-Ciência-Computação-PEP-Reformulação.pdf" style="color:var(--av)">PPC 2022 (Grade Nova)</a> ·
+        <a href="./PPC-CienciadaComputacao-Epitacio-antiga.pdf" style="color:var(--av)">PPC 2018 (Grade Antiga)</a>.
+      </div>
+    </noscript>
 
     <div class="panel" id="kpiPanel">
       <div class="grid" id="kpis"></div>
@@ -47,20 +54,20 @@
       </div>
     </div>
 
-    <div class="tabs" id="tabs">
-      <button data-tab="t-flow" title="Mapa das disciplinas por semestre, com pré-requisitos">🗺️ Fluxograma</button>
-      <button data-tab="t-cur" title="Matérias deste semestre: notas, faltas e risco de reprovar">📚 Cursando agora</button>
-      <button data-tab="t-tr" title="Provas e trabalhos, com prioridade sugerida e calendário">📝 Prazos</button>
-      <button data-tab="t-hor" title="Grade semanal de aulas e salas">🕒 Horários</button>
-      <button data-tab="t-plan" title="Previsão de quando você conclui o curso">📅 Plano estimado</button>
-      <button data-tab="t-ac" title="Horas de atividades complementares">🏅 Atividades Compl.</button>
-      <button data-tab="t-cfg" title="Ajustes do plano, salvar/carregar progresso">⚙️ Configurações</button>
-      <button data-tab="t-help" title="Regras e simplificações do modelo">❓ Como funciona</button>
-      <button data-tab="t-feedback" title="Mandar sugestão ou relatar problema">💬 Feedback</button>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Seções do planejador acadêmico">
+      <button type="button" role="tab" id="tab-t-flow" data-tab="t-flow" aria-controls="t-flow" aria-selected="true" tabindex="0" title="Mapa das disciplinas por semestre, com pré-requisitos">🗺️ Fluxograma</button>
+      <button type="button" role="tab" id="tab-t-cur" data-tab="t-cur" aria-controls="t-cur" aria-selected="false" tabindex="-1" title="Matérias deste semestre: notas, faltas e risco de reprovar">📚 Cursando agora</button>
+      <button type="button" role="tab" id="tab-t-tr" data-tab="t-tr" aria-controls="t-tr" aria-selected="false" tabindex="-1" title="Provas e trabalhos, com prioridade sugerida e calendário">📝 Prazos</button>
+      <button type="button" role="tab" id="tab-t-hor" data-tab="t-hor" aria-controls="t-hor" aria-selected="false" tabindex="-1" title="Grade semanal de aulas e salas">🕒 Horários</button>
+      <button type="button" role="tab" id="tab-t-plan" data-tab="t-plan" aria-controls="t-plan" aria-selected="false" tabindex="-1" title="Previsão de quando você conclui o curso">📅 Plano estimado</button>
+      <button type="button" role="tab" id="tab-t-ac" data-tab="t-ac" aria-controls="t-ac" aria-selected="false" tabindex="-1" title="Horas de atividades complementares">🏅 Atividades Compl.</button>
+      <button type="button" role="tab" id="tab-t-cfg" data-tab="t-cfg" aria-controls="t-cfg" aria-selected="false" tabindex="-1" title="Ajustes do plano, salvar/carregar progresso">⚙️ Configurações</button>
+      <button type="button" role="tab" id="tab-t-help" data-tab="t-help" aria-controls="t-help" aria-selected="false" tabindex="-1" title="Regras e simplificações do modelo">❓ Como funciona</button>
+      <button type="button" role="tab" id="tab-t-feedback" data-tab="t-feedback" aria-controls="t-feedback" aria-selected="false" tabindex="-1" title="Mandar sugestão ou relatar problema">💬 Feedback</button>
     </div>
 
     <!-- Campo Configurações -->
-    <div class="tabpane" id="t-cfg">
+    <div class="tabpane" id="t-cfg" role="tabpanel" aria-labelledby="tab-t-cfg" tabindex="0">
       <div class="panel">
         <div class="controls">
           <label>Próximo semestre letivo a cursar
@@ -112,7 +119,7 @@
     </div>
 
     <!-- Campo Cursando agora -->
-    <div class="tabpane" id="t-cur">
+    <div class="tabpane" id="t-cur" role="tabpanel" aria-labelledby="tab-t-cur" tabindex="0">
       <div class="panel">
         <h3 style="margin:0">📚 Estatísticas</h3>
         <div class="cur-add">
@@ -153,7 +160,7 @@
     </div>
 
     <!-- Campo Tarefas, Provas e Notas -->
-    <div class="tabpane" id="t-tr">
+    <div class="tabpane" id="t-tr" role="tabpanel" aria-labelledby="tab-t-tr" tabindex="0">
       <!-- Painel Principal de Controle e Ações -->
       <div class="panel">
         <div class="tr-header-row">
@@ -217,10 +224,10 @@
 
         <!-- Barra de Filtros -->
         <div class="tr-toolbar">
-          <div class="tr-views" id="trViewSw">
-            <button class="tr-v-btn act" data-v="list" title="Todas as avaliações em uma lista ordenada por prioridade">📋 Lista de Atividades</button>
-            <button class="tr-v-btn" data-v="subjects" title="Notas e pontos por matéria">📚 Por Matéria &amp; Notas</button>
-            <button class="tr-v-btn" data-v="cal" title="Calendário mensal com as horas de estudo planejadas">🗓️ Calendário &amp; Planejador</button>
+          <div class="tr-views" id="trViewSw" role="tablist" aria-label="Visualizações de tarefas e notas">
+            <button type="button" role="tab" id="tab-tr-list" class="tr-v-btn act" data-v="list" aria-controls="trPaneList" aria-selected="true" tabindex="0" title="Todas as avaliações em uma lista ordenada por prioridade">📋 Lista de Atividades</button>
+            <button type="button" role="tab" id="tab-tr-subjects" class="tr-v-btn" data-v="subjects" aria-controls="trPaneSubjects" aria-selected="false" tabindex="-1" title="Notas e pontos por matéria">📚 Por Matéria &amp; Notas</button>
+            <button type="button" role="tab" id="tab-tr-cal" class="tr-v-btn" data-v="cal" aria-controls="trPaneCal" aria-selected="false" tabindex="-1" title="Calendário mensal com as horas de estudo planejadas">🗓️ Calendário &amp; Planejador</button>
           </div>
           <div class="tr-filters">
             <select id="trFilterSubj" title="Filtrar por matéria">
@@ -245,7 +252,7 @@
       </div>
 
       <!-- VISÃO 1: Lista Unificada e Organizada de Tarefas -->
-      <div class="panel tr-view-pane" id="trPaneList">
+      <div class="panel tr-view-pane" id="trPaneList" role="tabpanel" aria-labelledby="tab-tr-list" tabindex="0">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
           <div>
             <h3 style="margin:0">📋 Lista Unificada de Atividades</h3>
@@ -285,7 +292,7 @@
       </div>
 
       <!-- VISÃO 2: Desempenho e Notas por Matéria -->
-      <div class="panel tr-view-pane" id="trPaneSubjects" style="display:none">
+      <div class="panel tr-view-pane" id="trPaneSubjects" role="tabpanel" aria-labelledby="tab-tr-subjects" tabindex="0" style="display:none">
         <div style="margin-bottom:14px">
           <h3 style="margin:0">📚 Desempenho e Notas por Matéria</h3>
           <div class="note" style="margin-top:3px">
@@ -299,7 +306,7 @@
       </div>
 
       <!-- VISÃO 3: Calendário & Planejamento de Estudo -->
-      <div class="panel tr-view-pane" id="trPaneCal" style="display:none">
+      <div class="panel tr-view-pane" id="trPaneCal" role="tabpanel" aria-labelledby="tab-tr-cal" tabindex="0" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px">
           <div style="display:flex;gap:10px;align-items:center">
             <h3 style="margin:0">🗓️ Calendário e Distribuição de Estudo</h3>
@@ -325,7 +332,7 @@
     </div>
 
     <!-- Campo de Horarios de Aula -->
-    <div class="tabpane" id="t-hor">
+    <div class="tabpane" id="t-hor" role="tabpanel" aria-labelledby="tab-t-hor" tabindex="0">
       <div class="panel">
         <h3 style="margin:0">🕒 Horários de aulas</h3>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px"><span class="note"
@@ -350,9 +357,21 @@
     </div>
 
     <!-- Campo Fluxograma -->
-    <div class="tabpane" id="t-flow">
+    <div class="tabpane" id="t-flow" role="tabpanel" aria-labelledby="tab-t-flow" tabindex="0">
       <div class="panel">
-        <div class="note" style="margin-bottom:6px">💡 <b>Clique</b> numa disciplina para marcar como aprovada · <b>clique duplo</b> para marcar como "cursando agora" · passe o mouse para ver pré-requisitos e o que ela libera.</div>
+        <div class="flow-toolbar">
+          <div class="flow-mode-group" role="group" aria-label="Modo de toque ou clique no fluxograma">
+            <span class="flow-tb-lbl">Ação ao tocar/clicar:</span>
+            <button type="button" class="flow-mode-btn act" data-mode="pass" aria-pressed="true" title="Um toque/clique marca ou desmarca a disciplina como aprovada">✓ Aprovar</button>
+            <button type="button" class="flow-mode-btn" data-mode="cur" aria-pressed="false" title="Um toque/clique adiciona ou remove a disciplina de Cursando agora (substitui o duplo clique no celular)">📚 Cursando</button>
+            <button type="button" class="flow-mode-btn" data-mode="info" aria-pressed="false" title="Um toque/clique destaca pré-requisitos e matérias liberadas (substitui o passar do mouse no celular)">🔍 Pré-requisitos</button>
+          </div>
+          <div class="flow-view-group" id="flowViewSw" role="tablist" aria-label="Modo de exibição do fluxograma">
+            <button type="button" role="tab" id="tab-flow-graph" class="flow-view-btn act" data-fview="graph" aria-controls="flowScroll" aria-selected="true" tabindex="0" title="Visualizar mapa gráfico com conexões">🗺️ Grafo Visual</button>
+            <button type="button" role="tab" id="tab-flow-list" class="flow-view-btn" data-fview="list" aria-controls="flowFallback" aria-selected="false" tabindex="-1" title="Visualizar lista responsiva por semestre (ideal para celular e leitores de tela)">📋 Lista por Semestre</button>
+          </div>
+        </div>
+        <div class="note" style="margin-top:8px">💡 No celular ou teclado: escolha a <b>ação ao tocar</b> acima (ou use os botões <b>📚</b> e <b>🔍</b> em cada card) ou alterne para a <b>📋 Lista por Semestre</b>. No computador, clique simples, duplo clique e passar o mouse também funcionam.</div>
         <div class="legend">
           <span><i style="background:#12331f;border:1.5px solid var(--ok)"></i>Aprovada (checkpoint)</span>
           <span><i style="background:var(--panel2);border:1.5px solid var(--av)"></i>Disponível (pré-requisitos
@@ -360,18 +379,18 @@
           <span><i style="background:var(--panel2);border:1.5px solid var(--blk)"></i>Bloqueada</span>
           <span><i style="background:var(--ext)"></i>Extensão</span>
           <span><i style="background:var(--panel2);border:1.5px solid var(--warn)"></i>Cursando agora</span>
-          <span>Clique = marca/desmarca aprovação · duplo clique = cursando agora (amarelo) · ★ = escolhe eletiva ·
-            passe o mouse = vê a cadeia de
-            pré-requisitos</span>
+          <span>★ = escolhe eletiva · 🔍 = inspeciona cadeia de pré-requisitos · 📚 = marca cursando agora</span>
         </div>
+        <div id="flowInspect" class="flow-inspect" aria-live="polite" hidden></div>
       </div>
-      <div id="flowScroll">
-        <div id="flow"><svg id="edges"></svg></div>
+      <div id="flowScroll" role="tabpanel" aria-labelledby="tab-flow-graph">
+        <div id="flow"><svg id="edges" aria-hidden="true"></svg></div>
       </div>
+      <div id="flowFallback" class="flow-fallback" role="tabpanel" aria-labelledby="tab-flow-list" hidden></div>
     </div>
 
     <!-- Campo de Plano estimado -->
-    <div class="tabpane" id="t-plan">
+    <div class="tabpane" id="t-plan" role="tabpanel" aria-labelledby="tab-t-plan" tabindex="0">
       <div class="panel">
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
           <h3 style="margin:0">📅 Plano estimado</h3><select id="scen">
@@ -385,7 +404,7 @@
     </div>
 
     <!-- Campo de Atividades Complementares -->
-    <div class="tabpane" id="t-ac">
+    <div class="tabpane" id="t-ac" role="tabpanel" aria-labelledby="tab-t-ac" tabindex="0">
       <div class="panel">
         <h3 style="margin:0">🏅 Atividades Complementares <span class="note" id="acSum"></span></h3>
         <div class="bar">
@@ -420,7 +439,7 @@
     </div>
 
     <!-- Campo Como funciona -->
-    <div class="tabpane" id="t-help">
+    <div class="tabpane" id="t-help" role="tabpanel" aria-labelledby="tab-t-help" tabindex="0">
       <div class="panel">
         <h3 style="margin:0 0 6px">Como a estimativa funciona</h3>
         <ul class="note">
@@ -464,7 +483,7 @@
   </div>
 
   <!-- Aba Feedback -->
-  <div class="tabpane" id="t-feedback">
+  <div class="tabpane" id="t-feedback" role="tabpanel" aria-labelledby="tab-t-feedback" tabindex="0">
     <div class="panel fb-panel">
       <h3 class="fb-title">💬 Enviar Feedback ou Sugestão</h3>
       <p class="note fb-desc">
