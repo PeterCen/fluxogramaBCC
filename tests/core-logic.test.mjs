@@ -1,0 +1,432 @@
+#!/usr/bin/env node
+/**
+ * Suíte de Testes Unitários da Lógica Pura de Domínio:
+ * - Grafo Curricular e Caminho Crítico (depth, anc, desc)
+ * - Cálculo de Risco de Reprovação (risk, riskMap, effPrio, syncSubjectGrades)
+ * - Planejador Guloso de Semestres (simulate, electivesPlanned, toPlan, tccOpen, gateH, gateNeed)
+ * - Simulação Monte Carlo (monte, seed)
+ * - Planejador Guloso de Tarefas/Estudo e Atividades Complementares (planTasks, importance, urgency, prioOf, acCalc)
+ */
+
+import test from "node:test";
+import assert from "node:assert/strict";
+
+// Mock mínimo de DOM/Browser para importar o módulo script.js em Node.js
+function createMockElement(tag = "div") {
+    const el = {
+        tagName: tag.toUpperCase(),
+        id: "",
+        className: "",
+        value: "",
+        checked: false,
+        disabled: false,
+        textContent: "",
+        _innerHTML: "",
+        style: {},
+        dataset: {},
+        attributes: {},
+        children: [],
+        classList: {
+            _set: new Set(),
+            add(...cls) { cls.forEach(c => this._set.add(c)); },
+            remove(...cls) { cls.forEach(c => this._set.delete(c)); },
+            toggle(c, force) {
+                const on = force !== undefined ? !!force : !this._set.has(c);
+                if (on) this._set.add(c); else this._set.delete(c);
+                return on;
+            },
+            contains(c) { return this._set.has(c); }
+        },
+        appendChild(child) { this.children.push(child); return child; },
+        setAttribute(k, v) { this.attributes[k] = String(v); },
+        getAttribute(k) { return this.attributes[k]; },
+        hasAttribute(k) { return Object.prototype.hasOwnProperty.call(this.attributes, k); },
+        querySelector() { return createMockElement(); },
+        querySelectorAll() { return []; },
+        scrollIntoView() {},
+        focus() {},
+        click() {},
+        reset() {}
+    };
+    Object.defineProperty(el, "innerHTML", {
+        get() { return this._innerHTML; },
+        set(v) { this._innerHTML = String(v); }
+    });
+    return el;
+}
+
+const elementsById = new Map();
+function getMockEl(id) {
+    if (!elementsById.has(id)) {
+        const el = createMockElement();
+        el.id = id;
+        elementsById.set(id, el);
+    }
+    return elementsById.get(id);
+}
+
+const storageMap = new Map();
+globalThis.localStorage = {
+    getItem(k) { return storageMap.has(k) ? storageMap.get(k) : null; },
+    setItem(k, v) { storageMap.set(k, String(v)); },
+    removeItem(k) { storageMap.delete(k); },
+    clear() { storageMap.clear(); }
+};
+globalThis.window = globalThis;
+globalThis.location = { reload() {} };
+globalThis.alert = () => {};
+globalThis.confirm = () => true;
+globalThis.document = {
+    title: "",
+    body: createMockElement("body"),
+    getElementById(id) { return getMockEl(id); },
+    createElement(tag) { return createMockElement(tag); },
+    createElementNS(_ns, tag) { return createMockElement(tag); },
+    querySelector() { return createMockElement(); },
+    querySelectorAll() { return []; }
+};
+
+const {
+    C,
+    ORDER,
+    OBR,
+    OBR_H,
+    ELETIVAS,
+    depth,
+    anc,
+    desc,
+    defaultState,
+    setState,
+    getState,
+    fixCur,
+    syncSubjectGrades,
+    half,
+    label,
+    electivesPlanned,
+    toPlan,
+    risk,
+    seed,
+    gateH,
+    gateNeed,
+    tccOpen,
+    passedSet,
+    simulate,
+    monte,
+    effPrio,
+    acCalc,
+    importance,
+    urgency,
+    prioOf,
+    prioLbl,
+    planTasks
+} = await import("../assets/js/script.js");
+
+function resetState(overrides = {}) {
+    return setState({
+        ...defaultState("nova"),
+        startYear: 2026,
+        startHalf: 1,
+        maxLoad: 9,
+        failRate: 20,
+        respectParity: true,
+        acDone: false,
+        expect: 70,
+        ...overrides
+    });
+}
+
+// ============================================================================
+// 1. GRAFO CURRICULAR E CAMINHO CRÍTICO (anc, desc, depth)
+// ============================================================================
+test("Grafo curricular: ascendentes (anc), descendentes (desc) e profundidade de cadeia (depth)", () => {
+    // ALP1 -> ALP2 -> EDA1 -> EDA2 -> IART -> APRM (cadeia de 6 níveis)
+    const ancEda2 = anc("EDA2");
+    assert.ok(ancEda2.has("EDA1"));
+    assert.ok(ancEda2.has("ALP2"));
+    assert.ok(ancEda2.has("ALP1"));
+    assert.equal(ancEda2.size, 3);
+
+    const descAlp1 = desc("ALP1");
+    for (const id of ["ALP2", "POOB", "EDA1", "SOP1", "SOP2", "EDA2", "IART", "APRM"]) {
+        assert.ok(descAlp1.has(id), `ALP1 deve ter ${id} como descendente`);
+    }
+
+    // Disciplina folha (sem dependentes) tem depth === 1
+    assert.equal(depth["APRM"], 1);
+    assert.equal(depth["TCC2"], 1);
+    assert.equal(depth["TCC1"], 2);
+    // ALP1 libera uma cadeia mais longa que disciplinas folha do 1º semestre (ex: COEX)
+    assert.ok(depth["ALP1"] > depth["COEX"]);
+    assert.equal(depth["COEX"], 1);
+});
+
+// ============================================================================
+// 2. CÁLCULO DE RISCO DE REPROVAÇÃO (risk, effPrio, syncSubjectGrades)
+// ============================================================================
+test("Cálculo de risco (risk): reprovação imediata quando faltas ultrapassam 25% das aulas previstas", () => {
+    resetState({ expect: 70 });
+    // 76 aulas previstas => limite de 25% = 19 faltas
+    const okFaltas = risk({ id: "ALP1", nota: 7, pts: 0, prev: 76, cum: 40, falt: 19 });
+    assert.equal(okFaltas.limit, 19);
+    assert.equal(okFaltas.folga, 0);
+    assert.ok(okFaltas.pF < 1);
+
+    // 20 faltas => folga = -1 => pF = 1 e risco total p = 1 (100%)
+    const estourado = risk({ id: "ALP1", nota: 10, pts: 0, prev: 76, cum: 40, falt: 20 });
+    assert.equal(estourado.folga, -1);
+    assert.equal(estourado.pF, 1);
+    assert.equal(estourado.p, 1);
+});
+
+test("Cálculo de risco (risk): meta de nota atingida (>= 6) vs. impossível atingir 6 sem pontos restantes", () => {
+    resetState({ expect: 70 });
+    // Nota >= 6 e sem faltas => pN = 0.02 e risco baixo
+    const aprovadoNota = risk({ id: "ALP1", nota: 6.5, pts: 3, prev: 76, cum: 38, falt: 0 });
+    assert.equal(aprovadoNota.pN, 0.02);
+    assert.ok(aprovadoNota.p < 0.05);
+
+    // Nota < 6 (mas >= 4) e pts = 0 => depende exclusivamente da NAF (pN = 1 * 0.75 = 0.75)
+    const emNafSemPontos = risk({ id: "ALP1", nota: 5.5, pts: 0, prev: 76, cum: 76, falt: 0 });
+    assert.equal(emNafSemPontos.pN, 0.75);
+
+    // Nota < 4 e pts = 0 => nem atinge mínimo de 4.0 para NAF => pN = 1 e risco total p = 1
+    const reprovadoNota = risk({ id: "ALP1", nota: 3.5, pts: 0, prev: 76, cum: 76, falt: 0 });
+    assert.equal(reprovadoNota.pN, 1);
+    assert.equal(reprovadoNota.p, 1);
+});
+
+test("Cálculo de risco (risk): redução de 25% pela NAF quando nota máxima possível >= 4 e sensibilidade a expect", () => {
+    resetState({ expect: 70 });
+    // Caso 1: nota = 2.0, pts = 2.5 => soma = 4.5 >= 4.0 (elegível à NAF, aplica * 0.75)
+    // need = 4.0, need/pts = 1.6
+    // Caso 2: nota = 1.0, pts = 1.875 => soma = 2.875 < 4.0 (inelegível à NAF), mesmo need/pts = 5.0 / 3.125 = 1.6
+    const comNaf = risk({ id: "ALP1", nota: 2.0, pts: 2.5, prev: 76, cum: 38, falt: 0 });
+    const semNaf = risk({ id: "ALP1", nota: 0.8, pts: 3.0, prev: 76, cum: 38, falt: 0 }); // soma = 3.8 < 4, need/pts = 5.2/3 = 1.73
+    assert.ok(comNaf.pN <= 0.75, "Quando nota + pts >= 4, a NAF limita pN em no máximo 0.75");
+    assert.ok(semNaf.pN > 0.75, "Quando nota + pts < 4, não há desconto de NAF");
+
+    // Aumentar a expectativa de aproveitamento do aluno reduz o risco por nota
+    resetState({ expect: 40 });
+    const rBaixaExp = risk({ id: "ALP1", nota: 3.0, pts: 5.0, prev: 76, cum: 38, falt: 0 });
+    resetState({ expect: 90 });
+    const rAltaExp = risk({ id: "ALP1", nota: 3.0, pts: 5.0, prev: 76, cum: 38, falt: 0 });
+    assert.ok(rAltaExp.pN < rBaixaExp.pN, "Maior expectativa de aproveitamento deve resultar em menor risco por nota");
+});
+
+test("Prioridade efetiva (effPrio) e sincronização de notas de avaliações (syncSubjectGrades)", () => {
+    resetState({
+        expect: 70,
+        current: [
+            fixCur({ id: "ALP1", nota: 7, pts: 3, prev: 76, cum: 38, falt: 0, prio: "Auto" }), // seguro (< 15%) -> Baixa
+            fixCur({ id: "CLC1", nota: 2.5, pts: 5, prev: 76, cum: 38, falt: 6, prio: "Auto" }), // intermediário (15%..75%) -> Alta
+            fixCur({ id: "BDD1", nota: 1, pts: 0, prev: 76, cum: 76, falt: 0, prio: "Auto" }) // perdido (100%) -> Baixa
+        ]
+    });
+    const cur = getState().current;
+    assert.equal(effPrio(cur[0]), "Baixa");
+    assert.equal(effPrio(cur[1]), "Alta");
+    assert.equal(effPrio(cur[2]), "Baixa");
+
+    // Teste de syncSubjectGrades: só atividades 'avaliada' entram em r.nota; 'avaliando' e 'pendente' ficam em r.pts
+    resetState({
+        current: [fixCur({ id: "ALP1", nota: 0, pts: 10, autoGrade: true })],
+        tasks: [
+            { id: "t1", subj: "ALP1", type: "Prova", status: "avaliada", title: "P1", due: "2026-04-10", pts: 4, got: 3.2, eff: 4, done: true },
+            { id: "t2", subj: "ALP1", type: "Trabalho", status: "avaliando", title: "T1", due: "2026-05-10", pts: 3, got: null, eff: 3, done: true },
+            { id: "t3", subj: "ALP1", type: "Prova", status: "pendente", title: "P2", due: "2026-06-10", pts: 3, got: null, eff: 5, done: false }
+        ]
+    });
+    syncSubjectGrades();
+    const alp1 = getState().current[0];
+    assert.equal(alp1.nota, 3.2);
+    assert.equal(alp1.pts, 6.0); // 3 pts avaliando + 3 pts pendente
+});
+
+// ============================================================================
+// 3. PLANEJADOR GULOSO DE SEMESTRES (simulate, electivesPlanned, tccOpen)
+// ============================================================================
+test("Planejador guloso (simulate): curso do zero respeita pré-requisitos, paridade par/ímpar, maxLoad e regra do TCC", () => {
+    resetState({
+        startYear: 2026,
+        startHalf: 1,
+        maxLoad: 8,
+        respectParity: true,
+        passed: [],
+        electivePlan: ["TPRO", "INFR"]
+    });
+
+    const res = simulate(0, 0);
+    assert.ok(Number.isFinite(res.n) && res.n >= 8, `Curso completo deve levar ao menos 8 semestres (calculado: ${res.n})`);
+
+    const seenPassed = new Set();
+    let tcc1Term = null;
+    let tcc2Term = null;
+
+    res.terms.forEach((term, idx) => {
+        const semParity = half(term.k); // 1 (ímpar) ou 2 (par)
+        assert.ok(term.taken.length <= 8, `Semestre ${idx} excedeu maxLoad=8 (${term.taken.length})`);
+
+        // Verifica que todas as matérias agendadas neste período já tinham seus pré-requisitos concluídos ANTES deste período
+        for (const id of term.taken) {
+            const c = C[id];
+            for (const pre of c.pre) {
+                assert.ok(
+                    seenPassed.has(pre),
+                    `Disciplina ${id} foi alocada no período ${idx + 1} (${label(term.k)}) antes de seu pré-requisito ${pre}`
+                );
+            }
+            if (c.kind === "ob" || c.kind === "tcc") {
+                const expectedParity = (c.sem % 2) ? 1 : 2;
+                assert.equal(
+                    semParity,
+                    expectedParity,
+                    `Disciplina ${id} (sem ${c.sem}) foi alocada em semestre com paridade incorreta (${semParity})`
+                );
+            }
+            if (id === "TCC1") tcc1Term = idx;
+            if (id === "TCC2") tcc2Term = idx;
+        }
+
+        // Após o término do semestre, registra aprovações
+        term.taken.forEach(id => seenPassed.add(id));
+    });
+
+    assert.ok(tcc1Term !== null && tcc2Term !== null, "TCC1 e TCC2 devem ser alocados no plano");
+    assert.ok(tcc2Term > tcc1Term, "TCC2 só pode ser cursado após a conclusão do TCC1");
+});
+
+test("Planejador guloso: escolha de eletivas (electivesPlanned) e liberação de TCC (tccOpen)", () => {
+    resetState({ electivePlan: ["TCOM"] });
+    // Nenhuma eletiva aprovada: usa TCOM (escolhida) + 1ª eletiva padrão (TPRO)
+    const plan0 = electivesPlanned(new Set());
+    assert.deepEqual(plan0, ["TCOM", "TPRO"]);
+
+    // 1 eletiva já aprovada (TPRO): precisa de apenas mais 1 (TCOM)
+    const plan1 = electivesPlanned(new Set(["TPRO"]));
+    assert.deepEqual(plan1, ["TCOM"]);
+
+    // 2 eletivas já aprovadas: não planeja mais nenhuma
+    const plan2 = electivesPlanned(new Set(["TPRO", "INFR"]));
+    assert.deepEqual(plan2, []);
+
+    // Regra dos 75% do TCC: com 0 matérias aprovadas, TCC está bloqueado
+    assert.equal(tccOpen(new Set()), false);
+    // Com todas as obrigatórias aprovadas, gateH >= gateNeed (75%) => TCC liberado
+    assert.equal(tccOpen(new Set(OBR)), true);
+});
+
+test("Planejador guloso: diferença entre mode=0 (otimista) e mode=1 (reprova risco >= 50%) para matérias em curso", () => {
+    // Quase formando: falta apenas APRM (8º sem, ímpar=0 -> par) e TCC2, e APRM está sendo cursada agora
+    const allExceptAprmAndTcc2 = ORDER.filter(id => id !== "APRM" && id !== "TCC2" && C[id].kind !== "op");
+    resetState({
+        startYear: 2026,
+        startHalf: 2, // próximo semestre é 2026/2 (par, onde APRM e TCC2 são ofertados)
+        passed: allExceptAprmAndTcc2,
+        acDone: true,
+        current: [
+            // APRM em curso, mas com 25 faltas (estourou limite => risco = 100% >= 50%)
+            fixCur({ id: "APRM", nota: 8, pts: 2, prev: 76, cum: 50, falt: 25 })
+        ]
+    });
+
+    // No mode 0, assume que passa em APRM agora => no próximo semestre (2026/2) só falta TCC2
+    const simMode0 = simulate(0, 0);
+    assert.deepEqual(simMode0.terms[0].taken, ["TCC2"]);
+
+    // No mode 1, como APRM tem risco >= 50%, considera que reprova em APRM => precisa refazer APRM junto com TCC2
+    const simMode1 = simulate(0, 1);
+    assert.ok(simMode1.terms[0].taken.includes("APRM"), "No mode 1, matéria em curso com risco >= 50% deve voltar ao plano");
+    assert.ok(simMode1.terms[0].taken.includes("TCC2"));
+});
+
+test("Planejador guloso: curso 100% concluído retorna 0 semestres restantes", () => {
+    const allRequired = [...OBR, "TPRO", "INFR", "TCC1", "TCC2"];
+    resetState({ passed: allRequired, acDone: true });
+    const sim = simulate(0, 0);
+    assert.equal(sim.n, 0);
+    assert.equal(sim.terms.length, 0);
+});
+
+// ============================================================================
+// 4. SIMULAÇÃO MONTE CARLO (monte, seed)
+// ============================================================================
+test("Monte Carlo (monte): determinismo do PRNG (seed) e monotonicidade com a taxa de falha", () => {
+    resetState({
+        startYear: 2026,
+        startHalf: 1,
+        maxLoad: 8,
+        respectParity: true,
+        passed: ["ALP1", "COEX", "EDG1", "FADM", "FMAT", "ICCO", "MDIS"]
+    });
+
+    // Determinismo: duas execuções seguidas com a mesma taxa devem retornar valores idênticos
+    const mc1 = monte(0.2);
+    const mc2 = monte(0.2);
+    assert.deepEqual(mc1, mc2, "Monte Carlo deve ser 100% determinístico para o mesmo estado");
+
+    // Com taxa de falha 0% e sem matérias em curso com risco, med e p90 coincidem com o plano mínimo
+    const minPlan = simulate(0, 0).n;
+    const mcZero = monte(0);
+    assert.equal(mcZero.med, minPlan);
+    assert.equal(mcZero.p90, minPlan);
+
+    // Monotonicidade: 0% <= 20% <= 45% de falha, e sempre p90 >= med >= minPlan
+    const mcHigh = monte(0.45);
+    assert.ok(mc1.med >= minPlan, `Mediana (${mc1.med}) deve ser >= mínimo (${minPlan})`);
+    assert.ok(mc1.p90 >= mc1.med, `P90 (${mc1.p90}) deve ser >= mediana (${mc1.med})`);
+    assert.ok(mcHigh.med >= mc1.med, `Mediana com 45% de falha (${mcHigh.med}) deve ser >= mediana com 20% (${mc1.med})`);
+    assert.ok(mcHigh.p90 >= mc1.p90, `P90 com 45% de falha (${mcHigh.p90}) deve ser >= P90 com 20% (${mc1.p90})`);
+});
+
+// ============================================================================
+// 5. PLANEJADOR DE ESTUDO / TAREFAS E ATIVIDADES COMPLEMENTARES
+// ============================================================================
+test("Planejador de tarefas (importance, urgency, prioOf, planTasks) e Atividades Complementares (acCalc)", () => {
+    resetState({
+        cap: 3,
+        weekend: false,
+        current: [fixCur({ id: "ALP1", nota: 4, pts: 6, prev: 76, cum: 38, falt: 2 })],
+        tasks: [
+            { id: "t_urg", subj: "ALP1", type: "Prova", status: "pendente", title: "Prova Urgente", due: "2099-12-10", pts: 5, got: null, eff: 6, done: false },
+            { id: "t_leve", subj: "ALP1", type: "Trabalho", status: "pendente", title: "Lista Leve", due: "2099-12-20", pts: 1, got: null, eff: 2, done: false }
+        ]
+    });
+
+    const [tUrg, tLeve] = getState().tasks;
+    const refDate = new Date(2099, 11, 8); // 2 dias antes de t_urg
+    assert.ok(importance(tUrg) > importance(tLeve), "Tarefa valendo 5 pts deve ter maior importância que tarefa de 1 pt");
+    assert.ok(urgency(tUrg, refDate, tUrg.eff) > urgency(tLeve, refDate, tLeve.eff), "Tarefa com prazo mais próximo e maior esforço deve ser mais urgente");
+    assert.ok(prioOf(tUrg, refDate, tUrg.eff) > prioOf(tLeve, refDate, tLeve.eff));
+    assert.deepEqual(prioLbl(75), ["Crítica", "r"]);
+    assert.deepEqual(prioLbl(55), ["Alta", "y"]);
+    assert.deepEqual(prioLbl(35), ["Média", "b"]);
+    assert.deepEqual(prioLbl(15), ["Baixa", "g"]);
+
+    // Verifica que planTasks aloca todas as horas das tarefas pendentes respeitando cap=3h/dia e sem finais de semana (weekend=false)
+    const plan = planTasks();
+    assert.ok(plan.t_urg && plan.t_leve);
+    for (const p of [plan.t_urg, plan.t_leve]) {
+        let sumH = 0;
+        for (const [ymdStr, h] of Object.entries(p.plan)) {
+            assert.ok(h <= 3, `Horas no dia ${ymdStr} (${h}) não podem exceder cap=3`);
+            const [y, m, d] = ymdStr.split("-").map(Number);
+            const dow = new Date(y, m - 1, d).getDay();
+            assert.ok(dow !== 0 && dow !== 6, `Com weekend=false, não deve alocar estudo em fim de semana (${ymdStr})`);
+            sumH += h;
+        }
+        assert.equal(sumH, p.t.eff, `Todas as ${p.t.eff}h da tarefa ${p.t.id} devem ser alocadas`);
+    }
+
+    // Verifica cálculo de Atividades Complementares (Anexo III): Grupo A compartilha teto de 40h
+    resetState({
+        ac: {
+            0: 1, // Artigo internacional: 40h (Grupo A)
+            1: 1, // Artigo nacional: 30h (Grupo A) -> somaria 70h no Grupo A, mas teto do grupo é 40h!
+            5: 2  // Iniciação científica: 2 * 25h = 50h (fora do Grupo A, teto próprio de 50h)
+        }
+    });
+    const acRes = acCalc();
+    assert.equal(acRes.g.A.ob, 70);
+    assert.equal(acRes.g.A.ct, 40, "Grupo A deve limitar as horas contabilizadas em 40h");
+    assert.equal(acRes.tot, 90, "Total contabilizado deve ser 40h (Grupo A) + 50h (IC) = 90h");
+});

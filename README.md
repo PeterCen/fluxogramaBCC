@@ -44,24 +44,35 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - `assets/js/feedback.js` e `assets/js/config.js` — chamada para envio de feedback via Formspree.
 - `assets/css/styles.css` e `assets/img/` — estilos e ícone.
 - `pedagogia/index.html` — fluxograma da Licenciatura em Pedagogia (página separada).
-- `tests/security-check.mjs` — suíte automatizada de análise estática (`innerHTML` vs `esc()`), testes unitários e fuzzing anti-XSS na importação de JSON.
-- `.githooks/pre-commit` — hook de pré-commit que executa a verificação de segurança antes de permitir novos commits.
+- `tests/security-check.mjs` — suíte automatizada de análise estática (`innerHTML` vs `esc()`), testes de acessibilidade WAI-ARIA/fallbacks e fuzzing anti-XSS na importação de JSON.
+- `tests/core-logic.test.mjs` — testes unitários da lógica pura de domínio (grafo de pré-requisitos, cálculo de risco, planejador guloso de semestres, simulação Monte Carlo, planejador diário de tarefas e atividades complementares).
+- `.githooks/pre-commit` — hook de pré-commit que executa a verificação de segurança e os testes unitários antes de permitir novos commits.
 - `.github/workflows/security.yml` — workflow de CI (GitHub Actions) que valida pushes e pull requests automaticamente.
 - PDFs na raiz — PPCs usados como fonte dos dados (Ciência da Computação nova e antiga, e Pedagogia).
 
-## Segurança e Verificação de Qualidade (Anti-XSS)
+## Segurança, Acessibilidade e Testes Automatizados
 
-Para impedir vulnerabilidades de Cross-Site Scripting (XSS) via campos de entrada ou importação de arquivos JSON maliciosos, o projeto adota defesa em profundidade:
+Para garantir qualidade, acessibilidade e impedir regressões ou vulnerabilidades de Cross-Site Scripting (XSS), o projeto conta com defesa em profundidade e testes automatizados:
 
 1. **Escape Sistemático de HTML (`esc()`)**: todas as interpolações dinâmicas nos templates atribuídos a `innerHTML` (em `assets/js/script.js` e `pedagogia/index.html`) passam por `esc()`, que escapa `&`, `<`, `>`, `"` e `'`.
 2. **Sanitização Estrita de Estado e JSON (`sanitizeState()`)**: todo estado lido do `localStorage` ou importado via arquivo `.json` é validado por schema antes de uso — bloqueando *Prototype Pollution* (`Object.prototype.hasOwnProperty.call`), forçando conversão e limites (*clamping*) para campos numéricos (`nota`, `pts`, `got`, `falt`, `cum`, `prev`, `eff`, `failRate`, `startYear`, etc.) e validando campos enumerados contra *allowlists*.
 3. **Content Security Policy (CSP)**: `index.html` define `script-src 'self'`, bloqueando execução de scripts inline, `eval()` e atributos de evento injetados (`onerror=`, `onload=`) diretamente no navegador.
-4. **Verificação Automatizada (Local e CI)**:
-   - Para rodar a auditoria estática e os testes anti-XSS manualmente:
+4. **Testes Unitários da Lógica Pura (`tests/core-logic.test.mjs`)**:
+   - **Grafo e Caminho Crítico**: valida fecho transitivo de pré-requisitos (`anc`), dependentes (`desc`) e profundidade da cadeia (`depth`).
+   - **Cálculo de Risco (`risk`, `effPrio`, `syncSubjectGrades`)**: valida limite de 25% de faltas, projeção de 60% do ritmo, desconto de 25% da NAF quando `nota + pts >= 4`, prioridade automática na faixa `15%–75%` e sincronização automática de notas a partir das atividades avaliadas.
+   - **Planejador Guloso (`simulate`, `electivesPlanned`, `tccOpen`)**: valida invariantes de pré-requisitos, oferta par/ímpar, limite `maxLoad`, seleção de eletivas, desbloqueio de `TCC1`/`TCC2` com 75% da carga e diferença entre `mode = 0` e `mode = 1`.
+   - **Simulação Monte Carlo (`monte`, `seed`)**: valida determinismo do PRNG (1000 rodadas), caso base sem falha (`failRate = 0`), invariante `p90 >= med >= min` e monotonicidade com a taxa de falha.
+   - **Planejador de Estudo e Atividades Complementares (`planTasks`, `acCalc`)**: valida importância, urgência, distribuição diária de horas (`cap`, `weekend`) e teto compartilhado de 40h do Grupo A (Anexo III).
+5. **Como Executar Localmente e no CI**:
+   - Para rodar a auditoria estática de `innerHTML`/`esc()`, acessibilidade WAI-ARIA e fuzzing anti-XSS:
      ```bash
      node tests/security-check.mjs
      ```
-   - Para ativar o hook de pré-commit em um novo clone do repositório:
+   - Para rodar os testes unitários do planejador guloso, simulação Monte Carlo e cálculo de risco:
+     ```bash
+     node --test tests/core-logic.test.mjs
+     ```
+   - Para ativar o hook de pré-commit (que roda ambas as suítes automaticamente antes de cada `git commit`):
      ```bash
      git config core.hooksPath .githooks
      ```
