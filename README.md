@@ -44,7 +44,12 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - `assets/data/courses/index.json` — catálogo manifesto dos cursos disponíveis no sistema.
 - `assets/data/courses/bcc-2022.json`, `bcc-2018.json`, `pedagogia-2023.json` — arquivos JSON independentes por curso (metadados, regras de TCC/estágio, atividades complementares e matriz curricular).
 - `assets/js/courses.js` — carregador e validador de schema (`validateCourseConfig()`) dos arquivos JSON de cursos.
-- `assets/js/script.js` — motor unificado: simulação, risco, trabalhos e provas, renderização segura (`esc()`), sanitização de estado (`sanitizeState()`) e salvamento.
+- `assets/js/state.js` — grafo curricular (`C`, `ORDER`, `anc`, `desc`, `depth`), estado global (`S`), escape HTML (`esc()`), sanitização de JSON (`sanitizeState()`) e persistência (`persist()`).
+- `assets/js/risk.js` — cálculo de risco de reprovação (`risk()`, `riskMap()`), prioridade automática (`effPrio()`), sincronização de notas de avaliações (`syncSubjectGrades()`) e calculadora do Anexo III (`acCalc()`).
+- `assets/js/planner.js` — planejador guloso de semestres por caminho crítico (`simulate()`), seleção de eletivas (`electivesPlanned()`), regras de TCC/estágio (`tccOpen()`) e simulação Monte Carlo (`monte()`, `seed()`).
+- `assets/js/calendar.js` — utilitários de datas, fórmulas de importância/urgência/prioridade (`importance()`, `urgency()`, `prioOf()`) e planejador diário de estudo no calendário (`planTasks()`).
+- `assets/js/ui.js` — abas acessíveis WAI-ARIA (`bindTablist()`), renderização do fluxograma, modo mobile/toque, fallback em lista, tabelas e listeners de eventos.
+- `assets/js/script.js` — ponto de entrada principal que inicializa e reexporta os módulos da aplicação.
 - `assets/js/feedback.js` e `assets/js/config.js` — chamada para envio de feedback via Formspree.
 - `assets/css/styles.css` e `assets/img/` — estilos e ícone.
 - `pedagogia/index.html` e `assets/js/redirect-pedagogia.js` — redirecionamento compatível de `/pedagogia/` para `/?curso=pedagogia`.

@@ -55,7 +55,17 @@ const SAFE_HTML_FRAGMENTS = new Set([
     "stBadge",
     "preHtml",
     "kidsHtml",
-    "cardsHtml"
+    "cardsHtml",
+    "expKpiHtml",
+    "listHtml",
+    "folgaNote",
+    "riskCellHtml",
+    "evalSpan",
+    "unlockBtn",
+    "overCapWarn",
+    "groupCell",
+    "maxCell",
+    "evalMeta"
 ]);
 
 /**
@@ -211,11 +221,38 @@ function auditFileForUnescapedHtml(relPath) {
     return { innerHtmlCount, escCallCount, lines: lines.length };
 }
 
-const scriptStats = auditFileForUnescapedHtml("assets/js/script.js");
-ok(`assets/js/script.js: ${scriptStats.innerHtmlCount} usos de innerHTML, ${scriptStats.escCallCount} chamadas a esc() — 0 interpolações HTML sem escape.`);
+const JS_MODULES = [
+    "assets/js/courses.js",
+    "assets/js/state.js",
+    "assets/js/risk.js",
+    "assets/js/planner.js",
+    "assets/js/calendar.js",
+    "assets/js/ui.js",
+    "assets/js/script.js",
+    "assets/js/feedback.js"
+];
+
+let totalInnerHtml = 0;
+let totalEscCalls = 0;
+for (const modPath of JS_MODULES) {
+    const stats = auditFileForUnescapedHtml(modPath);
+    totalInnerHtml += stats.innerHtmlCount;
+    totalEscCalls += stats.escCallCount;
+    // Verifica limite de tamanho do módulo e comprimento máximo de linha (<= 300 caracteres)
+    const rawLines = fs.readFileSync(path.join(ROOT, modPath), "utf8").split(/\r?\n/);
+    const longLines = rawLines
+        .map((l, idx) => ({ line: idx + 1, len: l.length }))
+        .filter(x => x.len > 300);
+    assert.equal(
+        longLines.length,
+        0,
+        `Módulo ${modPath} possui linha(s) com mais de 300 caracteres: ${JSON.stringify(longLines)}`
+    );
+}
+ok(`Modularização verificada (${JS_MODULES.length} módulos JS): ${totalInnerHtml} usos de innerHTML, ${totalEscCalls} chamadas a esc(), 0 interpolações sem escape e 0 linhas > 300 caracteres.`);
 assert.ok(
-    scriptStats.escCallCount >= scriptStats.innerHtmlCount,
-    `Esperado número de chamadas a esc() (${scriptStats.escCallCount}) >= usos de innerHTML (${scriptStats.innerHtmlCount})`
+    totalEscCalls >= totalInnerHtml,
+    `Esperado número de chamadas a esc() (${totalEscCalls}) >= usos de innerHTML (${totalInnerHtml})`
 );
 
 // Verifica catálogo de cursos orientado a dados (1 JSON por curso em assets/data/courses/)
