@@ -35,13 +35,33 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 
 ## Estrutura do projeto
 
-- `index.html` — página do Bacharelado em Ciência da Computação (abas, controles e tabelas).
-- `assets/js/script.js` — dados das grades, simulação, risco, trabalhos e provas, renderização e salvamento.
-- `assets/js/raw_(nome)` — dados das grades
-- `assets/js/feedback` — Chamada para envio de feedback nvia e-mail.
+- `index.html` — página do Bacharelado em Ciência da Computação (abas, controles, tabelas e Content Security Policy).
+- `assets/js/script.js` — dados das grades, simulação, risco, trabalhos e provas, renderização segura (`esc()`), sanitização de estado (`sanitizeState()`) e salvamento.
+- `assets/js/raw_new.js` e `assets/js/raw_old.js` — dados das grades curriculares (PPC 2022 e PPC 2018).
+- `assets/js/feedback.js` e `assets/js/config.js` — chamada para envio de feedback via Formspree.
 - `assets/css/styles.css` e `assets/img/` — estilos e ícone.
 - `pedagogia/index.html` — fluxograma da Licenciatura em Pedagogia (página separada).
+- `tests/security-check.mjs` — suíte automatizada de análise estática (`innerHTML` vs `esc()`), testes unitários e fuzzing anti-XSS na importação de JSON.
+- `.githooks/pre-commit` — hook de pré-commit que executa a verificação de segurança antes de permitir novos commits.
+- `.github/workflows/security.yml` — workflow de CI (GitHub Actions) que valida pushes e pull requests automaticamente.
 - PDFs na raiz — PPCs usados como fonte dos dados (Ciência da Computação nova e antiga, e Pedagogia).
+
+## Segurança e Verificação de Qualidade (Anti-XSS)
+
+Para impedir vulnerabilidades de Cross-Site Scripting (XSS) via campos de entrada ou importação de arquivos JSON maliciosos, o projeto adota defesa em profundidade:
+
+1. **Escape Sistemático de HTML (`esc()`)**: todas as interpolações dinâmicas nos templates atribuídos a `innerHTML` (em `assets/js/script.js` e `pedagogia/index.html`) passam por `esc()`, que escapa `&`, `<`, `>`, `"` e `'`.
+2. **Sanitização Estrita de Estado e JSON (`sanitizeState()`)**: todo estado lido do `localStorage` ou importado via arquivo `.json` é validado por schema antes de uso — bloqueando *Prototype Pollution* (`Object.prototype.hasOwnProperty.call`), forçando conversão e limites (*clamping*) para campos numéricos (`nota`, `pts`, `got`, `falt`, `cum`, `prev`, `eff`, `failRate`, `startYear`, etc.) e validando campos enumerados contra *allowlists*.
+3. **Content Security Policy (CSP)**: `index.html` define `script-src 'self'`, bloqueando execução de scripts inline, `eval()` e atributos de evento injetados (`onerror=`, `onload=`) diretamente no navegador.
+4. **Verificação Automatizada (Local e CI)**:
+   - Para rodar a auditoria estática e os testes anti-XSS manualmente:
+     ```bash
+     node tests/security-check.mjs
+     ```
+   - Para ativar o hook de pré-commit em um novo clone do repositório:
+     ```bash
+     git config core.hooksPath .githooks
+     ```
 
 ## Premissas e simplificações
 

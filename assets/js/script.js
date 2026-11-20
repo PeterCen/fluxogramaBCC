@@ -43,35 +43,167 @@ const depth = {}; (function d() { const f = id => depth[id] ?? (depth[id] = 1 + 
 const anc = id => { const s = new Set(); const f = x => C[x].pre.forEach(p => { if (!s.has(p)) { s.add(p); f(p) } }); f(id); return s };
 const desc = id => { const s = new Set(); const f = x => C[x].kids.forEach(p => { if (!s.has(p)) { s.add(p); f(p) } }); f(id); return s };
 
+// ---------- SEGURANÇA / ESCAPE E VALIDAÇÃO ----------
+export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const PRIO = ["Auto", "Alta", "Média", "Baixa"], STAT = ["Crítico", "Moderado", "Recuperável", "Bem viável"], FASE = ["Consumindo", "Revisando", "Finalizada"];
+const VALID_TASK_TYPES = ["Trabalho", "Prova", "Seminário", "Outro"];
+const VALID_TASK_STATUS = ["pendente", "avaliando", "avaliada"];
+const VALID_SORTS_CUR = ["add", "nome", "prio", "risco"];
+const VALID_VIEWS_TR = ["list", "subjects", "cal"];
+const VALID_SORTS_TR = ["prio", "due", "subj", "pts"];
+const AC_COUNT = 26;
+
+const clampNum = (v, min, max, def) => {
+    const n = typeof v === "number" ? v : parseFloat(v);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
+};
+const clampInt = (v, min, max, def) => Math.round(clampNum(v, min, max, def));
+const hasCourse = (id, cMap = C) => typeof id === "string" && Object.prototype.hasOwnProperty.call(cMap, id);
+
+function buildCourseMap(curKey) {
+    if (curKey === KEY) return C;
+    const cur = CURS[curKey] || CURS.nova;
+    const map = {};
+    cur.raw.forEach(([id, name, sem, aulas, ext, pre]) => {
+        map[id] = { id, name, sem, aulas, ext: !!ext, pre, h: id.startsWith("TCC") ? cur.tccH : HRS(aulas) };
+    });
+    return map;
+}
+
 // ---------- ESTADO ----------
 const now = new Date();
-const defaultState = () => ({
-    version: 1, curriculo: KEY, passed: [], electivePlan: [], startYear: now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear(),
-    startHalf: now.getMonth() >= 6 ? 1 : 2, maxLoad: 9, failRate: 20, respectParity: true, acDone: false, expect: 70, scen: 0, hor: { cells: {} }, ac: {}, tccBase: "total", curSort: "add", current: [], tasks: [], cap: 3, weekend: true, trView: "list", trSort: "prio", trFilterSubj: "", trFilterType: "", trFilterStatus: "unresolved", savedAt: null
+const defaultState = (curKey = KEY) => ({
+    version: 1, curriculo: curKey, passed: [], electivePlan: [], startYear: now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear(),
+    startHalf: now.getMonth() >= 6 ? 1 : 2, maxLoad: 9, failRate: 20, respectParity: true, acDone: false, expect: 70, scen: 0, hor: { cells: {} }, ac: {}, acHoras: 0, tccBase: "total", curSort: "add", current: [], tasks: [], cap: 3, weekend: true, trView: "list", trSort: "prio", trFilterSubj: "", trFilterType: "", trFilterStatus: "unresolved", savedAt: null
 });
 let S = defaultState();
 const LS = CUR.ls;
-const fixCur = r => {
-    const prev = r.prev ?? C[r.id].aulas * 19, cum = r.cum ?? prev, nota = r.nota ?? 0;
+const fixCur = (r, cMap = C) => {
+    const defPrev = cMap[r.id].aulas * 19;
+    const prev = clampInt(r.prev, 0, 1000, defPrev);
+    const cum = clampInt(r.cum, 0, 1000, prev);
+    const nota = Math.round(clampNum(r.nota, 0, 10, 0) * 100) / 100;
+    const pts = Math.round(clampNum(r.pts, 0, 10, Math.max(0, 10 - nota)) * 100) / 100;
+    const defFalt = Math.round((1 - clampNum(r.freq, 0, 100, 100) / 100) * cum);
+    const falt = clampInt(r.falt, 0, 1000, defFalt);
+    const prio = PRIO.includes(r.prio) && r.prio !== "Média" ? r.prio : "Auto";
+    const fase = FASE.includes(r.fase) ? r.fase : "Consumindo";
+    const autoGrade = typeof r.autoGrade === "boolean" ? r.autoGrade : true;
     return {
         id: r.id,
         nota,
-        pts: r.pts ?? Math.max(0, 10 - nota),
+        pts,
         prev,
         cum,
-        falt: r.falt ?? Math.round((1 - (r.freq ?? 100) / 100) * cum),
-        prio: r.prio && r.prio !== "Média" ? r.prio : "Auto",
-        fase: r.fase || "Consumindo",
-        autoGrade: r.autoGrade !== undefined ? r.autoGrade : true
+        falt,
+        prio,
+        fase,
+        autoGrade
     };
 };
 
 const taskStatus = t => {
-    if (t.status) return t.status;
-    if (t.got != null && t.got !== "") return "avaliada";
-    if (t.done) return "avaliando";
+    if (t && VALID_TASK_STATUS.includes(t.status)) return t.status;
+    if (t && t.got != null && t.got !== "" && Number.isFinite(Number(t.got))) return "avaliada";
+    if (t && t.done) return "avaliando";
     return "pendente";
 };
+
+const fixTask = t => {
+    const id = typeof t.id === "string" && /^[a-zA-Z0-9_-]{1,40}$/.test(t.id)
+        ? t.id
+        : "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const subj = t.subj;
+    const type = VALID_TASK_TYPES.includes(t.type) ? t.type : "Outro";
+    const title = String(t.title ?? "").trim().slice(0, 200) || "Atividade";
+    const due = typeof t.due === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.due) ? t.due : "";
+    const pts = Math.round(clampNum(t.pts, 0, 100, 2) * 100) / 100;
+    const hasGot = t.got != null && t.got !== "" && Number.isFinite(Number(t.got));
+    const got = hasGot ? Math.round(clampNum(t.got, 0, 10, 0) * 100) / 100 : null;
+    const eff = Math.round(clampNum(t.eff, 0.5, 500, 1) * 10) / 10;
+    let status = taskStatus(t);
+    if (hasGot) status = "avaliada";
+    else if (status === "avaliada") status = "avaliando";
+    const done = status === "avaliando" || status === "avaliada";
+    return { id, subj, type, status, title, due, pts, got, eff, done };
+};
+
+export function sanitizeState(raw, curKey = KEY) {
+    const validCur = Object.prototype.hasOwnProperty.call(CURS, curKey) ? curKey : KEY;
+    const def = defaultState(validCur);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return def;
+    const cMap = buildCourseMap(validCur);
+
+    const passed = [...new Set(
+        (Array.isArray(raw.passed) ? raw.passed : [])
+            .filter(i => typeof i === "string")
+            .flatMap(i => i === "TCC" ? ["TCC1", "TCC2"] : [i])
+            .filter(i => hasCourse(i, cMap))
+    )];
+    const electivePlan = [...new Set(
+        (Array.isArray(raw.electivePlan) ? raw.electivePlan : [])
+            .filter(i => hasCourse(i, cMap))
+    )];
+    const seenCur = new Set();
+    const current = (Array.isArray(raw.current) ? raw.current : [])
+        .filter(r => r && typeof r === "object" && hasCourse(r.id, cMap) && !seenCur.has(r.id) && seenCur.add(r.id))
+        .map(r => fixCur(r, cMap));
+    const tasks = (Array.isArray(raw.tasks) ? raw.tasks : [])
+        .filter(t => t && typeof t === "object" && hasCourse(t.subj, cMap))
+        .map(fixTask);
+
+    const cells = {};
+    if (raw.hor && typeof raw.hor === "object" && raw.hor.cells && typeof raw.hor.cells === "object" && !Array.isArray(raw.hor.cells)) {
+        for (const [k, v] of Object.entries(raw.hor.cells)) {
+            if (/^[0-4]-[0-4]$/.test(k) && v && typeof v === "object" && !Array.isArray(v)) {
+                const cid = hasCourse(v.id, cMap) ? v.id : "";
+                const sala = typeof v.sala === "string" ? v.sala.trim().slice(0, 60) : "";
+                if (cid || sala) cells[k] = { id: cid, sala };
+            }
+        }
+    }
+
+    const ac = {};
+    if (raw.ac && typeof raw.ac === "object" && !Array.isArray(raw.ac)) {
+        for (let i = 0; i < AC_COUNT; i++) {
+            if (raw.ac[i] != null && raw.ac[i] !== "") {
+                const val = clampNum(raw.ac[i], 0, 100, 0);
+                if (val > 0) ac[i] = val;
+            }
+        }
+    }
+
+    return {
+        version: 1,
+        curriculo: validCur,
+        passed,
+        electivePlan,
+        startYear: clampInt(raw.startYear, 2020, 2060, def.startYear),
+        startHalf: +raw.startHalf === 1 || +raw.startHalf === 2 ? +raw.startHalf : def.startHalf,
+        maxLoad: clampInt(raw.maxLoad, 3, 12, def.maxLoad),
+        failRate: clampNum(raw.failRate, 0, 60, def.failRate),
+        respectParity: typeof raw.respectParity === "boolean" ? raw.respectParity : def.respectParity,
+        acDone: typeof raw.acDone === "boolean" ? raw.acDone : def.acDone,
+        expect: clampNum(raw.expect, 30, 95, def.expect),
+        scen: +raw.scen === 1 ? 1 : 0,
+        hor: { cells },
+        ac,
+        acHoras: clampNum(raw.acHoras, 0, 1000, 0),
+        tccBase: raw.tccBase === "obr" ? "obr" : "total",
+        curSort: VALID_SORTS_CUR.includes(raw.curSort) ? raw.curSort : def.curSort,
+        current,
+        tasks,
+        cap: clampNum(raw.cap, 1, 10, def.cap),
+        weekend: typeof raw.weekend === "boolean" ? raw.weekend : def.weekend,
+        trView: VALID_VIEWS_TR.includes(raw.trView) ? raw.trView : def.trView,
+        trSort: VALID_SORTS_TR.includes(raw.trSort) ? raw.trSort : def.trSort,
+        trFilterSubj: hasCourse(raw.trFilterSubj, cMap) ? raw.trFilterSubj : "",
+        trFilterType: ["", ...VALID_TASK_TYPES].includes(raw.trFilterType) ? raw.trFilterType : "",
+        trFilterStatus: ["all", "unresolved", ...VALID_TASK_STATUS].includes(raw.trFilterStatus) ? raw.trFilterStatus : "unresolved",
+        savedAt: typeof raw.savedAt === "string" ? raw.savedAt.slice(0, 40) : null
+    };
+}
 
 function syncSubjectGrades() {
     (S.current || []).forEach(r => {
@@ -97,11 +229,7 @@ function syncSubjectGrades() {
         }
     });
 }
-try { const t = localStorage.getItem(LS); if (t) S = { ...S, ...JSON.parse(t) } } catch (e) { }
-S.current = (S.current || []).filter(r => C[r.id]).map(fixCur);
-S.tasks = (S.tasks || []).filter(t => C[t.subj]);
-S.passed = (S.passed || []).flatMap(i => i === "TCC" ? ["TCC1", "TCC2"] : [i]).filter(i => C[i]);
-S.electivePlan = (S.electivePlan || []).filter(i => C[i]);
+try { const t = localStorage.getItem(LS); if (t) S = sanitizeState(JSON.parse(t), KEY) } catch (e) { S = defaultState() }
 let fileHandle = null;
 
 // ---------- SIMULAÇÃO ----------
@@ -184,12 +312,12 @@ function build() {
     const heads = ["1º sem", "2º sem", "3º sem", "4º sem", "5º sem", "6º sem", "7º sem", "8º sem", "Eletivas / Optativas", "Conclusão"];
     heads.forEach((h, i) => {
         const d = document.createElement("div"); d.className = "colh"; d.style.left = (X0 + i * (CW + GX)) + "px";
-        d.innerHTML = h + (i < 8 ? `<small>${i % 2 ? "semestre par" : "semestre ímpar"}</small>` : i == 8 ? "<small>126,6h de eletivas</small>" : "<small>TCC + Complementares</small>"); flow.appendChild(d)
+        d.innerHTML = esc(h) + (i < 8 ? `<small>${i % 2 ? "semestre par" : "semestre ímpar"}</small>` : i == 8 ? "<small>126,6h de eletivas</small>" : "<small>TCC + Complementares</small>"); flow.appendChild(d)
     });
     ORDER.forEach(id => {
         const c = C[id], p = pos[id], d = document.createElement("div");
         d.className = "card" + (c.ext ? " ext" : ""); d.style.left = p.x + "px"; d.style.top = p.y + "px";
-        d.innerHTML = `<div class="chk"></div><div class="n">${c.name}</div><div class="m"><span>${id} · ${c.h.toFixed(1).replace(".", ",")}h</span><span class="plan"></span></div>` + (c.kind === "el" ? `<button class="star" title="Escolher esta eletiva">★</button>` : "");
+        d.innerHTML = `<div class="chk"></div><div class="n">${esc(c.name)}</div><div class="m"><span>${esc(id)} · ${esc(c.h.toFixed(1).replace(".", ","))}h</span><span class="plan"></span></div>` + (c.kind === "el" ? `<button class="star" title="Escolher esta eletiva">★</button>` : "");
         let clickT = null;
         d.onclick = e => {
             if (e.target.classList.contains("star")) { togglePlan(id); return }
@@ -216,7 +344,7 @@ function build() {
         e.setAttribute("d", `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`); e.setAttribute("class", "e"); e.dataset.f = p; e.dataset.t = id; svg.appendChild(e)
     }));
     // TCC: seta de todas obrigatórias do 7º/8º semestre seria poluição; deixado como regra textual
-    els.TCC1.querySelector(".n").innerHTML = `TCC 1 <span style='font-weight:400;color:var(--mut)'>(${CUR.tccLbl})</span>`;
+    els.TCC1.querySelector(".n").innerHTML = `TCC 1 <span style='font-weight:400;color:var(--mut)'>(${esc(CUR.tccLbl)})</span>`;
 }
 function hover(id) {
     const cards = Object.values(els), edges = [...svg.children];
@@ -276,12 +404,12 @@ function update() {
     const fin = n => n === Infinity ? "—" : label(n - 1);
     const f = n => n === Infinity ? "∞" : n;
     document.getElementById("kpis").innerHTML = `
-<div class="kpi main"><b>${f(min)} sem.</b><small>Mínimo restante · conclui em ${fin(min)}</small></div>
-<div class="kpi"><b>${f(mc.med)} sem.</b><small>Provável (${S.failRate}% de falha) · ${fin(mc.med)}</small></div>
-<div class="kpi"><b class="${mc.p90 > 16 ? 'warn' : ''}">${f(mc.p90)} sem.</b><small>Pessimista (P90) · ${fin(mc.p90)}</small></div>
-<div class="kpi"><b>${pct.toFixed(2).replace(".", ",")}%</b><small>${doneH.toFixed(2).replace(".", ",")}h de ${totalH}h</small></div>
-<div class="kpi"><b>${pend}</b><small>obrigatórias pendentes</small></div>
-<div class="kpi"><b>${P.size ? [...P].filter(i => C[i].kind === "ob").length : 0}/${OBR.length}</b><small>obrigatórias aprovadas</small></div>` + ((S.current || []).some(r => !P.has(r.id)) ? `<div class="kpi"><b class="${exp >= 3 ? 'warn' : ''}">${exp.toFixed(1).replace(".", ",")}</b><small>reprovações esperadas neste semestre (de ${S.current.filter(r => !P.has(r.id)).length})</small></div>` : "");
+<div class="kpi main"><b>${esc(f(min))} sem.</b><small>Mínimo restante · conclui em ${esc(fin(min))}</small></div>
+<div class="kpi"><b>${esc(f(mc.med))} sem.</b><small>Provável (${esc(S.failRate)}% de falha) · ${esc(fin(mc.med))}</small></div>
+<div class="kpi"><b class="${mc.p90 > 16 ? 'warn' : ''}">${esc(f(mc.p90))} sem.</b><small>Pessimista (P90) · ${esc(fin(mc.p90))}</small></div>
+<div class="kpi"><b>${esc(pct.toFixed(2).replace(".", ","))}%</b><small>${esc(doneH.toFixed(2).replace(".", ","))}h de ${esc(totalH)}h</small></div>
+<div class="kpi"><b>${esc(pend)}</b><small>obrigatórias pendentes</small></div>
+<div class="kpi"><b>${esc(P.size ? [...P].filter(i => C[i].kind === "ob").length : 0)}/${esc(OBR.length)}</b><small>obrigatórias aprovadas</small></div>` + ((S.current || []).some(r => !P.has(r.id)) ? `<div class="kpi"><b class="${exp >= 3 ? 'warn' : ''}">${esc(exp.toFixed(1).replace(".", ","))}</b><small>reprovações esperadas neste semestre (de ${esc(S.current.filter(r => !P.has(r.id)).length)})</small></div>` : "");
     document.getElementById("bar").style.width = pct + "%";
     // timeline
     const T = document.getElementById("timeline"); T.innerHTML = "";
@@ -289,8 +417,8 @@ function update() {
         if (!t.taken.length && i < plan.terms.length - 1 && false) return;
         const h = t.taken.reduce((s, id) => s + C[id].h, 0);
         const d = document.createElement("div"); d.className = "term" + (i == plan.terms.length - 1 ? " last" : "");
-        d.innerHTML = `<h4>${i + 1}º período · ${label(t.k)}<span>${t.taken.length} disc. · ${h.toFixed(0)}h</span></h4>` +
-            (t.taken.length ? `<ul>${t.taken.map(id => `<li>${C[id].name}</li>`).join("")}</ul>` : `<div class="note">Nenhuma disciplina disponível neste semestre (espera pela oferta).</div>`);
+        d.innerHTML = `<h4>${esc(i + 1)}º período · ${esc(label(t.k))}<span>${esc(t.taken.length)} disc. · ${esc(h.toFixed(0))}h</span></h4>` +
+            (t.taken.length ? `<ul>${t.taken.map(id => `<li>${esc(C[id].name)}</li>`).join("")}</ul>` : `<div class="note">Nenhuma disciplina disponível neste semestre (espera pela oferta).</div>`);
         T.appendChild(d)
     });
     if (plan.n === Infinity) T.innerHTML = "<div class='note warn'>Não foi possível montar o plano (verifique o limite de disciplinas/oferta).</div>";
@@ -347,18 +475,26 @@ $("fileIn").onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
     try {
         const j = JSON.parse(await f.text());
-        if ((j.curriculo || "nova") !== KEY) { localStorage.setItem(CURS[j.curriculo || "nova"].ls, JSON.stringify(j)); localStorage.setItem("curriculo-ativo", j.curriculo || "nova"); location.reload(); return }
-        S = { ...defaultState(), ...j, passed: (j.passed || []).filter(i => C[i]), electivePlan: (j.electivePlan || []).filter(i => C[i]), current: (j.current || []).filter(r => C[r.id]).map(fixCur) }; update()
+        if (!j || typeof j !== "object" || Array.isArray(j)) throw new Error("Estrutura JSON inválida.");
+        const targetCur = Object.prototype.hasOwnProperty.call(CURS, j.curriculo) ? j.curriculo : "nova";
+        if (targetCur !== KEY) {
+            const cleanOther = sanitizeState(j, targetCur);
+            localStorage.setItem(CURS[targetCur].ls, JSON.stringify(cleanOther));
+            localStorage.setItem("curriculo-ativo", targetCur);
+            location.reload();
+            return;
+        }
+        S = sanitizeState(j, KEY);
+        update();
     }
     catch (err) { alert("JSON inválido: " + err.message) }
     e.target.value = ""
 };
 
 // ---------- CURSANDO / ESTATÍSTICAS ----------
-const PRIO = ["Auto", "Alta", "Média", "Baixa"], STAT = ["Crítico", "Moderado", "Recuperável", "Bem viável"], FASE = ["Consumindo", "Revisando", "Finalizada"];
 const TAGC = { "Auto": "b", "Alta": "r", "Média": "y", "Baixa": "g", "Crítico": "r", "Moderado": "y", "Recuperável": "g", "Bem viável": "b", "Consumindo": "b", "Revisando": "y", "Finalizada": "g" };
 const fmt = n => String(Math.round(n * 100) / 100).replace(".", ",");
-const optList = (arr, v) => arr.map(o => `<option${o === v ? " selected" : ""}>${o}</option>`).join("");
+const optList = (arr, v) => arr.map(o => `<option value="${esc(o)}"${o === v ? " selected" : ""}>${esc(o)}</option>`).join("");
 const effPrio = r => { const p = risk(r).p; return !r.prio || r.prio === "Auto" ? (p >= .15 && p <= .75 ? "Alta" : "Baixa") : r.prio };
 function sortCur(a) {
     const o = S.curSort, rk = { "Alta": 0, "Média": 1, "Baixa": 2 }, nm = (x, y) => C[x.id].name.localeCompare(C[y.id].name, "pt-BR"), b = [...a];
@@ -371,9 +507,11 @@ function renderCurrent() {
     const all = S.current || [], P = new Set(S.passed), used = new Set(all.map(r => r.id)), cur = sortCur(all);
     document.getElementById("curSort").value = S.curSort || "add";
     const sel = document.getElementById("curSel");
-    sel.innerHTML = ORDER.filter(i => !used.has(i) && !P.has(i) && C[i].kind !== "tcc").map(i => `<option value="${i}">${C[i].name}</option>`).join("");
+    sel.innerHTML = ORDER.filter(i => !used.has(i) && !P.has(i) && C[i].kind !== "tcc").map(i => `<option value="${esc(i)}">${esc(C[i].name)}</option>`).join("");
     document.getElementById("curBody").innerHTML = cur.map(r => {
         const k = risk(r), pc = Math.round(k.p * 100), st = k.p >= .7 ? "Crítico" : k.p >= .4 ? "Moderado" : k.p >= .15 ? "Recuperável" : "Bem viável", pr = !r.prio || r.prio === "Auto" ? (k.p >= .15 && k.p <= .75 ? "Alta" : "Baixa") : r.prio;
+        const prioKey = PRIO.includes(r.prio) ? r.prio : "Auto";
+        const faseKey = FASE.includes(r.fase) ? r.fase : "Consumindo";
         const ts = (S.tasks || []).filter(t => t.subj === r.id);
         const hasTasks = ts.length > 0;
         const isLinked = hasTasks && r.autoGrade !== false;
@@ -382,23 +520,23 @@ function renderCurrent() {
 
         // Botão para ver ou adicionar avaliações
         const tasksActionBtn = hasTasks
-            ? `<button type="button" class="cur-tasks-btn" data-act="view-tasks" data-subj="${r.id}" title="Ver e gerenciar as avaliações desta matéria">📝 ${ts.length} avaliação(ões)</button>`
-            : `<button type="button" class="cur-tasks-btn add" data-act="add-tasks" data-subj="${r.id}" title="Cadastrar provas e trabalhos para esta matéria">+ avaliar</button>`;
+            ? `<button type="button" class="cur-tasks-btn" data-act="view-tasks" data-subj="${esc(r.id)}" title="Ver e gerenciar as avaliações desta matéria">📝 ${esc(ts.length)} avaliação(ões)</button>`
+            : `<button type="button" class="cur-tasks-btn add" data-act="add-tasks" data-subj="${esc(r.id)}" title="Cadastrar provas e trabalhos para esta matéria">+ avaliar</button>`;
 
         // Coluna Nota Atual
         let notaColHtml = "";
         if (isLinked) {
             notaColHtml = `<div class="mini">
-                <input type="number" min="0" max="10" step="0.1" value="${r.nota}" data-k="nota" class="in-linked" readonly title="Nota vinculada às avaliações corrigidas. Clique em 🔗 para editar manualmente.">
-                <button type="button" class="btn-link-icon on" data-act="toggle-link" data-subj="${r.id}" title="Vinculado às avaliações. Clique para editar manualmente.">🔗</button>
-                <div class="pb"><div style="width:${Math.min(100, r.nota * 10)}%"></div></div>
+                <input type="number" min="0" max="10" step="0.1" value="${esc(r.nota)}" data-k="nota" class="in-linked" readonly title="Nota vinculada às avaliações corrigidas. Clique em 🔗 para editar manualmente.">
+                <button type="button" class="btn-link-icon on" data-act="toggle-link" data-subj="${esc(r.id)}" title="Vinculado às avaliações. Clique para editar manualmente.">🔗</button>
+                <div class="pb"><div style="width:${esc(Math.min(100, (Number(r.nota) || 0) * 10))}%"></div></div>
             </div>
-            <div class="note-sync" title="Calculada a partir das avaliações corrigidas (atividades em avaliação aguardam nota)">🔗 ${gradedCount} nota(s) lançada(s)${evaluatingCount ? ` · <span style="color:#f59e0b">${evaluatingCount} avaliando</span>` : ''}</div>`;
+            <div class="note-sync" title="Calculada a partir das avaliações corrigidas (atividades em avaliação aguardam nota)">🔗 ${esc(gradedCount)} nota(s) lançada(s)${evaluatingCount ? ` · <span style="color:#f59e0b">${esc(evaluatingCount)} avaliando</span>` : ''}</div>`;
         } else {
             notaColHtml = `<div class="mini">
-                <input type="number" min="0" max="10" step="0.1" value="${r.nota}" data-k="nota">
-                ${hasTasks ? `<button type="button" class="btn-link-icon off" data-act="toggle-link" data-subj="${r.id}" title="Desvinculado. Clique para vincular às avaliações.">🔓</button>` : ''}
-                <div class="pb"><div style="width:${Math.min(100, r.nota * 10)}%"></div></div>
+                <input type="number" min="0" max="10" step="0.1" value="${esc(r.nota)}" data-k="nota">
+                ${hasTasks ? `<button type="button" class="btn-link-icon off" data-act="toggle-link" data-subj="${esc(r.id)}" title="Desvinculado. Clique para vincular às avaliações.">🔓</button>` : ''}
+                <div class="pb"><div style="width:${esc(Math.min(100, (Number(r.nota) || 0) * 10))}%"></div></div>
             </div>
             <div class="note">${hasTasks ? 'Manual (desvinculada)' : ''}</div>`;
         }
@@ -411,32 +549,32 @@ function renderCurrent() {
         if (r.nota >= 6.0) {
             goalStatus = `<span style="color:var(--ok)">✓ Meta 6.0 atingida!</span>`;
         } else if (maxPossivel >= 6.0) {
-            goalStatus = `precisa de ${fmt(needToPass)} de ${fmt(r.pts)}`;
+            goalStatus = `precisa de ${esc(fmt(needToPass))} de ${esc(fmt(r.pts))}`;
         } else {
-            goalStatus = `<span style="color:#f87171">máx ${fmt(maxPossivel)} (abaixo de 6)</span>`;
+            goalStatus = `<span style="color:#f87171">máx ${esc(fmt(maxPossivel))} (abaixo de 6)</span>`;
         }
 
         if (isLinked) {
             ptsColHtml = `<div class="mini">
-                <input type="number" min="0" max="10" step="0.1" value="${r.pts}" data-k="pts" class="in-linked" readonly title="Pontos a receber das avaliações pendentes">
+                <input type="number" min="0" max="10" step="0.1" value="${esc(r.pts)}" data-k="pts" class="in-linked" readonly title="Pontos a receber das avaliações pendentes">
             </div>
             <div class="note">${goalStatus}</div>`;
         } else {
             ptsColHtml = `<div class="mini">
-                <input type="number" min="0" max="10" step="0.1" value="${r.pts}" data-k="pts">
+                <input type="number" min="0" max="10" step="0.1" value="${esc(r.pts)}" data-k="pts">
             </div>
-            <div class="note">máx. possível: ${fmt(maxPossivel)}</div>`;
+            <div class="note">máx. possível: ${esc(fmt(maxPossivel))}</div>`;
         }
 
-        return `<tr data-id="${r.id}" class="${r.fase === "Finalizada" ? "fin" : ""}">
-<td><b>${C[r.id].name}</b><div class="note">${r.id}</div>${tasksActionBtn}</td>
+        return `<tr data-id="${esc(r.id)}" class="${faseKey === "Finalizada" ? "fin" : ""}">
+<td><b>${esc(C[r.id].name)}</b><div class="note">${esc(r.id)}</div>${tasksActionBtn}</td>
 <td>${notaColHtml}</td>
 <td>${ptsColHtml}</td>
-<td><div class="mini"><input type="number" min="0" value="${r.falt}" data-k="falt"></div><div class="note" style="color:${k.folga <= 2 ? "#f87171" : "var(--mut)"}">${k.folga < 0 ? "passou " + (-k.folga) + " do limite" : "folga: " + k.folga + " (limite " + k.limit + ")"}</div></td>
-<td><div class="mini"><input class="sm" type="number" min="0" value="${r.cum}" data-k="cum"> / <input class="sm" type="number" min="0" value="${r.prev}" data-k="prev"></div><div class="note" style="color:${k.freq < 75 ? "#f87171" : "var(--mut)"}">frequência ${fmt(k.freq)}%</div></td>
-<td>${r.fase === "Finalizada" ? `<span class="rk" style="color:var(--ok)">✓ Aprovada</span>` : `<span class="rk">${pc}%</span> <span class="tag ${TAGC[st]}" style="padding:2px 6px;border-radius:6px;font-size:12px;font-weight:600">${st}</span><div class="note">${k.pF > k.pN ? "pesa mais: faltas" : "pesa mais: nota"}</div>`}</td>
-<td><select class="tag ${TAGC[r.prio || "Auto"]}" data-k="prio">${optList(PRIO, r.prio || "Auto")}</select><div class="note">${!r.prio || r.prio === "Auto" ? "sugerida: " + pr : ""}</div></td>
-<td><select class="tag ${TAGC[r.fase]}" data-k="fase">${optList(FASE, r.fase)}</select></td>
+<td><div class="mini"><input type="number" min="0" value="${esc(r.falt)}" data-k="falt"></div><div class="note" style="color:${k.folga <= 2 ? "#f87171" : "var(--mut)"}">${k.folga < 0 ? "passou " + esc(-k.folga) + " do limite" : "folga: " + esc(k.folga) + " (limite " + esc(k.limit) + ")"}</div></td>
+<td><div class="mini"><input class="sm" type="number" min="0" value="${esc(r.cum)}" data-k="cum"> / <input class="sm" type="number" min="0" value="${esc(r.prev)}" data-k="prev"></div><div class="note" style="color:${k.freq < 75 ? "#f87171" : "var(--mut)"}">frequência ${esc(fmt(k.freq))}%</div></td>
+<td>${faseKey === "Finalizada" ? `<span class="rk" style="color:var(--ok)">✓ Aprovada</span>` : `<span class="rk">${esc(pc)}%</span> <span class="tag ${esc(TAGC[st])}" style="padding:2px 6px;border-radius:6px;font-size:12px;font-weight:600">${esc(st)}</span><div class="note">${k.pF > k.pN ? "pesa mais: faltas" : "pesa mais: nota"}</div>`}</td>
+<td><select class="tag ${esc(TAGC[prioKey])}" data-k="prio">${optList(PRIO, prioKey)}</select><div class="note">${prioKey === "Auto" ? "sugerida: " + esc(pr) : ""}</div></td>
+<td><select class="tag ${esc(TAGC[faseKey])}" data-k="fase">${optList(FASE, faseKey)}</select></td>
 <td><button class="x" data-rm title="Remover">✕</button></td></tr>`;
     }).join("");
     document.getElementById("curEmpty").style.display = cur.length ? "none" : "";
@@ -497,21 +635,24 @@ function renderHor() {
     const H = S.hor.cells, P = passedSet(), cur = (S.current || []).map(r => r.id), hoje = new Date().getDay() - 1, half = semAtual(), yr = new Date().getFullYear();
     // oferta do semestre atual: não aprovadas, pré-requisitos cumpridos e semestre par/ímpar compatível (eletivas valem sempre)
     const disp = ORDER.filter(id => { const c = C[id]; return !cur.includes(id) && !P.has(id) && c.kind !== "tcc" && c.kind !== "op" && c.pre.every(p => P.has(p)) && (c.kind !== "ob" || ((c.sem % 2) ? 1 : 2) === half) });
-    const op = (x, sel) => `<option value="${x}"${x === sel ? " selected" : ""}>${x} · ${C[x].name}</option>`;
+    const op = (x, sel) => `<option value="${esc(x)}"${x === sel ? " selected" : ""}>${esc(x)} · ${esc(C[x].name)}</option>`;
     const opts = sel => `<option value="">—</option>` + (cur.length ? `<optgroup label="Cursando agora">${cur.map(x => op(x, sel)).join("")}</optgroup>` : "")
-        + `<optgroup label="Ofertadas em ${yr}/${half}">${disp.map(x => op(x, sel)).join("")}</optgroup>`
-        + (sel && !cur.includes(sel) && !disp.includes(sel) ? op(sel, sel) : "");
+        + `<optgroup label="Ofertadas em ${esc(yr)}/${esc(half)}">${disp.map(x => op(x, sel)).join("")}</optgroup>`
+        + (sel && hasCourse(sel) && !cur.includes(sel) && !disp.includes(sel) ? op(sel, sel) : "");
     document.getElementById("horNote").textContent = `Semestre atual: ${yr}/${half}. A lista traz o que você cursa e o que é ofertado neste semestre (com pré-requisitos cumpridos). Escolher uma matéria aqui também a coloca em "Cursando agora".`;
     document.querySelectorAll("table.hor thead th").forEach((th, j) => th.classList.toggle("today", j - 1 === hoje));
-    document.getElementById("horBody").innerHTML = HORAS.map((h, i) => `<tr><th>${h}</th>` + DIAS.map((d, j) => {
+    document.getElementById("horBody").innerHTML = HORAS.map((h, i) => `<tr><th>${esc(h)}</th>` + DIAS.map((d, j) => {
         const c = H[i + "-" + j] || {};
-        return `<td class="${j === hoje ? "today" : ""}"><select data-c="${i}-${j}" data-k="id">${opts(c.id)}</select><input data-c="${i}-${j}" data-k="sala" placeholder="sala" value="${c.sala || ""}"></td>`
+        return `<td class="${j === hoje ? "today" : ""}"><select data-c="${esc(i)}-${esc(j)}" data-k="id">${opts(c.id)}</select><input data-c="${esc(i)}-${esc(j)}" data-k="sala" placeholder="sala" value="${esc(c.sala || "")}"></td>`
     }).join("") + "</tr>").join("");
 }
 document.getElementById("horBody").onchange = e => {
-    const t = e.target, c = t.dataset.c; if (!c) return;
-    S.hor.cells[c] = { ...(S.hor.cells[c] || {}), [t.dataset.k]: t.value.trim() };
-    if (t.dataset.k === "id" && t.value && !(S.current || []).some(r => r.id === t.value) && !passedSet().has(t.value)) S.current = [...(S.current || []), fixCur({ id: t.value })];
+    const t = e.target, c = t.dataset.c; if (!c || !/^[0-4]-[0-4]$/.test(c)) return;
+    const k = t.dataset.k;
+    if (k !== "id" && k !== "sala") return;
+    const val = k === "id" ? (hasCourse(t.value.trim()) ? t.value.trim() : "") : t.value.trim().slice(0, 60);
+    S.hor.cells[c] = { ...(S.hor.cells[c] || {}), [k]: val };
+    if (k === "id" && val && !(S.current || []).some(r => r.id === val) && !passedSet().has(val)) S.current = [...(S.current || []), fixCur({ id: val })];
     update()
 };
 // confirm() é bloqueado em páginas dentro de iframe/pré-visualização; por isso a confirmação é feita no próprio botão
@@ -564,9 +705,9 @@ function renderAC() {
     const { rows, g, tot } = acCalc(), seen = {}; let sec = "", h = "";
     (CUR.acTable ? AC : []).forEach((a, i) => {
         const r = rows[i], v = +S.ac[i] || 0;
-        if (a[0] !== sec) { sec = a[0]; h += `<tr class="sec"><td colspan="6"><b>${sec} – ${AC_SEC[sec]}</b></td></tr>` }
+        if (a[0] !== sec) { sec = a[0]; h += `<tr class="sec"><td colspan="6"><b>${esc(sec)} – ${esc(AC_SEC[sec])}</b></td></tr>` }
         const f = !seen[r.k]; seen[r.k] = 1;
-        h += `<tr><td>${a[1]}<div class="note">${a[3]} · máx. ${a[5]} unid.${v > a[5] ? ` <span class="warn">(só ${a[5]} contam)</span>` : ""}</div></td><td>${a[2]} h</td><td><div class="mini"><input type="number" min="0" step="0.5" value="${S.ac[i] || ""}" data-ac="${i}"></div></td><td>${fmt(r.ob)} h</td><td>${f ? fmt(g[r.k].ct) + " h" : "<span class='note'>no grupo</span>"}</td><td>${f ? a[4] + " h" : ""}</td></tr>`
+        h += `<tr><td>${esc(a[1])}<div class="note">${esc(a[3])} · máx. ${esc(a[5])} unid.${v > a[5] ? ` <span class="warn">(só ${esc(a[5])} contam)</span>` : ""}</div></td><td>${esc(a[2])} h</td><td><div class="mini"><input type="number" min="0" step="0.5" value="${esc(S.ac[i] || "")}" data-ac="${esc(i)}"></div></td><td>${esc(fmt(r.ob))} h</td><td>${f ? esc(fmt(g[r.k].ct)) + " h" : "<span class='note'>no grupo</span>"}</td><td>${f ? esc(a[4]) + " h" : ""}</td></tr>`
     });
     document.getElementById("acBody").innerHTML = h;
     document.getElementById("acBar").style.width = Math.min(100, tot / AC_REQ * 100) + "%";
@@ -584,7 +725,6 @@ $("curSw").onchange = e => { persist(); try { localStorage.setItem("curriculo-at
 document.title = "Fluxograma — Ciência da Computação (" + (KEY === "nova" ? "grade nova" : "grade antiga") + ")";
 
 // ---------- TRABALHOS E PROVAS ----------
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 const pd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d) };
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x };
@@ -705,15 +845,15 @@ function renderTasks() {
     const selForm = $("trSubj");
     if (selForm) {
         const prev = selForm.value;
-        selForm.innerHTML = cur.map(r => `<option value="${r.id}">${esc(C[r.id].name)}</option>`).join("") || `<option value="">(adicione matérias em "Cursando agora")</option>`;
+        selForm.innerHTML = cur.map(r => `<option value="${esc(r.id)}">${esc(C[r.id].name)}</option>`).join("") || `<option value="">(adicione matérias em "Cursando agora")</option>`;
         if (prev && cur.some(r => r.id === prev)) selForm.value = prev;
     }
 
     const selFilter = $("trFilterSubj");
     if (selFilter) {
         const prevF = S.trFilterSubj || "";
-        selFilter.innerHTML = `<option value="">Todas as matérias (${cur.length})</option>` +
-            cur.map(r => `<option value="${r.id}"${r.id === prevF ? " selected" : ""}>${esc(C[r.id].name)}</option>`).join("");
+        selFilter.innerHTML = `<option value="">Todas as matérias (${esc(cur.length)})</option>` +
+            cur.map(r => `<option value="${esc(r.id)}"${r.id === prevF ? " selected" : ""}>${esc(C[r.id].name)}</option>`).join("");
     }
 
     if ($("trFilterType")) $("trFilterType").value = S.trFilterType || "";
@@ -795,23 +935,24 @@ function renderTasksList(plan, today) {
         } else if (d === null) {
             dueBadge = `<span class="due-badge note">Sem data</span>`;
         } else if (d < 0) {
-            dueBadge = `<span class="due-badge tag r">Atrasada ${-d}d</span>`;
+            dueBadge = `<span class="due-badge tag r">Atrasada ${esc(-d)}d</span>`;
         } else if (d === 0) {
             dueBadge = `<span class="due-badge tag r">Hoje! ⚡</span>`;
         } else if (d === 1) {
             dueBadge = `<span class="due-badge tag y">Amanhã</span>`;
         } else if (d <= 3) {
-            dueBadge = `<span class="due-badge tag y">Em ${d} dias</span>`;
+            dueBadge = `<span class="due-badge tag y">Em ${esc(d)} dias</span>`;
         } else {
-            dueBadge = `<span class="due-badge tag b">Em ${d} dias</span>`;
+            dueBadge = `<span class="due-badge tag b">Em ${esc(d)} dias</span>`;
         }
 
         const startPlan = p && p.start && st === "pendente" ? dfmt(p.start) : null;
-        const typeClass = t.type ? t.type.toLowerCase() : "outro";
+        const safeType = VALID_TASK_TYPES.includes(t.type) ? t.type : "Outro";
+        const typeClass = safeType.toLowerCase();
 
-        return `<tr data-id="${t.id}" class="${st === 'avaliada' ? 'fin' : st === 'avaliando' ? 'is-evaluating' : ''}">
+        return `<tr data-id="${esc(t.id)}" class="${st === 'avaliada' ? 'fin' : st === 'avaliando' ? 'is-evaluating' : ''}">
             <td style="text-align:center">
-                <select class="tag-status status-${st}" data-act="set-status" title="Alterar status da avaliação">
+                <select class="tag-status status-${esc(st)}" data-act="set-status" title="Alterar status da avaliação">
                     <option value="pendente"${st === "pendente" ? " selected" : ""}>⏳ A Fazer</option>
                     <option value="avaliando"${st === "avaliando" ? " selected" : ""}>🔍 Avaliando</option>
                     <option value="avaliada"${st === "avaliada" ? " selected" : ""}>✅ Avaliada</option>
@@ -819,37 +960,37 @@ function renderTasksList(plan, today) {
             </td>
             <td>
                 <div class="tr-task-title-cell">
-                    <span class="tag-type tag-${typeClass}">${TYPE_ICON[t.type] || "📌"} ${t.type}</span>
+                    <span class="tag-type tag-${esc(typeClass)}">${esc(TYPE_ICON[safeType] || "📌")} ${esc(safeType)}</span>
                     <b class="tr-title-text" data-act="edit" title="Clique para editar">${esc(t.title)}</b>
                 </div>
             </td>
             <td>
-                <button type="button" class="tr-subj-tag" data-act="filter-subj" data-subj="${t.subj}" title="Filtrar por esta matéria">
+                <button type="button" class="tr-subj-tag" data-act="filter-subj" data-subj="${esc(t.subj)}" title="Filtrar por esta matéria">
                     ${esc(C[t.subj]?.name || t.subj)}
                 </button>
             </td>
             <td>
                 <div class="tr-due-cell">
-                    <span>${dfmt(t.due)}</span>
+                    <span>${esc(dfmt(t.due))}</span>
                     ${dueBadge}
                 </div>
-                ${startPlan ? `<div class="note">Ideal começar: ${startPlan}</div>` : ""}
+                ${startPlan ? `<div class="note">Ideal começar: ${esc(startPlan)}</div>` : ""}
             </td>
             <td>
-                <span class="tag ${cl}" style="padding:2px 8px;border-radius:6px;font-weight:600">${lb} · ${Math.round(pr)}</span>
-                <div class="note">${fmt(t.pts)} pts (${Math.round(t.pts / subjTotals(t.subj).total * 100)}% da matéria)</div>
+                <span class="tag ${esc(cl)}" style="padding:2px 8px;border-radius:6px;font-weight:600">${esc(lb)} · ${esc(Math.round(pr))}</span>
+                <div class="note">${esc(fmt(t.pts))} pts (${esc(Math.round(t.pts / subjTotals(t.subj).total * 100))}% da matéria)</div>
             </td>
             <td>
                 <div class="tr-grade-edit">
-                    <input type="number" min="0" max="10" step="0.1" class="tr-in-got" data-act="set-got" value="${t.got != null ? t.got : ''}" placeholder="${st === 'avaliando' ? 'aguardando' : '—'}" title="${st === 'avaliando' ? 'Aguardando professor corrigir (digite para lançar nota)' : 'Nota obtida'}">
-                    <span class="note">/ <input type="number" min="0" step="0.5" class="tr-in-pts" data-act="set-pts" value="${t.pts}" title="Pontos que vale"> pts</span>
+                    <input type="number" min="0" max="10" step="0.1" class="tr-in-got" data-act="set-got" value="${esc(t.got != null ? t.got : '')}" placeholder="${st === 'avaliando' ? 'aguardando' : '—'}" title="${st === 'avaliando' ? 'Aguardando professor corrigir (digite para lançar nota)' : 'Nota obtida'}">
+                    <span class="note">/ <input type="number" min="0" step="0.5" class="tr-in-pts" data-act="set-pts" value="${esc(t.pts)}" title="Pontos que vale"> pts</span>
                 </div>
                 ${st === 'avaliando' ? `<div class="note" style="color:#f59e0b">⏳ Aguardando nota</div>` : ''}
                 ${st === 'avaliada' && t.got != null ? `<div class="note" style="color:var(--ok)">✓ Nota lançada</div>` : ''}
             </td>
             <td>
                 <div class="tr-eff-cell">
-                    <input type="number" min="0.5" step="0.5" class="tr-in-eff" data-act="set-eff" value="${t.eff}"> h
+                    <input type="number" min="0.5" step="0.5" class="tr-in-eff" data-act="set-eff" value="${esc(t.eff)}"> h
                 </div>
             </td>
             <td style="text-align:center">
@@ -892,10 +1033,10 @@ function renderTasksSubjects() {
             gradeColorClass = "pass";
         } else if (maxPossivel >= 6.0) {
             const need = Math.round((6.0 - nota) * 10) / 10;
-            statusTag = `<span class="tag y" style="font-weight:600">Falta ${fmt(need)} pts para média 6.0</span>`;
+            statusTag = `<span class="tag y" style="font-weight:600">Falta ${esc(fmt(need))} pts para média 6.0</span>`;
             gradeColorClass = "warn";
         } else {
-            statusTag = `<span class="tag r" style="font-weight:600">⚠️ Risco: máx. ${fmt(maxPossivel)} (abaixo de 6.0)</span>`;
+            statusTag = `<span class="tag r" style="font-weight:600">⚠️ Risco: máx. ${esc(fmt(maxPossivel))} (abaixo de 6.0)</span>`;
             gradeColorClass = "crit";
         }
 
@@ -905,44 +1046,45 @@ function renderTasksSubjects() {
         const sortedTs = ts.slice().sort((a, b) => (a.due || "").localeCompare(b.due || ""));
         const tasksHtml = sortedTs.length ? sortedTs.map(t => {
             const st = taskStatus(t);
-            return `<div class="tr-subj-task-item status-${st}" data-id="${t.id}">
-                <select class="mini-status-sel status-${st}" data-act="set-status" title="Alterar status da avaliação">
+            const safeType = VALID_TASK_TYPES.includes(t.type) ? t.type : "Outro";
+            return `<div class="tr-subj-task-item status-${esc(st)}" data-id="${esc(t.id)}">
+                <select class="mini-status-sel status-${esc(st)}" data-act="set-status" title="Alterar status da avaliação">
                     <option value="pendente"${st === "pendente" ? " selected" : ""}>⏳ A Fazer</option>
                     <option value="avaliando"${st === "avaliando" ? " selected" : ""}>🔍 Avaliando</option>
                     <option value="avaliada"${st === "avaliada" ? " selected" : ""}>✅ Avaliada</option>
                 </select>
-                <span class="task-type-icon">${TYPE_ICON[t.type] || "📌"}</span>
+                <span class="task-type-icon">${esc(TYPE_ICON[safeType] || "📌")}</span>
                 <span class="task-item-title" title="${esc(t.title)}">${esc(t.title)}</span>
-                <div class="tr-task-item-due note">${dfmt(t.due)}</div>
+                <div class="tr-task-item-due note">${esc(dfmt(t.due))}</div>
                 <div class="tr-task-item-grade">
-                    <input type="number" min="0" max="10" step="0.1" class="mini-grade-in" data-act="set-got" value="${t.got != null ? t.got : ''}" placeholder="${st === 'avaliando' ? 'aguardando' : '—'}" title="Nota obtida">
-                    <span class="pts-max">/ ${fmt(t.pts)} pts</span>
+                    <input type="number" min="0" max="10" step="0.1" class="mini-grade-in" data-act="set-got" value="${esc(t.got != null ? t.got : '')}" placeholder="${st === 'avaliando' ? 'aguardando' : '—'}" title="Nota obtida">
+                    <span class="pts-max">/ ${esc(fmt(t.pts))} pts</span>
                 </div>
                 <button class="x btn-xs" data-act="rm" title="Excluir">✕</button>
             </div>`;
         }).join("") : `<div class="note" style="padding:10px 0;text-align:center">Nenhuma avaliação cadastrada para esta matéria.</div>`;
 
-        return `<div class="tr-subj-card" id="subj-card-${id}">
+        return `<div class="tr-subj-card" id="subj-card-${esc(id)}">
             <div class="tr-subj-header">
                 <div>
                     <h4 class="tr-subj-title">${esc(C[id].name)}</h4>
-                    <div class="tr-subj-code">${id} · ${C[id].aulas * 19}h totais</div>
+                    <div class="tr-subj-code">${esc(id)} · ${esc(C[id].aulas * 19)}h totais</div>
                 </div>
                 <div class="tr-subj-grade-badge">
-                    <span class="grade-val ${gradeColorClass}">${fmt(nota)}</span>
+                    <span class="grade-val ${esc(gradeColorClass)}">${esc(fmt(nota))}</span>
                     <span class="grade-max">/ 10.0</span>
                 </div>
             </div>
 
             <div class="tr-subj-meta-row">
                 ${statusTag}
-                <span class="note">${gradedTasks.length} avaliada(s)${evaluatingTasks.length ? ` · <b style="color:#f59e0b">${evaluatingTasks.length} avaliando</b>` : ""} · ${pendingTasks.length} a fazer</span>
+                <span class="note">${esc(gradedTasks.length)} avaliada(s)${evaluatingTasks.length ? ` · <b style="color:#f59e0b">${esc(evaluatingTasks.length)} avaliando</b>` : ""} · ${esc(pendingTasks.length)} a fazer</span>
             </div>
 
             <div class="tr-grade-bar-wrap">
                 <div class="tr-grade-bar">
-                    <div class="bar-obtained" style="width:${pctObt}%" title="Nota obtida: ${fmt(nota)}"></div>
-                    <div class="bar-pending" style="width:${pctPend}%" title="Pontos a receber: ${fmt(pts)}"></div>
+                    <div class="bar-obtained" style="width:${esc(pctObt)}%" title="Nota obtida: ${esc(fmt(nota))}"></div>
+                    <div class="bar-pending" style="width:${esc(pctPend)}%" title="Pontos a receber: ${esc(fmt(pts))}"></div>
                 </div>
                 <div class="tr-grade-marker" style="left:60%" title="Meta IFSP: 6.0">
                     <span class="marker-label">6.0</span>
@@ -950,7 +1092,7 @@ function renderTasksSubjects() {
             </div>
             <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:-6px">
                 <span>0.0</span>
-                <span>${fmt(nota)} obtidos + ${fmt(pts)} em disputa = máx. ${fmt(maxPossivel)}</span>
+                <span>${esc(fmt(nota))} obtidos + ${esc(fmt(pts))} em disputa = máx. ${esc(fmt(maxPossivel))}</span>
                 <span>10.0</span>
             </div>
 
@@ -962,7 +1104,7 @@ function renderTasksSubjects() {
             </div>
 
             <div class="tr-subj-footer">
-                <button type="button" class="btn-sm pri" data-act="new-for-subj" data-subj="${id}">+ Adicionar avaliação</button>
+                <button type="button" class="btn-sm pri" data-act="new-for-subj" data-subj="${esc(id)}">+ Adicionar avaliação</button>
             </div>
         </div>`;
     }).join("");
@@ -989,17 +1131,17 @@ function renderCal(plan) {
         Object.entries(p.plan).forEach(([d, h]) => (ev[d] = ev[d] || []).push({ k: "work", t: p.t, h, p }));
     });
 
-    let h = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(d => `<div class="ch">${d}</div>`).join("");
+    let h = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(d => `<div class="ch">${esc(d)}</div>`).join("");
     for (let i = 0; i < 42; i++) {
         const d = addDays(start, i), s = ymd(d), items = (ev[s] || []).sort((a, b) => (a.k === "due" ? 0 : 1) - (b.k === "due" ? 0 : 1));
-        h += `<div class="cd${d.getMonth() !== m ? " oth" : ""}${s === todayS ? " tdy" : ""}"><span class="dn">${d.getDate()}</span>` + items.map(e => {
+        h += `<div class="cd${d.getMonth() !== m ? " oth" : ""}${s === todayS ? " tdy" : ""}"><span class="dn">${esc(d.getDate())}</span>` + items.map(e => {
             const st = taskStatus(e.t);
             if (e.k === "due") {
                 const cls = st === "avaliada" ? "ev due ok" : st === "avaliando" ? "ev due status-eval" : "ev due";
-                const label = st === "avaliando" ? `🔍 ${esc(e.t.title)} (avaliando)` : `${TYPE_ICON[e.t.type] || ""} ${esc(e.t.title)}`;
-                return `<div class="${cls}" title="${esc(C[e.t.subj].name)} · vale ${fmt(e.t.pts)} pts">${label}</div>`;
+                const label = st === "avaliando" ? `🔍 ${esc(e.t.title)} (avaliando)` : `${esc(TYPE_ICON[e.t.type] || "")} ${esc(e.t.title)}`;
+                return `<div class="${esc(cls)}" title="${esc(C[e.t.subj].name)} · vale ${esc(fmt(e.t.pts))} pts">${label}</div>`;
             } else {
-                return `<div class="ev wk" title="${esc(C[e.t.subj].name)}">${fmt(e.h)}h · ${esc(e.t.title)}</div>`;
+                return `<div class="ev wk" title="${esc(C[e.t.subj].name)}">${esc(fmt(e.h))}h · ${esc(e.t.title)}</div>`;
             }
         }).join("") + "</div>";
     }
