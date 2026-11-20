@@ -1647,3 +1647,94 @@ th .q {
     gap: 6px;
     margin-top: 2px;
 }
+
+/* ---------- ABA COMO FUNCIONA (TUTORIAL & GUIA DAS FERRAMENTAS) ---------- */
+.help-steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 12px;
+}
+
+.help-step-card {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.help-step-card b {
+    display: block;
+    font-size: 13.5px;
+    color: var(--txt);
+    margin-bottom: 4px;
+}
+
+.help-step-card p {
+    margin: 0;
+    line-height: 1.45;
+}
+
+.help-step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+}
+
+.help-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 14px;
+}
+
+.help-tool-card {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.help-tool-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+}
+
+.help-tool-head h4 {
+    margin: 0;
+    font-size: 14px;
+    color: var(--txt);
+}
+
+.help-list {
+    margin: 0;
+    padding-left: 18px;
+    line-height: 1.5;
+}
+
+.help-list li {
+    margin: 5px 0;
+}
+
+.help-list ul {
+    padding-left: 16px;
+    margin: 4px 0;
+}

@@ -1707,4 +1707,16 @@ if (subjCards) {
     subjCards.onclick = handleTaskEvents;
 }
 
+const helpPane = $("t-help");
+if (helpPane) {
+    helpPane.onclick = e => {
+        const btn = e.target.closest && e.target.closest("[data-goto-tab]");
+        const tabId = btn ? btn.dataset.gotoTab : e.target.dataset?.gotoTab;
+        if (tabId && window.showTab) {
+            window.showTab(tabId, true);
+            window.scrollTo?.({ top: 0, behavior: "smooth" });
+        }
+    };
+}
+
 build(); update();
