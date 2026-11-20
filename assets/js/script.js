@@ -16,8 +16,6 @@ import { RAW_ANTIGA } from "./raw_old.js";
     show(a);
 })();
 
-console.log(RAW_NOVA)
-
 const CURS = {
     nova: {
         raw: RAW_NOVA, sub: "IFSP Câmpus Presidente Epitácio · PPC 2022 (vigência 1º/2023) · Dados extraídos do PDF do PPC", ls: "fluxo-ccomp-v1", tccH: 30, acReq: 65, totalH: 3354.2, acTable: true, tccRest: false,

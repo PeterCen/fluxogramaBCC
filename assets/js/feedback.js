@@ -1,5 +1,7 @@
 import { CONFIG } from "./config.js"
 
+const $ = id => document.getElementById(id);
+
 const fbForm = $("feedbackForm");
 if (fbForm) {
     fbForm.onsubmit = async e => {
@@ -9,6 +11,7 @@ if (fbForm) {
         const typeVal = $("fbType") ? $("fbType").value : "Geral";
         const msgVal = $("fbMsg") ? $("fbMsg").value.trim() : "";
         const contactVal = $("fbContact") ? $("fbContact").value.trim() : "";
+        const gotchaVal = fbForm.querySelector('input[name="_gotcha"]')?.value || "";
 
         const showStatus = (msg, cls) => {
             statusEl.className = `fb-status ${cls}`;
@@ -43,6 +46,7 @@ if (fbForm) {
                     mensagem: msgVal,
                     contato: contactVal || "Não informado",
                     email: contactVal.includes("@") ? contactVal : undefined,
+                    _gotcha: gotchaVal,
                     _subject: `[Fluxograma BCC] ${typeVal}`
                 })
             });
