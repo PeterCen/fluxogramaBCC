@@ -201,13 +201,35 @@ const depth={}; (function d(){const f=id=>depth[id]??(depth[id]=1+Math.max(0,...
 const anc=id=>{const s=new Set();const f=x=>C[x].pre.forEach(p=>{if(!s.has(p)){s.add(p);f(p)}});f(id);return s};
 const desc=id=>{const s=new Set();const f=x=>C[x].kids.forEach(p=>{if(!s.has(p)){s.add(p);f(p)}});f(id);return s};
 
+// ---------- SEGURANÇA / ESCAPE E VALIDAÇÃO ----------
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clampNum=(v,min,max,def)=>{const n=typeof v==="number"?v:parseFloat(v);return Number.isFinite(n)?Math.min(max,Math.max(min,n)):def};
+const clampInt=(v,min,max,def)=>Math.round(clampNum(v,min,max,def));
+const hasCourse=id=>typeof id==="string"&&Object.prototype.hasOwnProperty.call(C,id);
+
 // ---------- ESTADO ----------
 const now=new Date();
 const defaultState=()=>({version:1,passed:[],electivePlan:[],startYear:now.getMonth()>=6?now.getFullYear()+1:now.getFullYear(),
   startHalf:now.getMonth()>=6?1:2,maxLoad:9,failRate:20,respectParity:true,acDone:false,savedAt:null});
+function sanitizeState(raw){
+  const def=defaultState();
+  if(!raw||typeof raw!=="object"||Array.isArray(raw))return def;
+  return {
+    version:1,
+    passed:[...new Set((Array.isArray(raw.passed)?raw.passed:[]).filter(hasCourse))],
+    electivePlan:[...new Set((Array.isArray(raw.electivePlan)?raw.electivePlan:[]).filter(hasCourse))],
+    startYear:clampInt(raw.startYear,2020,2060,def.startYear),
+    startHalf:+raw.startHalf===1||+raw.startHalf===2?+raw.startHalf:def.startHalf,
+    maxLoad:clampInt(raw.maxLoad,3,10,def.maxLoad),
+    failRate:clampNum(raw.failRate,0,60,def.failRate),
+    respectParity:typeof raw.respectParity==="boolean"?raw.respectParity:def.respectParity,
+    acDone:typeof raw.acDone==="boolean"?raw.acDone:def.acDone,
+    savedAt:typeof raw.savedAt==="string"?raw.savedAt.slice(0,40):null
+  };
+}
 let S=defaultState();
 const LS="fluxo-pedagogia-v1";
-try{const t=localStorage.getItem(LS);if(t)S={...S,...JSON.parse(t)}}catch(e){}
+try{const t=localStorage.getItem(LS);if(t)S=sanitizeState(JSON.parse(t))}catch(e){S=defaultState()}
 let fileHandle=null;
 
 // ---------- SIMULAÇÃO ----------
@@ -265,11 +287,11 @@ function build(){
     pos[id]={x:X0+col*(CW+GX),y:Y0+r*(CH+GY)}});
   const heads=["1º sem","2º sem","3º sem","4º sem","5º sem","6º sem","7º sem","8º sem","Eletivas"];
   heads.forEach((h,i)=>{const d=document.createElement("div");d.className="colh";d.style.left=(X0+i*(CW+GX))+"px";
-    d.innerHTML=h+(i<8?`<small>${i%2?"semestre par":"semestre ímpar"}</small>`:"<small>66,6h (escolher 2 de 4)</small>");flow.appendChild(d)});
+    d.innerHTML=esc(h)+(i<8?`<small>${i%2?"semestre par":"semestre ímpar"}</small>`:"<small>66,6h (escolher 2 de 4)</small>");flow.appendChild(d)});
   ORDER.forEach(id=>{
     const c=C[id],p=pos[id],d=document.createElement("div");
     d.className="card"+(c.ext?" ext":"");d.title=c.name;d.style.left=p.x+"px";d.style.top=p.y+"px";
-    d.innerHTML=`<div class="chk"></div><div class="n">${c.name}</div><div class="m"><span>${id} · ${c.h.toFixed(1).replace(".",",")}h</span><span class="plan"></span></div>`+(c.kind==="el"?`<button class="star" title="Escolher esta eletiva">★</button>`:"");
+    d.innerHTML=`<div class="chk"></div><div class="n">${esc(c.name)}</div><div class="m"><span>${esc(id)} · ${esc(c.h.toFixed(1).replace(".",","))}h</span><span class="plan"></span></div>`+(c.kind==="el"?`<button class="star" title="Escolher esta eletiva">★</button>`:"");
     d.onclick=e=>{ if(e.target.classList.contains("star")){togglePlan(id);return} toggle(id)};
     d.onmouseenter=()=>hover(id);d.onmouseleave=()=>hover(null);
     flow.appendChild(d);els[id]=d});
@@ -323,20 +345,20 @@ function update(){
   const fin=n=>n===Infinity?"—":label(n-1);
   const f=n=>n===Infinity?"∞":n;
   document.getElementById("kpis").innerHTML=`
-   <div class="kpi main"><b>${f(min)} sem.</b><small>Mínimo restante · conclui em ${fin(min)}</small></div>
-   <div class="kpi"><b>${f(mc.med)} sem.</b><small>Provável (${S.failRate}% de falha) · ${fin(mc.med)}</small></div>
-   <div class="kpi"><b class="${mc.p90>16?'warn':''}">${f(mc.p90)} sem.</b><small>Pessimista (P90) · ${fin(mc.p90)}</small></div>
-   <div class="kpi"><b>${pct.toFixed(1).replace(".",",")}%</b><small>${doneH.toFixed(0)}h de ${totalH}h</small></div>
-   <div class="kpi"><b>${pend}</b><small>obrigatórias pendentes</small></div>
-   <div class="kpi"><b>${[...P].filter(i=>C[i].kind==="ob").length}/${OBR.length}</b><small>disciplinas aprovadas</small></div>`;
+   <div class="kpi main"><b>${esc(f(min))} sem.</b><small>Mínimo restante · conclui em ${esc(fin(min))}</small></div>
+   <div class="kpi"><b>${esc(f(mc.med))} sem.</b><small>Provável (${esc(S.failRate)}% de falha) · ${esc(fin(mc.med))}</small></div>
+   <div class="kpi"><b class="${mc.p90>16?'warn':''}">${esc(f(mc.p90))} sem.</b><small>Pessimista (P90) · ${esc(fin(mc.p90))}</small></div>
+   <div class="kpi"><b>${esc(pct.toFixed(1).replace(".",","))}%</b><small>${esc(doneH.toFixed(0))}h de ${esc(totalH)}h</small></div>
+   <div class="kpi"><b>${esc(pend)}</b><small>obrigatórias pendentes</small></div>
+   <div class="kpi"><b>${esc([...P].filter(i=>C[i].kind==="ob").length)}/${esc(OBR.length)}</b><small>disciplinas aprovadas</small></div>`;
   document.getElementById("bar").style.width=pct+"%";
   // timeline
   const T=document.getElementById("timeline");T.innerHTML="";
   plan.terms.forEach((t,i)=>{if(!t.taken.length&&i<plan.terms.length-1&&false)return;
     const h=t.taken.reduce((s,id)=>s+C[id].h,0);
     const d=document.createElement("div");d.className="term"+(i==plan.terms.length-1?" last":"");
-    d.innerHTML=`<h4>${i+1}º período · ${label(t.k)}<span>${t.taken.length} disc. · ${h.toFixed(0)}h</span></h4>`+
-      (t.taken.length?`<ul>${t.taken.map(id=>`<li>${C[id].name}</li>`).join("")}</ul>`:`<div class="note">Nenhuma disciplina disponível neste semestre (espera pela oferta).</div>`);
+    d.innerHTML=`<h4>${esc(i+1)}º período · ${esc(label(t.k))}<span>${esc(t.taken.length)} disc. · ${esc(h.toFixed(0))}h</span></h4>`+
+      (t.taken.length?`<ul>${t.taken.map(id=>`<li>${esc(C[id].name)}</li>`).join("")}</ul>`:`<div class="note">Nenhuma disciplina disponível neste semestre (espera pela oferta).</div>`);
     T.appendChild(d)});
   if(plan.n===Infinity)T.innerHTML="<div class='note warn'>Não foi possível montar o plano (verifique o limite de disciplinas/oferta).</div>";
   if(!plan.terms.length)T.innerHTML="<div class='note'>🎉 Todas as disciplinas, eletivas e estágios estão marcados como concluídos. Falta apenas confirmar as atividades teórico-práticas de aprofundamento (200h) se não marcou.</div>";
@@ -379,7 +401,8 @@ $("btnSave").onclick=async()=>{
 $("btnLoad").onclick=()=>$("fileIn").click();
 $("fileIn").onchange=async e=>{const f=e.target.files[0];if(!f)return;
   try{const j=JSON.parse(await f.text());
-    S={...defaultState(),...j,passed:(j.passed||[]).filter(i=>C[i]),electivePlan:(j.electivePlan||[]).filter(i=>C[i])};update()}
+    if(!j||typeof j!=="object"||Array.isArray(j))throw new Error("Estrutura JSON inválida.");
+    S=sanitizeState(j);update()}
   catch(err){alert("JSON inválido: "+err.message)}
   e.target.value=""};
 
