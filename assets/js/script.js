@@ -1,5 +1,5 @@
-import { RAW_NOVA } from "./raw_new.js"
-import { RAW_ANTIGA } from "./raw_old.js";
+import { CURS, DEFAULT_COURSE_KEY, validateCourseConfig } from "./courses.js";
+export { CURS, validateCourseConfig };
 
 // ---------- ABAS (WAI-ARIA + NAVEGAÇÃO POR TECLADO) ----------
 export function bindTablist(container, btns, getVal, onSelect) {
@@ -65,25 +65,36 @@ export function bindTablist(container, btns, getVal, onSelect) {
     show(a, false);
 })();
 
-export const CURS = {
-    nova: {
-        raw: RAW_NOVA, sub: "IFSP Câmpus Presidente Epitácio · PPC 2022 (vigência 1º/2023) · Dados extraídos do PDF do PPC", ls: "fluxo-ccomp-v1", tccH: 30, acReq: 65, totalH: 3354.2, acTable: true, tccRest: false,
-        eletDef: ["TPRO", "INFR", "TCOM"], eletivas: ["TPRO", "INFR", "TCOM"], tccLbl: "libera com 75% da carga"
-    },
-    antiga: {
-        raw: RAW_ANTIGA, sub: "IFSP Câmpus Presidente Epitácio · PPC 2018 (grade antiga, 3251 h) · Dados extraídos do PDF do PPC antigo", ls: "fluxo-ccomp-v1-antiga", tccH: 50, acReq: 80, totalH: 3251, acTable: false, tccRest: true,
-        eletDef: ["TEPC0", "TPRC0", "TPWC0", "TSOC0", "TESC0", "IDSC0", "VCOC0", "RENC0", "CIDC0"], eletivas: ["TEPC0", "TPRC0", "TPWC0", "TSOC0", "IDSC0", "TESC0", "VCOC0", "RENC0", "CIDC0"], tccLbl: "libera nos 2 últimos semestres"
+let KEY = DEFAULT_COURSE_KEY;
+try {
+    const params = typeof location !== "undefined" && location.search ? new URLSearchParams(location.search) : null;
+    const urlCurso = params ? params.get("curso") : null;
+    if (urlCurso && Object.prototype.hasOwnProperty.call(CURS, urlCurso)) {
+        KEY = urlCurso;
+        localStorage.setItem("curriculo-ativo", KEY);
+    } else {
+        KEY = localStorage.getItem("curriculo-ativo") || DEFAULT_COURSE_KEY;
     }
-};
-let KEY = "nova"; try { KEY = localStorage.getItem("curriculo-ativo") || "nova" } catch (e) { }
-if (!CURS[KEY]) KEY = "nova";
-const CUR = CURS[KEY], RAW = CUR.raw;
+} catch (e) { }
+if (!Object.prototype.hasOwnProperty.call(CURS, KEY)) KEY = DEFAULT_COURSE_KEY;
+export const CUR = CURS[KEY], RAW = CUR.raw;
 export const HRS = a => a * 19 * 50 / 60;
+
+function entryFromRaw(cur, [id, name, sem, val, ext, pre]) {
+    const isHours = cur.unit === "horas";
+    const kind = sem === 9 ? "el" : sem === 10 ? "op" : id.startsWith("TCC") ? "tcc" : id.startsWith("ES") ? "es" : "ob";
+    const h = kind === "tcc" ? cur.tccH : (isHours ? val : HRS(val));
+    const aulas = isHours ? Math.max(1, Math.round(h * 60 / (19 * 50))) : val;
+    return { id, name, sem, aulas, ext: !!ext, pre, h, kind, kids: [] };
+}
+
 export const C = {}; export const ORDER = [];
-RAW.forEach(([id, name, sem, aulas, ext, pre]) => { C[id] = { id, name, sem, aulas, ext: !!ext, pre, h: id.startsWith("TCC") ? CUR.tccH : HRS(aulas), kind: sem === 9 ? "el" : sem === 10 ? "op" : id.startsWith("TCC") ? "tcc" : "ob", kids: [] }; ORDER.push(id) });
-ORDER.forEach(id => C[id].pre.forEach(p => C[p].kids.push(id)));
+RAW.forEach(row => { const item = entryFromRaw(CUR, row); C[item.id] = item; ORDER.push(item.id); });
+ORDER.forEach(id => C[id].pre.forEach(p => { if (C[p]) C[p].kids.push(id); }));
 export const OBR = ORDER.filter(i => C[i].kind === "ob");
-export const OBR_H = OBR.reduce((s, i) => s + C[i].h, 0);         // ~3102,6h
+export const EST = ORDER.filter(i => C[i].kind === "es");
+export const TCC_IDS = ORDER.filter(i => C[i].kind === "tcc");
+export const OBR_H = OBR.reduce((s, i) => s + C[i].h, 0);
 export const EL_DEFAULT = CUR.eletDef;
 export const ELETIVAS = CUR.eletivas;
 // prioridade = maior cadeia a jusante
@@ -112,10 +123,11 @@ const hasCourse = (id, cMap = C) => typeof id === "string" && Object.prototype.h
 
 function buildCourseMap(curKey) {
     if (curKey === KEY) return C;
-    const cur = CURS[curKey] || CURS.nova;
+    const cur = CURS[curKey] || CURS[DEFAULT_COURSE_KEY];
     const map = {};
-    cur.raw.forEach(([id, name, sem, aulas, ext, pre]) => {
-        map[id] = { id, name, sem, aulas, ext: !!ext, pre, h: id.startsWith("TCC") ? cur.tccH : HRS(aulas) };
+    cur.raw.forEach(row => {
+        const item = entryFromRaw(cur, row);
+        map[item.id] = item;
     });
     return map;
 }
@@ -288,7 +300,7 @@ export const half = k => ((S.startHalf - 1 + k) % 2) + 1;
 export const label = k => { const y = S.startYear + Math.floor((S.startHalf - 1 + k) / 2); return y + "/" + half(k) };
 export function electivesPlanned(passedSet) {
     const passedEl = ELETIVAS.filter(e => passedSet.has(e)).length;
-    let need = Math.max(0, 2 - passedEl);
+    let need = Math.max(0, (CUR.eletNeed || 2) - passedEl);
     const chosen = [];
     S.electivePlan.filter(e => !passedSet.has(e)).forEach(e => { if (chosen.length < need) chosen.push(e) });
     EL_DEFAULT.forEach(e => { if (chosen.length < need && !passedSet.has(e) && !chosen.includes(e)) chosen.push(e) });
@@ -296,7 +308,8 @@ export function electivesPlanned(passedSet) {
 }
 export function toPlan(passedSet) {
     const pl = OBR.filter(i => !passedSet.has(i)).concat(electivesPlanned(passedSet));
-    ["TCC1", "TCC2"].forEach(t => { if (!passedSet.has(t)) pl.push(t) });
+    EST.forEach(i => { if (!passedSet.has(i)) pl.push(i) });
+    TCC_IDS.forEach(t => { if (!passedSet.has(t)) pl.push(t) });
     return pl;
 }
 const sig = x => 1 / (1 + Math.exp(-x));
@@ -313,15 +326,16 @@ let rng = Math.random;
 export const seed = () => { let a = 12345; rng = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } };
 // mode 0: passa em tudo que cursa · 1: reprova com risco ≥ 50% · 2: sorteia pelo risco
 export const acH = () => S.acDone ? AC_REQ : Math.min(AC_REQ, acTotal());
-export const gateH = P => OBR.filter(i => P.has(i)).reduce((a, i) => a + C[i].h, 0) + (S.tccBase === "obr" ? 0 : ELETIVAS.filter(i => P.has(i)).slice(0, 2).reduce((a, i) => a + C[i].h, 0) + acH());
-export const gateNeed = () => 0.75 * (S.tccBase === "obr" ? OBR_H : CUR.totalH);
+export const gateH = P => OBR.concat(EST).filter(i => P.has(i)).reduce((a, i) => a + C[i].h, 0) + (S.tccBase === "obr" ? 0 : ELETIVAS.filter(i => P.has(i)).slice(0, CUR.eletNeed || 2).reduce((a, i) => a + C[i].h, 0) + acH());
+export const gateNeed = () => (CUR.tccPct || 0.75) * (S.tccBase === "obr" ? OBR_H : CUR.totalH);
 export const tccOpen = P => CUR.tccRest ? OBR.filter(i => !P.has(i)).length + electivesPlanned(P).length <= 2 * S.maxLoad : gateH(P) >= gateNeed();
 export function passedSet() { const P = new Set(S.passed); (S.current || []).forEach(r => { if (r.fase === "Finalizada") { P.add(r.id); anc(r.id).forEach(x => P.add(x)) } }); return P }
 export function simulate(fail, mode = 0, rm = riskMap()) {
     const passed = passedSet();
     (S.current || []).forEach(r => { const p = rm[r.id] ?? 0; if (mode === 0 || (mode === 1 && p < .5) || (mode === 2 && rng() >= p)) passed.add(r.id) });
     const pending = new Set(toPlan(passed)), terms = [];
-    let done = OBR.filter(i => passed.has(i)).reduce((s, i) => s + C[i].h, 0);
+    let done = OBR.concat(EST).filter(i => passed.has(i)).reduce((s, i) => s + C[i].h, 0);
+    const estMinH = (CUR.estMinPct || 0) * CUR.totalH;
     let k = 0;
     while (pending.size && k < 60) {
         const par = half(k);
@@ -329,14 +343,15 @@ export function simulate(fail, mode = 0, rm = riskMap()) {
             const c = C[id];
             if (!c.pre.every(p => passed.has(p))) return false;
             if (c.kind === "tcc" && !tccOpen(passed)) return false;
-            if (S.respectParity && (c.kind === "ob" || c.kind === "tcc") && ((c.sem % 2) ? 1 : 2) !== par) return false;
+            if (c.kind === "es" && estMinH > 0 && done < estMinH) return false;
+            if (S.respectParity && (c.kind === "ob" || c.kind === "tcc" || c.kind === "es") && ((c.sem % 2) ? 1 : 2) !== par) return false;
             return true;
         }).sort((a, b) => depth[b] - depth[a] || C[a].sem - C[b].sem);
         const take = cand.slice(0, S.maxLoad), got = [];
         take.forEach(id => { if (fail > 0 && rng() < fail) return; got.push(id) });
         got.forEach(id => { pending.delete(id) });
         terms.push({ k, taken: got });
-        got.forEach(id => { passed.add(id); if (C[id].kind === "ob") done += C[id].h });
+        got.forEach(id => { passed.add(id); if (C[id].kind === "ob" || C[id].kind === "es") done += C[id].h });
         k++;
     }
     return { terms, n: pending.size ? Infinity : terms.length };
@@ -348,8 +363,11 @@ export function monte(fail) {
 
 // ---------- LAYOUT / RENDER ----------
 const CW = 190, CH = 66, GX = 64, GY = 14, X0 = 20, Y0 = 56;
-const colOf = c => c.kind === "ob" ? c.sem - 1 : c.kind === "el" ? 8 : c.kind === "op" ? 8 : 9;
-const HEADS = ["1º sem", "2º sem", "3º sem", "4º sem", "5º sem", "6º sem", "7º sem", "8º sem", "Eletivas / Optativas", "Conclusão"];
+const HAS_TCC = TCC_IDS.length > 0;
+const colOf = c => (c.kind === "ob" || c.kind === "es") ? c.sem - 1 : (c.kind === "el" || c.kind === "op") ? 8 : 9;
+const HEADS = HAS_TCC
+    ? ["1º sem", "2º sem", "3º sem", "4º sem", "5º sem", "6º sem", "7º sem", "8º sem", "Eletivas / Optativas", "Conclusão"]
+    : ["1º sem", "2º sem", "3º sem", "4º sem", "5º sem", "6º sem", "7º sem", "8º sem", "Eletivas"];
 const flow = document.getElementById("flow"), svg = document.getElementById("edges");
 const pos = {}; const els = {}; const colItems = {};
 let flowMode = "pass"; // "pass" | "cur" | "info"
@@ -414,7 +432,8 @@ function build() {
     pos["TCC"] = { x: X0 + 9 * (CW + GX), y: Y0 };
     HEADS.forEach((h, i) => {
         const d = document.createElement("div"); d.className = "colh"; d.style.left = (X0 + i * (CW + GX)) + "px";
-        d.innerHTML = esc(h) + (i < 8 ? `<small>${i % 2 ? "semestre par" : "semestre ímpar"}</small>` : i == 8 ? "<small>126,6h de eletivas</small>" : "<small>TCC + Complementares</small>"); flow.appendChild(d)
+        const subTxt = i < 8 ? (i % 2 ? "semestre par" : "semestre ímpar") : i === 8 ? (CUR.eletHeaderSub || "Eletivas") : "TCC + Complementares";
+        d.innerHTML = `${esc(h)}<small>${esc(subTxt)}</small>`; flow.appendChild(d)
     });
     ORDER.forEach(id => {
         const c = C[id], p = pos[id], d = document.createElement("div");
@@ -484,7 +503,7 @@ function build() {
         d.onblur = () => hover(pinnedId);
         flow.appendChild(d); els[id] = d
     });
-    const W = X0 * 2 + 10 * (CW + GX) - GX; flow.style.width = W + "px"; flow.style.height = (Y0 + (Math.max(...Object.values(rows)) + 0.6) * (CH + GY) + 20) + "px";
+    const W = X0 * 2 + HEADS.length * (CW + GX) - GX; flow.style.width = W + "px"; flow.style.height = (Y0 + (Math.max(...Object.values(rows)) + 0.6) * (CH + GY) + 20) + "px";
     svg.setAttribute("width", W); svg.setAttribute("height", parseFloat(flow.style.height));
     // arestas
     ORDER.forEach(id => C[id].pre.forEach(p => {
@@ -493,7 +512,9 @@ function build() {
         e.setAttribute("d", `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`); e.setAttribute("class", "e"); e.dataset.f = p; e.dataset.t = id; svg.appendChild(e)
     }));
     // TCC: seta de todas obrigatórias do 7º/8º semestre seria poluição; deixado como regra textual
-    els.TCC1.querySelector(".n").innerHTML = `TCC 1 <span style='font-weight:400;color:var(--mut)'>(${esc(CUR.tccLbl)})</span>`;
+    if (els.TCC1 && CUR.tccLbl) {
+        els.TCC1.querySelector(".n").innerHTML = `TCC 1 <span style='font-weight:400;color:var(--mut)'>(${esc(CUR.tccLbl)})</span>`;
+    }
 }
 function hover(id) {
     const activeId = id || pinnedId;
@@ -563,7 +584,7 @@ function renderFlowFallback(P, when, chosen) {
     if (!fb) return;
     const groups = HEADS.map((title, colIdx) => ({
         title,
-        sub: colIdx < 8 ? (colIdx % 2 ? "semestre par" : "semestre ímpar") : colIdx === 8 ? "126,6h de eletivas" : "TCC + Complementares",
+        sub: colIdx < 8 ? (colIdx % 2 ? "semestre par" : "semestre ímpar") : colIdx === 8 ? (CUR.eletHeaderSub || "Eletivas") : "TCC + Complementares",
         items: ORDER.filter(id => colOf(C[id]) === colIdx)
     }));
 
@@ -681,7 +702,7 @@ function update() {
     renderFlowInspect();
     renderFlowFallback(P, when, chosen);
     // KPIs
-    const doneH = OBR.filter(i => P.has(i)).reduce((s, i) => s + C[i].h, 0) + ELETIVAS.filter(i => P.has(i)).slice(0, 2).reduce((s, i) => s + C[i].h, 0) + (P.has("TCC1") ? CUR.tccH : 0) + (P.has("TCC2") ? CUR.tccH : 0) + (S.acDone ? AC_REQ : Math.min(AC_REQ, acTotal()));
+    const doneH = OBR.concat(EST).filter(i => P.has(i)).reduce((s, i) => s + C[i].h, 0) + ELETIVAS.filter(i => P.has(i)).slice(0, CUR.eletNeed || 2).reduce((s, i) => s + C[i].h, 0) + TCC_IDS.filter(i => P.has(i)).reduce((s, i) => s + C[i].h, 0) + (S.acDone ? AC_REQ : Math.min(AC_REQ, acTotal()));
     const totalH = CUR.totalH, pct = Math.min(100.0, doneH / totalH * 100.0);
     const pend = OBR.filter(i => !P.has(i)).length;
     const min = best.n, mc = monte(S.failRate / 100), exp = (S.current || []).filter(r => !P.has(r.id)).reduce((s, r) => s + risk(r).p, 0);
@@ -742,7 +763,7 @@ $("btnClear").onclick = e => confirma(e.currentTarget, "Clique de novo para limp
 for (let i = 1; i <= 8; i++) { const o = document.createElement("option"); o.value = i; o.textContent = "…até o " + i + "º semestre"; $("quick").appendChild(o) }
 $("quick").onchange = e => {
     const n = +e.target.value; if (!n) return;
-    const P = new Set(S.passed); OBR.filter(i => C[i].sem <= n).forEach(i => P.add(i)); S.passed = [...P]; e.target.value = ""; update()
+    const P = new Set(S.passed); OBR.concat(EST).filter(i => C[i].sem <= n).forEach(i => P.add(i)); S.passed = [...P]; e.target.value = ""; update()
 };
 $("btnSave").onclick = async () => {
     const txt = JSON.stringify(S, null, 2);
@@ -947,34 +968,8 @@ function confirma(btn, txt, fn) {
 }
 document.getElementById("horClear").onclick = e => confirma(e.currentTarget, "Clique de novo para limpar", () => { S.hor.cells = {}; update() });
 
-// ---------- ATIVIDADES COMPLEMENTARES (Anexo III) ----------
-// [seção, atividade, h por unidade, unidade, máx. de horas, máx. de unidades, grupo (máx. compartilhado)]
-const AC_REQ = CUR.acReq, AC_SEC = { I: "Pesquisa e inovação tecnológica", II: "Extensão", III: "Ensino", IV: "Outras atividades" };
-const AC = [
-    ["I", "Artigo completo em revista internacional", 40, "artigo", 40, 1, "A"], 
-    ["I", "Artigo completo em revista nacional", 30, "artigo", 40, 1, "A"],
-    ["I", "Artigo completo em anais de evento internacional", 40, "artigo", 40, 1, "A"], 
-    ["I", "Artigo completo em anais de evento nacional", 30, "artigo", 40, 1, "A"],
-    ["I", "Resumo em anais de evento", 5, "resumo", 40, 8, "A"], 
-    ["I", "Iniciação científica (bolsista ou voluntário)", 25, "projeto", 50, 2],
-    ["II", "Projeto de extensão (bolsista ou voluntário)", 25, "projeto", 50, 2], 
-    ["II", "Maratona SBC – classificação para a final nacional", 40, "evento", 40, 1],
-    ["II", "Maratona SBC – fase regional", 5, "evento", 10, 2], 
-    ["II", "Maratona IFSP – participação", 5, "evento", 10, 2],
-    ["II", "Semana de Computação – participação (mín. 12 h)", 5, "evento", 20, 4], 
-    ["II", "Semana de Computação – organização/equipe", 5, "evento", 20, 4],
-    ["II", "Semana Nac. de Ciência e Tecnologia – participação (mín. 12 h)", 5, "evento", 20, 4], 
-    ["II", "Semana Nac. de Ciência e Tecnologia – organização/equipe", 5, "evento", 20, 4],
-    ["II", "Visitas técnicas", 2, "evento", 6, 3], ["II", "Atividades culturais e/ou esportivas", 1, "hora", 10, 10], ["II", "Proficiência em língua estrangeira", 20, "certificado", 20, 1],
-    ["III", "Projeto de ensino (bolsista ou voluntário)", 25, "projeto", 50, 2], 
-    ["III", "Certificação tecnológica concluída", 20, "certificado", 20, 1],
-    ["III", "ENADE – preparação (mais de 80% dos encontros)", 20, "participação", 20, 1], 
-    ["III", "Ministrante de curso ou palestra da área", 5, "curso", 10, 2],
-    ["III", "Curso ou palestra da área (fora das semanas)", 1, "hora", 10, 10], 
-    ["III", "Treinamento de maratona (mais de 80% dos encontros)", 10, "participação", 10, 1],
-    ["IV", "Aplicação desenvolvida e implantada", 10, "aplicação", 10, 1], 
-    ["IV", "ENADE – realização da prova", 10, "prova", 10, 1], 
-    ["IV", "POSCOMP – realização da prova", 5, "prova", 5, 1]];
+// ---------- ATIVIDADES COMPLEMENTARES (Orientado a Dados pelo JSON do Curso) ----------
+const AC_REQ = CUR.acReq, AC_SEC = CUR.acSections || {}, AC = CUR.acItems || [];
 export function acCalc() {
     if (!CUR.acTable) return { rows: [], g: {}, tot: +S.acHoras || 0 };
     const g = {}, rows = AC.map((a, i) => { const u = Math.min(+S.ac[i] || 0, a[5]), ob = u * a[2], k = a[6] || "i" + i; (g[k] = g[k] || { ob: 0, max: a[4] }).ob += ob; return { u, ob, k } });
@@ -994,19 +989,36 @@ function renderAC() {
         h += `<tr><td>${esc(a[1])}<div class="note">${esc(a[3])} · máx. ${esc(a[5])} unid.${v > a[5] ? ` <span class="warn">(só ${esc(a[5])} contam)</span>` : ""}</div></td><td>${esc(a[2])} h</td><td><div class="mini"><input type="number" min="0" step="0.5" value="${esc(S.ac[i] || "")}" data-ac="${esc(i)}"></div></td><td>${esc(fmt(r.ob))} h</td><td>${f ? esc(fmt(g[r.k].ct)) + " h" : "<span class='note'>no grupo</span>"}</td><td>${f ? esc(a[4]) + " h" : ""}</td></tr>`
     });
     document.getElementById("acBody").innerHTML = h;
-    document.getElementById("acBar").style.width = Math.min(100, tot / AC_REQ * 100) + "%";
+    document.getElementById("acBar").style.width = (AC_REQ ? Math.min(100, tot / AC_REQ * 100) : 100) + "%";
     document.getElementById("acSum").textContent = `${fmt(tot)} h de ${AC_REQ} h` + (tot >= AC_REQ ? " · meta atingida ✓" : ` · faltam ${fmt(AC_REQ - tot)} h`);
 }
 document.getElementById("acHoras").onchange = e => { S.acHoras = Math.max(0, parseFloat(e.target.value) || 0); update() };
 document.getElementById("acBody").onchange = e => { const i = e.target.dataset.ac; if (i == null) return; S.ac[i] = Math.max(0, parseFloat(e.target.value) || 0); update() };
 
+if ($("courseIcon")) $("courseIcon").textContent = CUR.icon || "🎓";
+if ($("courseTitle")) $("courseTitle").textContent = CUR.title || "Curso";
 $("subTxt").textContent = CUR.sub;
-$("acLbl").textContent = `Atividades Complementares (${AC_REQ}h) concluídas`;
-$("tccBaseLbl").style.display = CUR.tccRest ? "none" : "";
+$("acLbl").textContent = `${CUR.acName || "Atividades Complementares"} (${AC_REQ}h) concluídas`;
+$("tccBaseLbl").style.display = (!HAS_TCC || CUR.tccRest) ? "none" : "";
 $("helpTccAnt").style.display = CUR.tccRest ? "" : "none";
-$("curSw").value = KEY;
-$("curSw").onchange = e => { persist(); try { localStorage.setItem("curriculo-ativo", e.target.value) } catch (x) { } location.reload() };
-document.title = "Fluxograma — Ciência da Computação (" + (KEY === "nova" ? "grade nova" : "grade antiga") + ")";
+const curSwEl = $("curSw");
+if (curSwEl) {
+    curSwEl.innerHTML = Object.values(CURS).map(c => `<option value="${esc(c.id)}"${c.id === KEY ? " selected" : ""}>${esc(c.label)}</option>`).join("");
+    curSwEl.value = KEY;
+    curSwEl.onchange = e => {
+        const nextKey = e.target.value;
+        if (!Object.prototype.hasOwnProperty.call(CURS, nextKey)) return;
+        persist();
+        try { localStorage.setItem("curriculo-ativo", nextKey) } catch (x) { }
+        if (typeof history !== "undefined" && typeof history.replaceState === "function" && typeof location !== "undefined" && location.search) {
+            const url = new URL(location.href);
+            url.searchParams.delete("curso");
+            history.replaceState(null, "", url.pathname + url.search);
+        }
+        location.reload();
+    };
+}
+document.title = `Fluxograma — ${CUR.shortTitle || CUR.title}`;
 
 // ---------- TRABALHOS E PROVAS ----------
 const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
