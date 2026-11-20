@@ -1345,3 +1345,305 @@ th .q {
     border-color: #f87171 !important;
     outline: 1px solid #f87171
 }
+
+/* ---------- ACESSIBILIDADE, MOBILE & FALLBACK DO FLUXOGRAMA ---------- */
+.tabs button:focus-visible,
+.tr-v-btn:focus-visible,
+.flow-mode-btn:focus-visible,
+.flow-view-btn:focus-visible,
+.card:focus-visible,
+.fi-chip:focus-visible {
+    outline: 2px solid var(--av);
+    outline-offset: 2px;
+}
+
+.card.pinned {
+    box-shadow: 0 0 0 2.5px var(--av), 0 0 18px #38bdf888;
+    opacity: 1 !important;
+}
+
+.card .n {
+    padding-right: 44px;
+}
+
+.card-acts {
+    position: absolute;
+    right: 26px;
+    top: 5px;
+    display: flex;
+    gap: 2px;
+    z-index: 2;
+}
+
+.card-act {
+    background: rgba(11, 16, 32, 0.72);
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 1px 3px;
+    font-size: 10px;
+    line-height: 1.1;
+    color: var(--mut);
+    opacity: 0.7;
+    transition: 0.15s;
+}
+
+.card:hover .card-act,
+.card:focus-within .card-act,
+.card-act.on {
+    opacity: 1;
+}
+
+.card-act:hover,
+.card-act.on {
+    border-color: var(--av);
+    background: #1e294b;
+    color: var(--txt);
+}
+
+@media (hover: none), (max-width: 768px) {
+    .card-act {
+        opacity: 0.95;
+        padding: 2px 4px;
+    }
+}
+
+.flow-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+}
+
+.flow-mode-group,
+.flow-view-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.flow-tb-lbl {
+    font-size: 12px;
+    color: var(--mut);
+    font-weight: 600;
+    margin-right: 2px;
+}
+
+.flow-mode-btn,
+.flow-view-btn {
+    font-size: 12.5px;
+    padding: 6px 11px;
+    border-radius: 8px;
+    background: var(--panel2);
+    color: var(--mut);
+    border: 1px solid var(--line);
+}
+
+.flow-mode-btn.act {
+    color: var(--txt);
+    border-color: var(--av);
+    background: #1e3a6b;
+    font-weight: 600;
+}
+
+.flow-view-btn.act {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    font-weight: 600;
+}
+
+.flow-inspect {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--panel2);
+    border: 1px solid var(--av);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.fi-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.fi-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.fi-chains {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+}
+
+.fi-chains small {
+    color: var(--mut);
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.fi-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.fi-chip {
+    font-size: 11.5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #0b1020;
+    border: 1px solid var(--line);
+    color: var(--txt);
+}
+
+.fi-chip.ok {
+    border-color: var(--ok);
+    color: #bbf7d0;
+}
+
+.fi-chip.pend {
+    border-color: #f87171;
+    color: #fecaca;
+}
+
+/* Visão Fallback (Lista por Semestre para Mobile / Leitor de Tela) */
+.flow-fallback {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.fb-sem-group {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fb-sem-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+}
+
+.fb-sem-head h4 {
+    margin: 0;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fb-sem-head h4 small {
+    font-weight: 400;
+    text-transform: none;
+    color: var(--mut);
+    font-size: 11.5px;
+    margin-left: 4px;
+}
+
+.fb-sem-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fb-card {
+    background: var(--panel2);
+    border: 1.5px solid var(--blk);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fb-card.passed {
+    background: #12331f;
+    border-color: var(--ok);
+}
+
+.fb-card.cur {
+    border-color: var(--warn);
+}
+
+.fb-card.avail {
+    border-color: var(--av);
+}
+
+.fb-card.ext {
+    border-left: 5px solid var(--ext);
+}
+
+.fb-card.off {
+    opacity: 0.55;
+}
+
+.fb-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.fb-card-title {
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.25;
+}
+
+.fb-card-meta {
+    font-size: 11px;
+    color: var(--mut);
+    margin-top: 2px;
+}
+
+.fb-card-badges .tag {
+    font-size: 10.5px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.fb-card-rel {
+    font-size: 11.5px;
+    color: var(--mut);
+    line-height: 1.35;
+}
+
+.fb-card-rel .rel-ok {
+    color: #bbf7d0;
+}
+
+.fb-card-rel .rel-pend {
+    color: #fecaca;
+}
+
+.fb-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
