@@ -65,7 +65,7 @@ export function bindTablist(container, btns, getVal, onSelect) {
     show(a, false);
 })();
 
-const CURS = {
+export const CURS = {
     nova: {
         raw: RAW_NOVA, sub: "IFSP Câmpus Presidente Epitácio · PPC 2022 (vigência 1º/2023) · Dados extraídos do PDF do PPC", ls: "fluxo-ccomp-v1", tccH: 30, acReq: 65, totalH: 3354.2, acTable: true, tccRest: false,
         eletDef: ["TPRO", "INFR", "TCOM"], eletivas: ["TPRO", "INFR", "TCOM"], tccLbl: "libera com 75% da carga"
@@ -78,19 +78,19 @@ const CURS = {
 let KEY = "nova"; try { KEY = localStorage.getItem("curriculo-ativo") || "nova" } catch (e) { }
 if (!CURS[KEY]) KEY = "nova";
 const CUR = CURS[KEY], RAW = CUR.raw;
-const HRS = a => a * 19 * 50 / 60;
-const C = {}; const ORDER = [];
+export const HRS = a => a * 19 * 50 / 60;
+export const C = {}; export const ORDER = [];
 RAW.forEach(([id, name, sem, aulas, ext, pre]) => { C[id] = { id, name, sem, aulas, ext: !!ext, pre, h: id.startsWith("TCC") ? CUR.tccH : HRS(aulas), kind: sem === 9 ? "el" : sem === 10 ? "op" : id.startsWith("TCC") ? "tcc" : "ob", kids: [] }; ORDER.push(id) });
 ORDER.forEach(id => C[id].pre.forEach(p => C[p].kids.push(id)));
-const OBR = ORDER.filter(i => C[i].kind === "ob");
-const OBR_H = OBR.reduce((s, i) => s + C[i].h, 0);         // ~3102,6h
-const EL_DEFAULT = CUR.eletDef;
-const ELETIVAS = CUR.eletivas;
+export const OBR = ORDER.filter(i => C[i].kind === "ob");
+export const OBR_H = OBR.reduce((s, i) => s + C[i].h, 0);         // ~3102,6h
+export const EL_DEFAULT = CUR.eletDef;
+export const ELETIVAS = CUR.eletivas;
 // prioridade = maior cadeia a jusante
-const depth = {}; (function d() { const f = id => depth[id] ?? (depth[id] = 1 + Math.max(0, ...C[id].kids.map(f))); ORDER.forEach(f) })();
+export const depth = {}; (function d() { const f = id => depth[id] ?? (depth[id] = 1 + Math.max(0, ...C[id].kids.map(f))); ORDER.forEach(f) })();
 // ascendentes / descendentes
-const anc = id => { const s = new Set(); const f = x => C[x].pre.forEach(p => { if (!s.has(p)) { s.add(p); f(p) } }); f(id); return s };
-const desc = id => { const s = new Set(); const f = x => C[x].kids.forEach(p => { if (!s.has(p)) { s.add(p); f(p) } }); f(id); return s };
+export const anc = id => { const s = new Set(); const f = x => C[x].pre.forEach(p => { if (!s.has(p)) { s.add(p); f(p) } }); f(id); return s };
+export const desc = id => { const s = new Set(); const f = x => C[x].kids.forEach(p => { if (!s.has(p)) { s.add(p); f(p) } }); f(id); return s };
 
 // ---------- SEGURANÇA / ESCAPE E VALIDAÇÃO ----------
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -122,13 +122,15 @@ function buildCourseMap(curKey) {
 
 // ---------- ESTADO ----------
 const now = new Date();
-const defaultState = (curKey = KEY) => ({
+export const defaultState = (curKey = KEY) => ({
     version: 1, curriculo: curKey, passed: [], electivePlan: [], startYear: now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear(),
     startHalf: now.getMonth() >= 6 ? 1 : 2, maxLoad: 9, failRate: 20, respectParity: true, acDone: false, expect: 70, scen: 0, hor: { cells: {} }, ac: {}, acHoras: 0, tccBase: "total", curSort: "add", current: [], tasks: [], cap: 3, weekend: true, trView: "list", trSort: "prio", trFilterSubj: "", trFilterType: "", trFilterStatus: "unresolved", savedAt: null
 });
 let S = defaultState();
+export const getState = () => S;
+export const setState = next => { S = sanitizeState(next, KEY); return S; };
 const LS = CUR.ls;
-const fixCur = (r, cMap = C) => {
+export const fixCur = (r, cMap = C) => {
     const defPrev = cMap[r.id].aulas * 19;
     const prev = clampInt(r.prev, 0, 1000, defPrev);
     const cum = clampInt(r.cum, 0, 1000, prev);
@@ -254,7 +256,7 @@ export function sanitizeState(raw, curKey = KEY) {
     };
 }
 
-function syncSubjectGrades() {
+export function syncSubjectGrades() {
     (S.current || []).forEach(r => {
         if (r.autoGrade === false) return;
         const ts = (S.tasks || []).filter(t => t.subj === r.id);
@@ -282,9 +284,9 @@ try { const t = localStorage.getItem(LS); if (t) S = sanitizeState(JSON.parse(t)
 let fileHandle = null;
 
 // ---------- SIMULAÇÃO ----------
-const half = k => ((S.startHalf - 1 + k) % 2) + 1;
-const label = k => { const y = S.startYear + Math.floor((S.startHalf - 1 + k) / 2); return y + "/" + half(k) };
-function electivesPlanned(passedSet) {
+export const half = k => ((S.startHalf - 1 + k) % 2) + 1;
+export const label = k => { const y = S.startYear + Math.floor((S.startHalf - 1 + k) / 2); return y + "/" + half(k) };
+export function electivesPlanned(passedSet) {
     const passedEl = ELETIVAS.filter(e => passedSet.has(e)).length;
     let need = Math.max(0, 2 - passedEl);
     const chosen = [];
@@ -292,13 +294,13 @@ function electivesPlanned(passedSet) {
     EL_DEFAULT.forEach(e => { if (chosen.length < need && !passedSet.has(e) && !chosen.includes(e)) chosen.push(e) });
     return chosen;
 }
-function toPlan(passedSet) {
+export function toPlan(passedSet) {
     const pl = OBR.filter(i => !passedSet.has(i)).concat(electivesPlanned(passedSet));
     ["TCC1", "TCC2"].forEach(t => { if (!passedSet.has(t)) pl.push(t) });
     return pl;
 }
 const sig = x => 1 / (1 + Math.exp(-x));
-function risk(r) {
+export function risk(r) {
     const cum = r.cum, prev = Math.max(r.prev, r.cum), limit = Math.floor(prev * .25), folga = limit - r.falt;
     const freq = cum ? (cum - r.falt) / cum * 100 : 100, esp = cum ? r.falt / cum * Math.max(0, prev - cum) * .6 : 0;
     const pF = folga < 0 ? 1 : sig((esp - folga - .5) / Math.max(1.2, .5 * Math.sqrt(esp + 1)));
@@ -306,16 +308,16 @@ function risk(r) {
     if (need > 0 && r.nota + r.pts >= 4) pN *= .75;
     return { freq, limit, folga, pF, pN, p: 1 - (1 - pF) * (1 - pN) };
 }
-const riskMap = () => { const m = {}; (S.current || []).forEach(r => m[r.id] = risk(r).p); return m };
+export const riskMap = () => { const m = {}; (S.current || []).forEach(r => m[r.id] = risk(r).p); return m };
 let rng = Math.random;
-const seed = () => { let a = 12345; rng = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } };
+export const seed = () => { let a = 12345; rng = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } };
 // mode 0: passa em tudo que cursa · 1: reprova com risco ≥ 50% · 2: sorteia pelo risco
-const acH = () => S.acDone ? AC_REQ : Math.min(AC_REQ, acTotal());
-const gateH = P => OBR.filter(i => P.has(i)).reduce((a, i) => a + C[i].h, 0) + (S.tccBase === "obr" ? 0 : ELETIVAS.filter(i => P.has(i)).slice(0, 2).reduce((a, i) => a + C[i].h, 0) + acH());
-const gateNeed = () => 0.75 * (S.tccBase === "obr" ? OBR_H : CUR.totalH);
-const tccOpen = P => CUR.tccRest ? OBR.filter(i => !P.has(i)).length + electivesPlanned(P).length <= 2 * S.maxLoad : gateH(P) >= gateNeed();
-function passedSet() { const P = new Set(S.passed); (S.current || []).forEach(r => { if (r.fase === "Finalizada") { P.add(r.id); anc(r.id).forEach(x => P.add(x)) } }); return P }
-function simulate(fail, mode = 0, rm = riskMap()) {
+export const acH = () => S.acDone ? AC_REQ : Math.min(AC_REQ, acTotal());
+export const gateH = P => OBR.filter(i => P.has(i)).reduce((a, i) => a + C[i].h, 0) + (S.tccBase === "obr" ? 0 : ELETIVAS.filter(i => P.has(i)).slice(0, 2).reduce((a, i) => a + C[i].h, 0) + acH());
+export const gateNeed = () => 0.75 * (S.tccBase === "obr" ? OBR_H : CUR.totalH);
+export const tccOpen = P => CUR.tccRest ? OBR.filter(i => !P.has(i)).length + electivesPlanned(P).length <= 2 * S.maxLoad : gateH(P) >= gateNeed();
+export function passedSet() { const P = new Set(S.passed); (S.current || []).forEach(r => { if (r.fase === "Finalizada") { P.add(r.id); anc(r.id).forEach(x => P.add(x)) } }); return P }
+export function simulate(fail, mode = 0, rm = riskMap()) {
     const passed = passedSet();
     (S.current || []).forEach(r => { const p = rm[r.id] ?? 0; if (mode === 0 || (mode === 1 && p < .5) || (mode === 2 && rng() >= p)) passed.add(r.id) });
     const pending = new Set(toPlan(passed)), terms = [];
@@ -339,7 +341,7 @@ function simulate(fail, mode = 0, rm = riskMap()) {
     }
     return { terms, n: pending.size ? Infinity : terms.length };
 }
-function monte(fail) {
+export function monte(fail) {
     seed(); const rm = riskMap(), arr = []; for (let i = 0; i < 1000; i++)arr.push(simulate(fail, 2, rm).n);
     arr.sort((a, b) => a - b); return { med: arr[500], p90: arr[899] };
 }
@@ -777,7 +779,7 @@ $("fileIn").onchange = async e => {
 const TAGC = { "Auto": "b", "Alta": "r", "Média": "y", "Baixa": "g", "Crítico": "r", "Moderado": "y", "Recuperável": "g", "Bem viável": "b", "Consumindo": "b", "Revisando": "y", "Finalizada": "g" };
 const fmt = n => String(Math.round(n * 100) / 100).replace(".", ",");
 const optList = (arr, v) => arr.map(o => `<option value="${esc(o)}"${o === v ? " selected" : ""}>${esc(o)}</option>`).join("");
-const effPrio = r => { const p = risk(r).p; return !r.prio || r.prio === "Auto" ? (p >= .15 && p <= .75 ? "Alta" : "Baixa") : r.prio };
+export const effPrio = r => { const p = risk(r).p; return !r.prio || r.prio === "Auto" ? (p >= .15 && p <= .75 ? "Alta" : "Baixa") : r.prio };
 function sortCur(a) {
     const o = S.curSort, rk = { "Alta": 0, "Média": 1, "Baixa": 2 }, nm = (x, y) => C[x.id].name.localeCompare(C[y.id].name, "pt-BR"), b = [...a];
     if (o === "nome") b.sort(nm);
@@ -973,7 +975,7 @@ const AC = [
     ["IV", "Aplicação desenvolvida e implantada", 10, "aplicação", 10, 1], 
     ["IV", "ENADE – realização da prova", 10, "prova", 10, 1], 
     ["IV", "POSCOMP – realização da prova", 5, "prova", 5, 1]];
-function acCalc() {
+export function acCalc() {
     if (!CUR.acTable) return { rows: [], g: {}, tot: +S.acHoras || 0 };
     const g = {}, rows = AC.map((a, i) => { const u = Math.min(+S.ac[i] || 0, a[5]), ob = u * a[2], k = a[6] || "i" + i; (g[k] = g[k] || { ob: 0, max: a[4] }).ob += ob; return { u, ob, k } });
     let tot = 0; Object.values(g).forEach(x => { x.ct = Math.min(x.ob, x.max); tot += x.ct });
@@ -1019,7 +1021,7 @@ const dfmt = s => {
 const TYPE_ICON = { "Trabalho": "📄", "Prova": "📝", "Seminário": "🎤", "Outro": "📌" };
 let calMonth = new Date(); calMonth.setDate(1);
 
-function subjTotals(id) {
+export function subjTotals(id) {
     const ts = (S.tasks || []).filter(t => t.subj === id);
     const total = Math.max(10, ts.reduce((s, t) => s + (parseFloat(t.pts) || 0), 0));
     return {
@@ -1030,22 +1032,22 @@ function subjTotals(id) {
     };
 }
 
-function importance(t) {
+export function importance(t) {
     const w = (t.pts || 0) / subjTotals(t.subj).total;
     const cr = (S.current || []).find(r => r.id === t.subj);
     const rp = cr ? risk(cr).p : 0;
     return Math.min(100, w * 100 * (1 + .5 * rp) * 1.6);
 }
 
-function urgency(t, today, remH) {
+export function urgency(t, today, remH) {
     const slack = dayDiff(today, pd(t.due)) - remH / (+S.cap || 3);
     return slack <= 0 ? 100 : 100 / (1 + slack / 3);
 }
 
-const prioOf = (t, today, remH) => .55 * importance(t) + .45 * urgency(t, today, remH);
-const prioLbl = p => p >= 70 ? ["Crítica", "r"] : p >= 50 ? ["Alta", "y"] : p >= 30 ? ["Média", "b"] : ["Baixa", "g"];
+export const prioOf = (t, today, remH) => .55 * importance(t) + .45 * urgency(t, today, remH);
+export const prioLbl = p => p >= 70 ? ["Crítica", "r"] : p >= 50 ? ["Alta", "y"] : p >= 30 ? ["Média", "b"] : ["Baixa", "g"];
 
-function planTasks() {
+export function planTasks() {
     const today = pd(ymd(new Date())), pend = (S.tasks || []).filter(t => taskStatus(t) === "pendente" && t.due).map(t => ({ t, rem: t.eff || 1, start: null, plan: {} }));
     const cap = +S.cap || 3, res = {};
     let last = today; pend.forEach(p => { const d = pd(p.t.due); if (d > last) last = d });
