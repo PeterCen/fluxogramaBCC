@@ -87,6 +87,8 @@ globalThis.document = {
 };
 
 const {
+    CURS,
+    validateCourseConfig,
     C,
     ORDER,
     OBR,
@@ -96,6 +98,7 @@ const {
     anc,
     desc,
     defaultState,
+     sanitizeState,
     setState,
     getState,
     fixCur,
@@ -430,3 +433,44 @@ test("Planejador de tarefas (importance, urgency, prioOf, planTasks) e Atividade
     assert.equal(acRes.g.A.ct, 40, "Grupo A deve limitar as horas contabilizadas em 40h");
     assert.equal(acRes.tot, 90, "Total contabilizado deve ser 40h (Grupo A) + 50h (IC) = 90h");
 });
+
+// ============================================================================
+// 6. ARQUITETURA ORIENTADA A DADOS (1 JSON POR CURSO: BCC NOVA, ANTIGA, PEDAGOGIA)
+// ============================================================================
+test("Catálogo de cursos orientado a dados (CURS, validateCourseConfig e sanitizeState multi-curso)", () => {
+    assert.ok(CURS.nova && CURS.antiga && CURS.pedagogia, "Catálogo deve carregar os JSONs de nova, antiga e pedagogia");
+    assert.equal(CURS.nova.unit, "aulas");
+    assert.equal(CURS.pedagogia.unit, "horas");
+    assert.equal(CURS.pedagogia.totalH, 3200.3);
+    assert.equal(CURS.pedagogia.estMinPct, 0.35);
+
+    // Sanitização de estado para o curso de Pedagogia (usando disciplinas do JSON de Pedagogia)
+    const pedState = sanitizeState({
+        curriculo: "pedagogia",
+        passed: ["HED1", "LIB1", "DISCIPLINA_INEXISTENTE"],
+        electivePlan: ["REIE", "INVALIDA"],
+        current: [{ id: "LIB2", nota: 7.5 }]
+    }, "pedagogia");
+    assert.equal(pedState.curriculo, "pedagogia");
+    assert.deepEqual(pedState.passed, ["HED1", "LIB1"]);
+    assert.deepEqual(pedState.electivePlan, ["REIE"]);
+    assert.equal(pedState.current.length, 1);
+    assert.equal(pedState.current[0].id, "LIB2");
+    assert.equal(pedState.current[0].prev, 38); // LIB2 = 33.3h -> 2 aulas/sem * 19 sem = 38 aulas
+
+    // Validação de schema para adição de novos cursos via JSON
+    const novoCurso = validateCourseConfig({
+        id: "ads-2026",
+        title: "Tecnologia em Análise e Desenvolvimento de Sistemas",
+        totalH: 2000,
+        unit: "horas",
+        raw: [
+            ["ALG1", "Algoritmos", 1, 66.7, 0, []],
+            ["WEB1", "Desenvolvimento Web", 2, 66.7, 0, ["ALG1"]]
+        ]
+    });
+    assert.equal(novoCurso.id, "ads-2026");
+    assert.equal(novoCurso.raw.length, 2);
+    assert.throws(() => validateCourseConfig({ id: "invalido sem raw", raw: [] }));
+});
+

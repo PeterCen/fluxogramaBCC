@@ -1,0 +1,20 @@
+{
+  "defaultCourse": "nova",
+  "courses": [
+    {
+      "id": "nova",
+      "file": "bcc-2022.json",
+      "label": "Ciência da Computação — Nova (PPC 2022, vigência 1º/2023)"
+    },
+    {
+      "id": "antiga",
+      "file": "bcc-2018.json",
+      "label": "Ciência da Computação — Antiga (PPC 2018, ingresso até 2022)"
+    },
+    {
+      "id": "pedagogia",
+      "file": "pedagogia-2023.json",
+      "label": "Licenciatura em Pedagogia — PPC 2023 (Noturno)"
+    }
+  ]
+}

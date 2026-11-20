@@ -5,8 +5,10 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 
 ## O que foi feito
 
-- **Duas grades**: seletor no topo alterna entre a grade **nova** (PPC 2022) e a **antiga** (PPC 2018, `PPC-CienciadaComputacao-Epitacio-antiga.pdf`), com as mesmas funcionalidades (fluxograma, cursando agora, trabalhos e provas, horários, plano, atividades complementares). Cada grade tem seu progresso salvo separadamente (chave própria no `localStorage`, então trocar de grade não apaga a outra); o JSON exportado guarda o campo `curriculo`, e carregar um JSON de outra grade troca para ela automaticamente.
-  - Grade antiga: 55 obrigatórias, 9 eletivas (mínimo 2 = 126,6 h), Libras optativa, TCC de 100 h (2×50 h), 80 h de atividades complementares, total 3251 h. O TCC 1 é liberado quando restam no máx. 2× o limite de disciplinas/semestre (o PPC antigo não fixa %). "FP1 ou FP2 ou FP3" de Projeto Integrado I foi simplificado para FP1. Atividades complementares: apenas o total de horas.
+- **Aplicativo Único Orientado a Dados (1 JSON por Curso)**: o seletor no topo (`#curSw`) e o parâmetro de URL `?curso=<id>` alternam dinamicamente entre qualquer curso cadastrado em `assets/data/courses/index.json` — atualmente **Ciência da Computação — PPC 2022** (`bcc-2022.json`), **Ciência da Computação — PPC 2018** (`bcc-2018.json`) e **Licenciatura em Pedagogia — PPC 2023** (`pedagogia-2023.json`). Todos os cursos compartilham o mesmo motor completo (fluxograma, cursando agora, trabalhos e provas, horários, plano estimado, atividades complementares e feedback), eliminando cópias de código por pasta. Cada curso salva seu progresso separadamente em sua própria chave do `localStorage`, e o JSON exportado guarda o campo `curriculo` para trocar automaticamente de curso ao ser importado.
+  - **Como adicionar um novo curso**: basta criar um novo arquivo JSON em `assets/data/courses/<novo-curso>.json` e registrá-lo em `assets/data/courses/index.json`.
+  - Grade antiga BCC (PPC 2018): 55 obrigatórias, 9 eletivas (mínimo 2 = 126,6 h), Libras optativa, TCC de 100 h (2×50 h), 80 h de atividades complementares, total 3251 h.
+  - Licenciatura em Pedagogia (PPC 2023): 47 obrigatórias, 4 estágios supervisionados (`ES5` a `ES8`, total 400 h, liberados após 35% da carga horária mínima), 4 eletivas (escolher 2 = 66,6 h) e 200 h de Atividades Teórico-Práticas de Aprofundamento, total 3200,3 h. O endereço `/pedagogia/` redireciona automaticamente para `/?curso=pedagogia`.
 
 - **Abas Acessíveis (WAI-ARIA & Teclado)**: a página é dividida em Fluxograma, Cursando agora, Trabalhos e Provas, Horários, Plano estimado, Atividades Compl., Configurações, Como funciona e Feedback, utilizando `role="tablist"`, `role="tab"`, `role="tabpanel"`, `aria-selected`, `aria-controls` e *roving tabindex* (`0`/`-1`), com navegação completa por teclado (`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, `End`, `Enter`, `Space`). O resumo (KPIs e barra de progresso) fica sempre visível no topo; a última aba usada é lembrada.
 
@@ -38,17 +40,64 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 
 ## Estrutura do projeto
 
-- `index.html` — página do Bacharelado em Ciência da Computação (abas, controles, tabelas e Content Security Policy).
-- `assets/js/script.js` — dados das grades, simulação, risco, trabalhos e provas, renderização segura (`esc()`), sanitização de estado (`sanitizeState()`) e salvamento.
-- `assets/js/raw_new.js` e `assets/js/raw_old.js` — dados das grades curriculares (PPC 2022 e PPC 2018).
+- `index.html` — aplicação única orientada a dados (abas, controles, tabelas e Content Security Policy).
+- `assets/data/courses/index.json` — catálogo manifesto dos cursos disponíveis no sistema.
+- `assets/data/courses/bcc-2022.json`, `bcc-2018.json`, `pedagogia-2023.json` — arquivos JSON independentes por curso (metadados, regras de TCC/estágio, atividades complementares e matriz curricular).
+- `assets/js/courses.js` — carregador e validador de schema (`validateCourseConfig()`) dos arquivos JSON de cursos.
+- `assets/js/script.js` — motor unificado: simulação, risco, trabalhos e provas, renderização segura (`esc()`), sanitização de estado (`sanitizeState()`) e salvamento.
 - `assets/js/feedback.js` e `assets/js/config.js` — chamada para envio de feedback via Formspree.
 - `assets/css/styles.css` e `assets/img/` — estilos e ícone.
-- `pedagogia/index.html` — fluxograma da Licenciatura em Pedagogia (página separada).
-- `tests/security-check.mjs` — suíte automatizada de análise estática (`innerHTML` vs `esc()`), testes de acessibilidade WAI-ARIA/fallbacks e fuzzing anti-XSS na importação de JSON.
-- `tests/core-logic.test.mjs` — testes unitários da lógica pura de domínio (grafo de pré-requisitos, cálculo de risco, planejador guloso de semestres, simulação Monte Carlo, planejador diário de tarefas e atividades complementares).
+- `pedagogia/index.html` e `assets/js/redirect-pedagogia.js` — redirecionamento compatível de `/pedagogia/` para `/?curso=pedagogia`.
+- `tests/security-check.mjs` — suíte automatizada de análise estática (`innerHTML` vs `esc()`), validação dos JSONs de cursos, testes de acessibilidade WAI-ARIA/fallbacks e fuzzing anti-XSS.
+- `tests/core-logic.test.mjs` — testes unitários da lógica pura de domínio (grafo de pré-requisitos, cálculo de risco, planejador guloso de semestres, simulação Monte Carlo, planejador diário de tarefas, atividades complementares e catálogo multi-curso).
 - `.githooks/pre-commit` — hook de pré-commit que executa a verificação de segurança e os testes unitários antes de permitir novos commits.
 - `.github/workflows/security.yml` — workflow de CI (GitHub Actions) que valida pushes e pull requests automaticamente.
 - PDFs na raiz — PPCs usados como fonte dos dados (Ciência da Computação nova e antiga, e Pedagogia).
+
+## Como Adicionar um Novo Curso (JSON)
+
+Para adicionar um novo curso ou uma nova reformulação de PPC sem duplicar código ou criar pastas:
+
+1. Crie o arquivo `assets/data/courses/<id-do-curso>.json` com o seguinte formato:
+   ```json
+   {
+     "id": "ads-2026",
+     "title": "Tecnologia em Análise e Desenvolvimento de Sistemas",
+     "shortTitle": "ADS (PPC 2026)",
+     "label": "ADS — PPC 2026 (Noturno)",
+     "icon": "💻",
+     "sub": "IFSP Câmpus Presidente Epitácio · PPC 2026",
+     "ls": "fluxo-ads-v1",
+     "unit": "aulas",
+     "tccH": 30,
+     "acReq": 40,
+     "acName": "Atividades Complementares",
+     "totalH": 2000,
+     "acTable": false,
+     "tccRest": false,
+     "tccPct": 0.75,
+     "estMinPct": 0,
+     "eletNeed": 2,
+     "eletHeaderSub": "126,6h de eletivas",
+     "eletDef": ["EL01", "EL02"],
+     "eletivas": ["EL01", "EL02"],
+     "tccLbl": "libera com 75% da carga",
+     "raw": [
+       ["ALG1", "Algoritmos e Programação", 1, 4, 0, []],
+       ["WEB1", "Desenvolvimento Web", 2, 4, 0, ["ALG1"]]
+     ]
+   }
+   ```
+   - Use `"unit": "aulas"` quando o 4º valor de cada item em `"raw"` for o número de aulas semanais (convertido por `aulas * 19 * 50 / 60`), ou `"unit": "horas"` quando o 4º valor já for a carga horária em horas (como em `pedagogia-2023.json`).
+   - Semestres `1..8` são obrigatórias (`ob`, ou `es` se o código começar com `"ES"`), `9` são eletivas (`el`), `10` são optativas (`op`) e `11..12` com código `"TCC*"` são etapas de TCC (`tcc`).
+2. Registre o novo arquivo em `assets/data/courses/index.json`:
+   ```json
+   {
+     "id": "ads-2026",
+     "file": "ads-2026.json",
+     "label": "ADS — PPC 2026 (Noturno)"
+   }
+   ```
 
 ## Segurança, Acessibilidade e Testes Automatizados
 
@@ -95,8 +144,7 @@ Para garantir qualidade, acessibilidade e impedir regressões ou vulnerabilidade
 - Modelar carga horária máxima por semestre (aulas/semana) em vez de número de disciplinas.
 - Contar horas de extensão e eletivas por categoria.
 - Mostrar o caminho crítico no fluxo e permitir ajuste manual do plano (arrastar disciplinas entre semestres).
-- Importar a grade de outro PPC/curso a partir de um JSON de configuração.
-- Exportar o plano em PDF/imagem; modo claro; versão responsiva para celular.
+- Exportar o plano em PDF/imagem; modo claro.
 - Trabalhos e Provas: somar automaticamente os pontos obtidos na nota atual da matéria; arrastar atividades no calendário; dividir provas em blocos de estudo; lembretes de prazo.
 - Regra das eletivas "a partir do 5º semestre" e outras restrições do PPC ainda não modeladas.
 # petercen.github.io

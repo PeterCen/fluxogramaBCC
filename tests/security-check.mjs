@@ -212,13 +212,24 @@ function auditFileForUnescapedHtml(relPath) {
 }
 
 const scriptStats = auditFileForUnescapedHtml("assets/js/script.js");
-const pedStats = auditFileForUnescapedHtml("pedagogia/index.html");
 ok(`assets/js/script.js: ${scriptStats.innerHtmlCount} usos de innerHTML, ${scriptStats.escCallCount} chamadas a esc() — 0 interpolações HTML sem escape.`);
-ok(`pedagogia/index.html: ${pedStats.innerHtmlCount} usos de innerHTML, ${pedStats.escCallCount} chamadas a esc() — 0 interpolações HTML sem escape.`);
 assert.ok(
     scriptStats.escCallCount >= scriptStats.innerHtmlCount,
     `Esperado número de chamadas a esc() (${scriptStats.escCallCount}) >= usos de innerHTML (${scriptStats.innerHtmlCount})`
 );
+
+// Verifica catálogo de cursos orientado a dados (1 JSON por curso em assets/data/courses/)
+const coursesDir = path.join(ROOT, "assets/data/courses");
+const manifest = JSON.parse(fs.readFileSync(path.join(coursesDir, "index.json"), "utf8"));
+assert.ok(Array.isArray(manifest.courses) && manifest.courses.length >= 3, "index.json deve listar os cursos disponíveis");
+for (const entry of manifest.courses) {
+    const coursePath = path.join(coursesDir, entry.file);
+    assert.ok(fs.existsSync(coursePath), `Arquivo JSON do curso "${entry.id}" deve existir: ${entry.file}`);
+    const data = JSON.parse(fs.readFileSync(coursePath, "utf8"));
+    assert.equal(data.id, entry.id);
+    assert.ok(Array.isArray(data.raw) && data.raw.length > 0, `Curso "${entry.id}" deve ter disciplinas em "raw"`);
+}
+ok(`Arquitetura orientada a dados verificada: ${manifest.courses.length} cursos carregados de arquivos JSON independentes em assets/data/courses/.`);
 
 // ============================================================================
 // 2. AMBIENTE DOM SIMULADO + TESTE UNITÁRIO DE esc()
@@ -542,9 +553,11 @@ assert.ok(indexHtml.includes('id="flowFallback"'), "index.html deve possuir cont
 assert.ok(indexHtml.includes('id="flowInspect"'), "index.html deve possuir painel #flowInspect para inspeção sem hover");
 
 const pedHtml = fs.readFileSync(path.join(ROOT, "pedagogia/index.html"), "utf8");
-assert.ok(pedHtml.includes('role="tablist"') && pedHtml.includes("<noscript>") && pedHtml.includes('id="flowFallback"'),
-    "pedagogia/index.html também deve possuir role='tablist', <noscript> e #flowFallback");
-ok("Atributos WAI-ARIA (tablist/tab/tabpanel/aria-selected) e fallbacks (<noscript> + #flowFallback) presentes.");
+assert.ok(
+    pedHtml.includes("../?curso=pedagogia") && pedHtml.includes('http-equiv="Content-Security-Policy"'),
+    "pedagogia/index.html deve redirecionar para o app unificado (../?curso=pedagogia) com CSP ativa"
+);
+ok("Atributos WAI-ARIA (tablist/tab/tabpanel/aria-selected), fallbacks (<noscript> + #flowFallback) e redirecionamento unificado de Pedagogia presentes.");
 
 // 5.2 Testa navegação por teclado (ArrowRight, ArrowLeft, Home, End) em bindTablist
 let selectedTabVal = "a";
