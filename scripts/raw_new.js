@@ -1,0 +1,96 @@
+/**
+ * Matriz curricular de referência extraída do PPC 2022 de Ciência da Computação.
+ * Documento de origem: 2022.12.06-PPC-BAC-Ciência-Computação-PEP-Reformulação.pdf
+ * Câmpus: IFSP Presidente Epitácio
+ *
+ * Estrutura da tupla de cada disciplina:
+ * [0] sigla: string         - Código identificador da disciplina (ex: "ALP1")
+ * [1] nome: string          - Nome completo da disciplina
+ * [2] semestre: number      - Semestre de oferta sugerido (1 a 8 = obrigatórias, 9 = eletivas, 10 = optativas, 11/12 = TCC)
+ * [3] aulas: number         - Quantidade de aulas semanais (convertido para horas relógio via aulas * 19 * 50 / 60)
+ * [4] extensao: number (0/1)- 1 se for disciplina com carga extensionista (faixa rosa no fluxograma), 0 caso contrário
+ * [5] prereqs: string[]     - Lista com siglas das disciplinas pré-requisito obrigatórias
+ *
+ * OBSERVAÇÃO ARQUITETURAL:
+ * Este arquivo foi preservado na pasta scripts/ como referência histórica de extração dos PDFs.
+ * O aplicativo web consome os dados em JSON puro através de:
+ * assets/data/courses/bcc-2022.json
+ */
+
+export const RAW_NOVA = [
+    // módulo 1
+    ["ALP1", "Algoritmos e Programação 1", 1, 4, 0, []],
+    ["COEX", "Comunicação e Expressão", 1, 2, 0, []],
+    ["EDG1", "Eletrônica Digital 1", 1, 2, 0, []],
+    ["FADM", "Fundamentos de Administração", 1, 2, 0, []],
+    ["FMAT", "Fundamentos de Matemática", 1, 4, 0, []],
+    ["ICCO", "Introdução à Ciência da Computação", 1, 2, 0, []],
+    ["MDIS", "Matemática Discreta", 1, 2, 0, []],
+    // módulo 2
+    ["ALP2", "Algoritmos e Programação 2", 2, 4, 0, ["ALP1"]],
+    ["AROC", "Arquitetura e Organização de Computadores", 2, 4, 0, []],
+    ["CLC1", "Cálculo 1", 2, 4, 0, ["FMAT"]],
+    ["EDG2", "Eletrônica Digital 2", 2, 4, 0, ["EDG1"]],
+    ["GEPN", "Gestão de Processos de Negócio", 2, 2, 0, []],
+    ["INGL", "Inglês Técnico", 2, 2, 0, []],
+    // módulo 3
+    ["EXT1", "Atividades de Extensão 1", 3, 2, 1, []],
+    ["BDD1", "Banco de Dados 1", 3, 4, 0, []],
+    ["CLC2", "Cálculo 2", 3, 2, 0, ["FMAT"]],
+    ["ENGS", "Engenharia de Software", 3, 4, 0, []],
+    ["EDA1", "Estruturas de Dados 1", 3, 4, 0, ["ALP2"]],
+    ["LMON", "Linguagem de Montagem", 3, 2, 0, ["AROC"]],
+    ["LPRO", "Linguagens de Programação", 3, 4, 0, []],
+    ["POOB", "Programação Orientada a Objetos", 3, 4, 0, ["ALP1"]],
+    ["SOP1", "Sistemas Operacionais 1", 3, 4, 0, ["ALP2"]],
+    // módulo 4
+    ["APRS", "Análise e Projeto de Sistemas", 4, 4, 0, []],
+    ["EXT2", "Atividades de Extensão 2", 4, 4, 1, []],
+    ["BDD2", "Banco de Dados 2", 4, 4, 0, ["BDD1"]],
+    ["EDA2", "Estruturas de Dados 2", 4, 4, 0, ["EDA1"]],
+    ["FPR1", "Ferramentas de Programação 1", 4, 4, 0, ["POOB", "BDD1"]],
+    ["GEAN", "Geometria Analítica", 4, 4, 0, []],
+    ["MTPE", "Metodologia de Pesquisa", 4, 2, 0, []],
+    ["RCO1", "Redes de Computadores 1", 4, 4, 0, []],
+    ["SOP2", "Sistemas Operacionais 2", 4, 4, 0, ["ALP2"]],
+    // módulo 5
+    ["ALGL", "Álgebra Linear", 5, 2, 0, []],
+    ["ACAL", "Análise e Complexidade de Algoritmos", 5, 2, 0, ["EDA1"]],
+    ["EXT3", "Atividades de Extensão 3", 5, 4, 1, []],
+    ["CALN", "Cálculo Numérico", 5, 2, 0, []],
+    ["INOV", "Empreendedorismo e Inovação", 5, 4, 0, []],
+    ["FPR2", "Ferramentas de Programação 2", 5, 4, 0, ["FPR1"]],
+    ["GEPR", "Gestão de Projetos", 5, 4, 0, []],
+    ["RCO2", "Redes de Computadores 2", 5, 4, 0, ["RCO1"]],
+    ["TECO", "Teoria da Computação", 5, 4, 0, []],
+    // módulo 6
+    ["EXT4", "Atividades de Extensão 4", 6, 4, 1, []],
+    ["CPLD", "Compiladores", 6, 4, 0, ["EDA1", "TECO"]],
+    ["CGRA", "Computação Gráfica", 6, 4, 0, ["EDA2", "ALGL", "GEAN"]],
+    ["FPR3", "Ferramentas de Programação 3", 6, 4, 0, ["FPR1"]],
+    ["INHC", "Interação Humano-Computador", 6, 2, 0, []],
+    ["PEST", "Probabilidade e Estatística", 6, 4, 0, ["CLC2"]],
+    ["SDIS", "Sistemas Distribuídos", 6, 4, 0, ["RCO2"]],
+    // módulo 7
+    ["IART", "Inteligência Artificial", 7, 4, 0, ["EDA2"]],
+    ["PRI1", "Projeto Integrado 1", 7, 2, 1, ["APRS", "FPR2", "GEPR"]],
+    ["QSOF", "Qualidade de Software", 7, 4, 0, []],
+    ["SEGC", "Segurança Cibernética", 7, 4, 0, ["RCO2"]],
+    ["TGRA", "Teoria dos Grafos", 7, 4, 0, ["EDA2"]],
+    ["VCOM", "Visão Computacional", 7, 4, 0, ["EDA2", "ALGL", "GEAN"]],
+    // módulo 8
+    ["APRM", "Aprendizado de Máquina", 8, 4, 0, ["IART"]],
+    ["CID", "Ciência de Dados", 8, 4, 0, ["PEST"]],
+    ["CSOC", "Computação e Sociedade", 8, 2, 1, []],
+    ["GOTI", "Governança em TI", 8, 2, 0, []],
+    ["PRI2", "Projeto Integrado 2", 8, 4, 1, ["PRI1"]],
+    // eletivas (sem = 9) e optativas (sem = 10)
+    ["TPRO", "Tópicos em Programação", 9, 4, 0, ["ALP2"]],
+    ["INFR", "Tópicos em Infraestrutura", 9, 4, 0, ["RCO2"]],
+    ["TCOM", "Tópicos em Computação", 9, 4, 0, ["APRS"]],
+    ["LIBG", "Libras (optativa)", 10, 2, 0, []],
+    ["SMIC", "Sist. Microcontrolados (optativa)", 10, 4, 0, ["ALP2", "EDG2"]],
+    // TCC
+    ["TCC1", "TCC 1", 11, 2, 0, []],
+    ["TCC2", "TCC 2", 12, 2, 0, ["TCC1"]]
+];

@@ -10,6 +10,8 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
   - Grade antiga BCC (PPC 2018): 55 obrigatórias, 9 eletivas (mínimo 2 = 126,6 h), Libras optativa, TCC de 100 h (2×50 h), 80 h de atividades complementares, total 3251 h.
   - Licenciatura em Pedagogia (PPC 2023): 47 obrigatórias, 4 estágios supervisionados (`ES5` a `ES8`, total 400 h, liberados após 35% da carga horária mínima), 4 eletivas (escolher 2 = 66,6 h) e 200 h de Atividades Teórico-Práticas de Aprofundamento, total 3200,3 h. O endereço `/pedagogia/` redireciona automaticamente para `/?curso=pedagogia`.
 
+- **Desacoplamento de Dados e Lógica (Scripts em `scripts/` vs. JSON Puro em `assets/data/courses/`)**: as matrizes curriculares foram completamente desacopladas do código JavaScript de execução e transformadas em arquivos JSON puros (`assets/data/courses/*.json`). Os scripts e matrizes históricas de extração dos PDFs (`raw_new.js`, `raw_old.js`) foram movidos para a pasta [`scripts/`](scripts/), acompanhados de documentação detalhada ([`scripts/README.md`](scripts/README.md)) e de um script utilitário de auditoria e paridade (`scripts/convert_raw_to_json.mjs`).
+
 - **Abas Acessíveis (WAI-ARIA & Teclado)**: a página é dividida em Fluxograma, Cursando agora, Trabalhos e Provas, Horários, Plano estimado, Atividades Compl., Configurações, Como funciona e Feedback, utilizando `role="tablist"`, `role="tab"`, `role="tabpanel"`, `aria-selected`, `aria-controls` e *roving tabindex* (`0`/`-1`), com navegação completa por teclado (`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, `End`, `Enter`, `Space`). O resumo (KPIs e barra de progresso) fica sempre visível no topo; a última aba usada é lembrada.
 
 - **Fluxograma (Desktop, Mobile/Touch, Teclado e Fallback em Lista)**:
@@ -54,6 +56,7 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - `assets/js/feedback.js` e `assets/js/config.js` — chamada para envio de feedback via Formspree.
 - `assets/css/styles.css` e `assets/img/` — estilos e ícone.
 - `pedagogia/index.html` e `assets/js/redirect-pedagogia.js` — redirecionamento compatível de `/pedagogia/` para `/?curso=pedagogia`.
+- `scripts/` — scripts e matrizes históricas de extração dos PDFs (`raw_new.js`, `raw_old.js`), script de auditoria/conversão (`convert_raw_to_json.mjs`) e documentação do pipeline (`scripts/README.md`), mantendo o ferramental separado dos dados em JSON puro.
 - `tests/security-check.mjs` — suíte automatizada de análise estática (`innerHTML` vs `esc()`), validação dos JSONs de cursos, testes de acessibilidade WAI-ARIA/fallbacks e fuzzing anti-XSS.
 - `tests/core-logic.test.mjs` — testes unitários da lógica pura de domínio (grafo de pré-requisitos, cálculo de risco, planejador guloso de semestres, simulação Monte Carlo, planejador diário de tarefas, atividades complementares e catálogo multi-curso).
 - `.githooks/pre-commit` — hook de pré-commit que executa a verificação de segurança e os testes unitários antes de permitir novos commits.

@@ -559,3 +559,22 @@ test("Alternância reativa de curso em tempo de execução sem reload (switchCou
     assert.throws(() => switchCourse("curso-inexistente"), /Curso desconhecido/);
 });
 
+test("Paridade entre matrizes de extração (scripts/raw_*.js) e JSON puro (assets/data/courses/*.json)", async () => {
+    const { RAW_NOVA } = await import("../scripts/raw_new.js");
+    const { RAW_ANTIGA } = await import("../scripts/raw_old.js");
+
+    // BCC 2022
+    assert.equal(RAW_NOVA.length, CURS.nova.raw.length);
+    RAW_NOVA.forEach((expected, idx) => {
+        const actual = CURS.nova.raw[idx];
+        assert.deepEqual(actual, expected, `Disciplina ${expected[0]} deve ser idêntica no JSON puro`);
+    });
+
+    // BCC 2018
+    assert.equal(RAW_ANTIGA.length, CURS.antiga.raw.length);
+    RAW_ANTIGA.forEach((expected, idx) => {
+        const actual = CURS.antiga.raw[idx];
+        assert.deepEqual(actual, expected, `Disciplina ${expected[0]} deve ser idêntica no JSON puro`);
+    });
+});
+
