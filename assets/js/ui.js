@@ -783,6 +783,15 @@ export function update() {
 }
 
 // ---------- ABA: CURSANDO AGORA / ESTATÍSTICAS ----------
+function resetCursForm() {
+    const wrap = $("curFormWrap");
+    if (wrap) wrap.style.display = "none";
+    if ($("curNota")) $("curNota").value = "";
+    if ($("curPts")) $("curPts").value = "";
+    if ($("curFalt")) $("curFalt").value = "";
+    if ($("curAdd")) $("curAdd").textContent = "Salvar";
+}
+
 function renderCurrent() {
     const all = S.current || [];
     const P = new Set(S.passed);
@@ -1073,7 +1082,7 @@ function openEditTaskModal(t) {
     const wrap = $("trFormWrap");
     if (!wrap) return;
     wrap.style.display = "block";
-    if ($("trFormLegend")) $("trFormLegend").textContent = "Editar Avaliação — " + t.title;
+    if ($("trFormLegend")) $("trFormLegend").textContent = "Editar atividade — " + t.title;
     if ($("trSubj")) $("trSubj").value = t.subj;
     if ($("trType")) $("trType").value = t.type;
     if ($("trStatus")) $("trStatus").value = taskStatus(t);
@@ -1082,7 +1091,7 @@ function openEditTaskModal(t) {
     if ($("trPts")) $("trPts").value = t.pts;
     if ($("trGot")) $("trGot").value = t.got != null ? t.got : "";
     if ($("trEff")) $("trEff").value = t.eff;
-    if ($("trAdd")) $("trAdd").textContent = "Atualizar Avaliação";
+    if ($("trAdd")) $("trAdd").textContent = "Atualizar Atividade";
     wrap.scrollIntoView({ behavior: "smooth", block: "center" });
     if ($("trTitle")) $("trTitle").focus();
 }
@@ -1576,10 +1585,35 @@ export function initEvents() {
     };
 
     // Eventos da aba Cursando Agora
+    $("btnToggleCurForm").onclick = () => {
+        const wrap = $("curFormWrap");
+        if (!wrap) return;
+        if (wrap.style.display === "none" || !wrap.style.display) {
+            resetCursForm();
+            wrap.style.display = "block";
+            $("curSel").focus();
+        } else {
+            resetCursForm();
+        }
+    };
+    
+    $("curCancel").onclick = resetCursForm;
+    $("btnCloseCurForm").onclick = resetCursForm;
+    
     $("curAdd").onclick = () => {
         const id = $("curSel").value;
-        if (!id) return;
-        S.current = [...(S.current || []), fixCur({ id })];
+        if (!id) return alert("Não há matéria disponível para adicionar.");
+    
+        const data = { id };
+        const nota = $("curNota").value.trim();
+        const pts = $("curPts").value.trim();
+        const falt = $("curFalt").value.trim();
+        if (nota !== "") data.nota = Math.min(10, Math.max(0, parseFloat(nota) || 0));
+        if (pts !== "") data.pts = Math.min(10, Math.max(0, parseFloat(pts) || 0));
+        if (falt !== "") data.falt = Math.max(0, parseInt(falt) || 0);
+    
+        S.current = [...(S.current || []), fixCur(data)];
+        resetCursForm();
         update();
     };
 

@@ -122,18 +122,51 @@
     <!-- Campo Cursando agora -->
     <div class="tabpane" id="t-cur" role="tabpanel" aria-labelledby="tab-t-cur" tabindex="0">
       <div class="panel">
-        <h3 style="margin:0">📚 Estatísticas</h3>
-        <div class="cur-add">
-          <select id="curSel"></select>
-          <button class="pri" id="curAdd" title="Adiciona a matéria escolhida à lista de cursando agora">Adicionar matéria</button>
-          <select id="curSort" title="Ordenar a tabela">
-            <option value="add">Ordem de adição</option>
-            <option value="nome">Nome (A–Z)</option>
-            <option value="prio">Prioridade (Alta → Baixa)</option>
-            <option value="risco">Maior risco primeiro</option>
-          </select>
-          <span class="note" id="curAvg"></span>
+        <div class="tr-header-row">
+          <div>
+            <h3 style="margin:0">📚 Estatísticas</h3>
+            <div class="note" style="margin-top:4px">
+              Adicione as matérias que você está cursando neste semestre e acompanhe notas, faltas e risco de reprovar.
+            </div>
+          </div>
+          <div class="tr-action-btns">
+            <select id="curSort" title="Ordenar a tabela">
+              <option value="add">Ordem de adição</option>
+              <option value="nome">Nome (A–Z)</option>
+              <option value="prio">Prioridade (Alta → Baixa)</option>
+              <option value="risco">Maior risco primeiro</option>
+            </select>
+            <button class="pri" id="btnToggleCurForm" title="Adicionar uma matéria que você está cursando">Adicionar</button>
+          </div>
         </div>
+        <div class="note" id="curAvg" style="margin-top:6px"></div>
+
+        <!-- Campo Adicionar matéria (mesmo estilo do formulário de Prazos) -->
+        <div id="curFormWrap" class="tr-form-wrap" style="display:none">
+          <div class="tr-form-title">
+            <span id="curFormLegend">Adicionar matéria cursando</span>
+            <button type="button" class="btn-ghost" id="btnCloseCurForm" title="Fechar formulário">✕</button>
+          </div>
+          <div class="tr-form-grid">
+            <label>Matéria
+              <select id="curSel"></select>
+            </label>
+            <label>Nota atual (0 a 10)
+              <input type="number" id="curNota" min="0" max="10" step="0.1" placeholder="0.0">
+            </label>
+            <label>Pontos a receber
+              <input type="number" id="curPts" min="0" max="10" step="0.1" placeholder="Padrão">
+            </label>
+            <label>Faltas
+              <input type="number" id="curFalt" min="0" placeholder="0">
+            </label>
+          </div>
+          <div class="tr-form-actions">
+            <button class="pri" id="curAdd">Salvar</button>
+            <button type="button" id="curCancel">Cancelar</button>
+          </div>
+        </div>
+
         <div class="note" style="margin-top:6px">💡 Passe o mouse (ou toque) em <b>?</b> nos títulos das colunas para ver o que preencher. Campos em vermelho precisam de atenção.</div>
         <div class="tblwrap">
           <table class="st">
@@ -153,9 +186,7 @@
             <tbody id="curBody"></tbody>
           </table>
         </div>
-        <div class="note" id="curEmpty" style="margin-top:8px">Nenhuma matéria adicionada. Escolha acima as que você
-          está
-          cursando neste semestre.</div>
+        <div class="note" id="curEmpty" style="margin-top:8px">Nenhuma matéria adicionada. Clique em <b>Adicionar</b> para cadastrar as que você está cursando neste semestre.</div>
       </div>
 
     </div>
