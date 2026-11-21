@@ -68,10 +68,10 @@ if (!Object.prototype.hasOwnProperty.call(CURS, activeKey)) {
     activeKey = DEFAULT_COURSE_KEY;
 }
 
-export const KEY = activeKey;
-export const CUR = CURS[KEY];
-export const RAW = CUR.raw;
-export const LS = CUR.ls;
+export let KEY = activeKey;
+export let CUR = CURS[KEY];
+export let RAW = CUR.raw;
+export let LS = CUR.ls;
 
 /** Converte aulas semanais em horas relógio (19 semanas de 50 minutos). */
 export const HRS = aulas => aulas * 19 * 50 / 60;
@@ -97,28 +97,71 @@ export function entryFromRaw(cur, [id, name, sem, val, ext, pre]) {
 
 export const C = {};
 export const ORDER = [];
-RAW.forEach(row => {
-    const item = entryFromRaw(CUR, row);
-    C[item.id] = item;
-    ORDER.push(item.id);
-});
-ORDER.forEach(id => {
-    C[id].pre.forEach(p => {
-        if (C[p]) C[p].kids.push(id);
+export const OBR = [];
+export const EST = [];
+export const TCC_IDS = [];
+export let HAS_TCC = false;
+export let OBR_H = 0;
+export const EL_DEFAULT = [];
+export const ELETIVAS = [];
+export let AC_REQ = CUR.acReq;
+export let AC_SEC = CUR.acSections || {};
+export let AC = CUR.acItems || [];
+export const HEADS = [];
+export const depth = {};
+
+const HEADS_WITH_TCC = [
+    "1º sem", "2º sem", "3º sem", "4º sem", "5º sem",
+    "6º sem", "7º sem", "8º sem", "Eletivas / Optativas", "Conclusão"
+];
+const HEADS_NO_TCC = [
+    "1º sem", "2º sem", "3º sem", "4º sem", "5º sem",
+    "6º sem", "7º sem", "8º sem", "Eletivas"
+];
+
+/** Reconstrói todas as estruturas do grafo curricular em memória para o curso ativo `CUR`. */
+export function rebuildCourseGraph() {
+    for (const k of Object.keys(C)) delete C[k];
+    ORDER.length = 0;
+
+    RAW.forEach(row => {
+        const item = entryFromRaw(CUR, row);
+        C[item.id] = item;
+        ORDER.push(item.id);
     });
-});
+    ORDER.forEach(id => {
+        C[id].pre.forEach(p => {
+            if (C[p]) C[p].kids.push(id);
+        });
+    });
 
-export const OBR = ORDER.filter(i => C[i].kind === "ob");
-export const EST = ORDER.filter(i => C[i].kind === "es");
-export const TCC_IDS = ORDER.filter(i => C[i].kind === "tcc");
-export const HAS_TCC = TCC_IDS.length > 0;
-export const OBR_H = OBR.reduce((sum, i) => sum + C[i].h, 0);
-export const EL_DEFAULT = CUR.eletDef;
-export const ELETIVAS = CUR.eletivas;
+    OBR.length = 0;
+    OBR.push(...ORDER.filter(i => C[i].kind === "ob"));
+    EST.length = 0;
+    EST.push(...ORDER.filter(i => C[i].kind === "es"));
+    TCC_IDS.length = 0;
+    TCC_IDS.push(...ORDER.filter(i => C[i].kind === "tcc"));
+    HAS_TCC = TCC_IDS.length > 0;
+    OBR_H = OBR.reduce((sum, i) => sum + C[i].h, 0);
 
-export const AC_REQ = CUR.acReq;
-export const AC_SEC = CUR.acSections || {};
-export const AC = CUR.acItems || [];
+    EL_DEFAULT.length = 0;
+    EL_DEFAULT.push(...(CUR.eletDef || []));
+    ELETIVAS.length = 0;
+    ELETIVAS.push(...(CUR.eletivas || []));
+
+    AC_REQ = CUR.acReq;
+    AC_SEC = CUR.acSections || {};
+    AC = CUR.acItems || [];
+
+    HEADS.length = 0;
+    HEADS.push(...(HAS_TCC ? HEADS_WITH_TCC : HEADS_NO_TCC));
+
+    for (const k of Object.keys(depth)) delete depth[k];
+    const visit = id => depth[id] ?? (depth[id] = 1 + Math.max(0, ...C[id].kids.map(visit)));
+    ORDER.forEach(visit);
+}
+
+rebuildCourseGraph();
 
 /** Retorna o índice da coluna visual no fluxograma para uma disciplina. */
 export const colOf = c => {
@@ -126,17 +169,6 @@ export const colOf = c => {
     if (c.kind === "el" || c.kind === "op") return 8;
     return 9;
 };
-
-export const HEADS = HAS_TCC
-    ? ["1º sem", "2º sem", "3º sem", "4º sem", "5º sem", "6º sem", "7º sem", "8º sem", "Eletivas / Optativas", "Conclusão"]
-    : ["1º sem", "2º sem", "3º sem", "4º sem", "5º sem", "6º sem", "7º sem", "8º sem", "Eletivas"];
-
-// Profundidade da cadeia crítica a jusante (maior caminho de dependentes)
-export const depth = {};
-(function calcDepth() {
-    const visit = id => depth[id] ?? (depth[id] = 1 + Math.max(0, ...C[id].kids.map(visit)));
-    ORDER.forEach(visit);
-})();
 
 /** Retorna o conjunto de todos os pré-requisitos diretos e indiretos (ascendentes) de `id`. */
 export const anc = id => {
@@ -357,6 +389,102 @@ export function sanitizeState(raw, curKey = KEY) {
     };
 }
 
+/**
+ * Valida o esquema formal de um objeto JSON antes de ser aplicado ao estado da aplicação.
+ * Verifica a presença de campos estruturais, integridade dos tipos e compatibilidade de currículo.
+ *
+ * @param {unknown} raw - Dado bruto a validar (tipicamente retornado por JSON.parse).
+ * @returns {{ valid: boolean, errors: string[], targetCur: string }}
+ */
+export function validateStateSchema(raw) {
+    const errors = [];
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        return {
+            valid: false,
+            errors: ["O arquivo não contém um objeto JSON válido."],
+            targetCur: KEY
+        };
+    }
+
+    if (raw.version !== undefined && (typeof raw.version !== "number" || !Number.isFinite(raw.version) || raw.version < 1)) {
+        errors.push("Campo 'version' inválido: deve ser um número positivo.");
+    }
+
+    let targetCur = KEY;
+    if (raw.curriculo !== undefined) {
+        if (typeof raw.curriculo !== "string" || !raw.curriculo.trim()) {
+            errors.push("Campo 'curriculo' inválido: deve ser uma string identificadora do curso.");
+        } else if (!Object.prototype.hasOwnProperty.call(CURS, raw.curriculo)) {
+            const validCurs = Object.keys(CURS).join(", ");
+            errors.push(`Currículo '${raw.curriculo}' desconhecido. Currículos disponíveis: ${validCurs}.`);
+        } else {
+            targetCur = raw.curriculo;
+        }
+    }
+
+    const appKeys = [
+        "curriculo", "passed", "current", "tasks", "electivePlan",
+        "hor", "ac", "acHoras", "startYear", "startHalf", "maxLoad"
+    ];
+    const hasAnyAppKey = appKeys.some(k => Object.prototype.hasOwnProperty.call(raw, k));
+    if (!hasAnyAppKey) {
+        errors.push("O arquivo JSON não é um backup reconhecido do Fluxograma (campos essenciais não encontrados).");
+    }
+
+    if (raw.passed !== undefined && !Array.isArray(raw.passed)) {
+        errors.push("Campo 'passed' inválido: deve ser uma lista de códigos de disciplinas.");
+    }
+    if (raw.electivePlan !== undefined && !Array.isArray(raw.electivePlan)) {
+        errors.push("Campo 'electivePlan' inválido: deve ser uma lista de códigos de disciplinas.");
+    }
+
+    if (raw.current !== undefined) {
+        if (!Array.isArray(raw.current)) {
+            errors.push("Campo 'current' inválido: deve ser uma lista de disciplinas em andamento.");
+        } else {
+            raw.current.forEach((item, idx) => {
+                if (!item || typeof item !== "object" || Array.isArray(item)) {
+                    errors.push(`Item em 'current[${idx}]' deve ser um objeto com dados da disciplina.`);
+                } else if (!item.id || typeof item.id !== "string") {
+                    errors.push(`Item em 'current[${idx}]' não possui o identificador 'id' da disciplina.`);
+                }
+            });
+        }
+    }
+
+    if (raw.tasks !== undefined) {
+        if (!Array.isArray(raw.tasks)) {
+            errors.push("Campo 'tasks' inválido: deve ser uma lista de tarefas.");
+        } else {
+            raw.tasks.forEach((item, idx) => {
+                if (!item || typeof item !== "object" || Array.isArray(item)) {
+                    errors.push(`Item em 'tasks[${idx}]' deve ser um objeto com dados da tarefa.`);
+                } else if (!item.subj || typeof item.subj !== "string") {
+                    errors.push(`Item em 'tasks[${idx}]' não possui a matéria 'subj' associada.`);
+                }
+            });
+        }
+    }
+
+    if (raw.hor !== undefined) {
+        if (typeof raw.hor !== "object" || raw.hor === null || Array.isArray(raw.hor)) {
+            errors.push("Campo 'hor' inválido: deve ser um objeto de grade horária.");
+        } else if (raw.hor.cells !== undefined && (typeof raw.hor.cells !== "object" || raw.hor.cells === null || Array.isArray(raw.hor.cells))) {
+            errors.push("Campo 'hor.cells' inválido: deve ser um mapeamento de horários.");
+        }
+    }
+
+    if (raw.ac !== undefined && (typeof raw.ac !== "object" || raw.ac === null || Array.isArray(raw.ac))) {
+        errors.push("Campo 'ac' inválido: deve ser um objeto de atividades complementares.");
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors,
+        targetCur
+    };
+}
+
 // ---------- INSTÂNCIA DE ESTADO GLOBAL E PERSISTÊNCIA ----------
 export let S = defaultState();
 try {
@@ -371,6 +499,43 @@ export const setState = next => {
     S = sanitizeState(next, KEY);
     return S;
 };
+
+/**
+ * Alterna dinamicamente o curso ativo em tempo de execução sem recarregar a página (sem location.reload).
+ * Reconstrói o grafo curricular, carrega ou aplica o estado e sincroniza a persistência.
+ *
+ * @param {string} newKey - Identificador do curso (chave em CURS).
+ * @param {Object} [stateToApply=null] - Estado opcional a ser aplicado (por exemplo, ao importar JSON).
+ * @returns {Object} O estado S atualizado e sanitizado do novo curso.
+ */
+export function switchCourse(newKey, stateToApply = null) {
+    if (!Object.prototype.hasOwnProperty.call(CURS, newKey)) {
+        throw new Error(`Curso desconhecido: ${newKey}`);
+    }
+    KEY = newKey;
+    CUR = CURS[KEY];
+    RAW = CUR.raw;
+    LS = CUR.ls;
+    rebuildCourseGraph();
+
+    if (stateToApply) {
+        S = sanitizeState(stateToApply, KEY);
+    } else {
+        try {
+            const saved = localStorage.getItem(LS);
+            S = saved ? sanitizeState(JSON.parse(saved), KEY) : defaultState(KEY);
+        } catch (e) {
+            S = defaultState(KEY);
+        }
+    }
+
+    try {
+        localStorage.setItem("curriculo-ativo", KEY);
+        localStorage.setItem(LS, JSON.stringify(S));
+    } catch (e) { }
+
+    return S;
+}
 
 let fileHandle = null;
 export const getFileHandle = () => fileHandle;

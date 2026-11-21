@@ -86,6 +86,7 @@ globalThis.document = {
     querySelectorAll() { return []; }
 };
 
+const script = await import("../assets/js/script.js");
 const {
     CURS,
     validateCourseConfig,
@@ -98,7 +99,9 @@ const {
     anc,
     desc,
     defaultState,
-     sanitizeState,
+    sanitizeState,
+    validateStateSchema,
+    switchCourse,
     setState,
     getState,
     fixCur,
@@ -472,5 +475,87 @@ test("Catálogo de cursos orientado a dados (CURS, validateCourseConfig e saniti
     assert.equal(novoCurso.id, "ads-2026");
     assert.equal(novoCurso.raw.length, 2);
     assert.throws(() => validateCourseConfig({ id: "invalido sem raw", raw: [] }));
+});
+
+test("Validação de esquema de estado JSON (validateStateSchema)", () => {
+    // 1. JSON válido padrão
+    const validState = {
+        version: 1,
+        curriculo: "nova",
+        passed: ["ALP1", "CAL1"],
+        current: [{ id: "ED1", nota: 7 }],
+        tasks: [{ id: "t1", subj: "ED1", title: "Lista 1" }]
+    };
+    const resValid = validateStateSchema(validState);
+    assert.equal(resValid.valid, true);
+    assert.equal(resValid.errors.length, 0);
+    assert.equal(resValid.targetCur, "nova");
+
+    // 2. Não-objeto ou array
+    assert.equal(validateStateSchema(null).valid, false);
+    assert.equal(validateStateSchema("string").valid, false);
+    assert.equal(validateStateSchema([1, 2, 3]).valid, false);
+
+    // 3. Currículo desconhecido
+    const resBadCur = validateStateSchema({ curriculo: "eng-aeroespacial", passed: [] });
+    assert.equal(resBadCur.valid, false);
+    assert.ok(resBadCur.errors.some(e => e.includes("Currículo 'eng-aeroespacial' desconhecido")));
+
+    // 4. Versão inválida
+    const resBadVer = validateStateSchema({ curriculo: "nova", version: -5 });
+    assert.equal(resBadVer.valid, false);
+    assert.ok(resBadVer.errors.some(e => e.includes("Campo 'version' inválido")));
+
+    // 5. JSON aleatório sem relação com a aplicação
+    const resRandom = validateStateSchema({ foo: "bar", baz: 123 });
+    assert.equal(resRandom.valid, false);
+    assert.ok(resRandom.errors.some(e => e.includes("campos essenciais não encontrados")));
+
+    // 6. Coleções com tipos incorretos
+    const resBadTypes = validateStateSchema({
+        curriculo: "nova",
+        passed: "ALP1",
+        current: "ED1",
+        tasks: { id: "t1" },
+        electivePlan: 42
+    });
+    assert.equal(resBadTypes.valid, false);
+    assert.equal(resBadTypes.errors.length, 4);
+
+    // 7. Elementos internos malformados
+    const resBadItems = validateStateSchema({
+        curriculo: "nova",
+        current: ["ALP1", { nota: 8 }],
+        tasks: [{ title: "Sem matéria" }]
+    });
+    assert.equal(resBadItems.valid, false);
+    assert.ok(resBadItems.errors.some(e => e.includes("current[0]")));
+    assert.ok(resBadItems.errors.some(e => e.includes("current[1]")));
+    assert.ok(resBadItems.errors.some(e => e.includes("tasks[0]")));
+});
+
+test("Alternância reativa de curso em tempo de execução sem reload (switchCourse)", () => {
+    // Alterna para Pedagogia dinamicamente
+    const pedState = switchCourse("pedagogia");
+    assert.equal(pedState.curriculo, "pedagogia");
+    assert.equal(script.KEY, "pedagogia");
+    assert.equal(script.CUR.id, "pedagogia");
+    assert.equal(C.HED1.name, "História da Educação 1");
+    assert.equal(ORDER.includes("HED1"), true);
+    assert.equal(ORDER.includes("ALP1"), false);
+    assert.equal(script.HAS_TCC, false); // Pedagogia não tem TCC no grafo
+
+    // Alterna de volta para Ciência da Computação (nova)
+    const novaState = switchCourse("nova");
+    assert.equal(novaState.curriculo, "nova");
+    assert.equal(script.KEY, "nova");
+    assert.equal(script.CUR.id, "nova");
+    assert.equal(C.ALP1.name, "Algoritmos e Programação 1");
+    assert.equal(ORDER.includes("ALP1"), true);
+    assert.equal(ORDER.includes("HED1"), false);
+    assert.equal(script.HAS_TCC, true);
+
+    // Lança erro caso receba curso inexistente
+    assert.throws(() => switchCourse("curso-inexistente"), /Curso desconhecido/);
 });
 

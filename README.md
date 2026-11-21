@@ -33,8 +33,9 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - **Configurações**: próximo semestre letivo a cursar, máximo de disciplinas por semestre, chance de não cursar uma disciplina (usada no cenário provável/pessimista), aproveitamento esperado nas avaliações que faltam, base dos 75% que liberam o TCC 1, oferta par/ímpar e atividades complementares concluídas. Também ficam aqui salvar/carregar JSON, checkpoint rápido e limpar progresso.
 - **Risco de reprovar (por matéria)**: combina faltas e nota. Faltas: limite de 25% das aulas previstas, projetando 60% do ritmo atual nas aulas restantes. Nota: compara o % dos pontos a receber necessário para chegar a 6 com o aproveitamento esperado; se a nota máxima possível for ≥ 4, a NAF reduz esse risco em 25%. É uma estimativa, não uma previsão. A prioridade "Auto" é Alta quando o risco está entre 15% e 75%, e Baixa fora disso.
 - **Como funciona**: aba dentro da página com as regras e simplificações do modelo.
-- **Salvamento em JSON**:
-  - Autosave no `localStorage` do navegador.
+- **Salvamento e Importação em JSON com Validação de Esquema**:
+  - Autosave no `localStorage` do navegador e troca reativa em tempo de execução (`switchCourse()`) sem recarregar a página (`location.reload()`), reconstruindo o grafo curricular e a interface instantaneamente.
+  - Validação estrita de esquema (`validateStateSchema()`): antes de carregar qualquer arquivo JSON, o sistema valida a integridade estrutural, a compatibilidade de currículo e a presença dos campos essenciais, rejeitando arquivos corrompidos ou incompatíveis com mensagens detalhadas de erro.
   - Botões Salvar/Carregar JSON; no Chrome/Edge o arquivo fica vinculado e é atualizado a cada mudança (File System Access API). Nos demais navegadores, baixa o arquivo.
   - Campos salvos: `passed`, `electivePlan`, `startYear`, `startHalf`, `maxLoad`, `failRate`, `respectParity`, `acDone`, `current`, `tasks`, `cap`, `weekend`, `hor`, `ac`, `savedAt`.
 
@@ -44,7 +45,7 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - `assets/data/courses/index.json` — catálogo manifesto dos cursos disponíveis no sistema.
 - `assets/data/courses/bcc-2022.json`, `bcc-2018.json`, `pedagogia-2023.json` — arquivos JSON independentes por curso (metadados, regras de TCC/estágio, atividades complementares e matriz curricular).
 - `assets/js/courses.js` — carregador e validador de schema (`validateCourseConfig()`) dos arquivos JSON de cursos.
-- `assets/js/state.js` — grafo curricular (`C`, `ORDER`, `anc`, `desc`, `depth`), estado global (`S`), escape HTML (`esc()`), sanitização de JSON (`sanitizeState()`) e persistência (`persist()`).
+- `assets/js/state.js` — grafo curricular (`C`, `ORDER`, `anc`, `desc`, `depth`, `rebuildCourseGraph()`), estado global (`S`), alternância reativa sem reload (`switchCourse()`), validação formal de JSON (`validateStateSchema()`), escape HTML (`esc()`), sanitização (`sanitizeState()`) e persistência (`persist()`).
 - `assets/js/risk.js` — cálculo de risco de reprovação (`risk()`, `riskMap()`), prioridade automática (`effPrio()`), sincronização de notas de avaliações (`syncSubjectGrades()`) e calculadora do Anexo III (`acCalc()`).
 - `assets/js/planner.js` — planejador guloso de semestres por caminho crítico (`simulate()`), seleção de eletivas (`electivesPlanned()`), regras de TCC/estágio (`tccOpen()`) e simulação Monte Carlo (`monte()`, `seed()`).
 - `assets/js/calendar.js` — utilitários de datas, fórmulas de importância/urgência/prioridade (`importance()`, `urgency()`, `prioOf()`) e planejador diário de estudo no calendário (`planTasks()`).

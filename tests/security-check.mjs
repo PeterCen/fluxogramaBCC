@@ -347,7 +347,7 @@ globalThis.document = {
     querySelectorAll() { return []; }
 };
 
-const { esc, sanitizeState, bindTablist } = await import("../assets/js/script.js");
+const { esc, sanitizeState, validateStateSchema, bindTablist } = await import("../assets/js/script.js");
 
 assert.equal(esc('<script>alert("xss")</script>'), "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;");
 assert.equal(esc(`' onload='alert(1)`), "&#39; onload=&#39;alert(1)");
@@ -495,18 +495,49 @@ assert.deepEqual(clean.ac, {});
 assert.equal(clean.acHoras, 0);
 ok("sanitizeState() bloqueou prototype pollution, tipos inválidos e payloads XSS em todos os campos do JSON.");
 
+const valMalicious = validateStateSchema(maliciousJson);
+assert.equal(valMalicious.valid, false, "validateStateSchema() deve reprovar JSON com schema adulterado");
+assert.ok(valMalicious.errors.length >= 2, "validateStateSchema() deve reportar múltiplos erros estruturais");
+ok("validateStateSchema() detectou e rejeitou schema adulterado com mensagens claras.");
+
 // ============================================================================
 // 4. TESTE DE RENDERIZAÇÃO DOM COMPLETA E VERIFICAÇÃO DE CSP
 // ============================================================================
 console.log("\n🌐 [4/4] Testando renderização DOM completa com entradas maliciosas e CSP...");
 
-// Simula carregamento do JSON malicioso via input de arquivo (#fileIn)
+const xssPayloadJson = {
+    version: 1,
+    curriculo: "nova",
+    passed: ["ALP1"],
+    current: [{ id: "ALP1", nota: 5, pts: 5, prev: 76, cum: 76, falt: 0 }],
+    tasks: [{
+        id: "t1",
+        subj: "ALP1",
+        type: "Outro",
+        status: "pendente",
+        title: "\"><img src=x onerror=alert('title')><script>evil()</script>",
+        due: "",
+        pts: 2,
+        got: null,
+        eff: 1
+    }],
+    hor: {
+        cells: {
+            "0-0": {
+                id: "ALP1",
+                sala: "\"><img src=x onerror=alert('sala')>"
+            }
+        }
+    }
+};
+
+// Simula carregamento do JSON com payloads maliciosos via input de arquivo (#fileIn)
 const fileIn = getMockEl("fileIn");
 await fileIn.onchange({
     target: {
         files: [{
             async text() {
-                return JSON.stringify(maliciousJson);
+                return JSON.stringify(xssPayloadJson);
             }
         }],
         value: "malicious.json"

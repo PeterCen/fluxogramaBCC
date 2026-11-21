@@ -40,6 +40,8 @@ import {
     hasCourse,
     S,
     setState,
+    switchCourse,
+    validateStateSchema,
     fixCur,
     taskStatus,
     sanitizeState,
@@ -240,6 +242,14 @@ function navigateCardGrid(currentId, key) {
 
 /** Constrói os cabeçalhos de coluna, cards de disciplinas e arestas SVG do fluxograma. */
 export function build() {
+    for (const k of Object.keys(pos)) delete pos[k];
+    for (const k of Object.keys(els)) delete els[k];
+    for (const k of Object.keys(colItems)) delete colItems[k];
+    if (svg) svg.innerHTML = "";
+    if (flow) {
+        flow.querySelectorAll(".colh, .card").forEach(el => el.remove());
+    }
+
     const rows = {};
     ORDER.forEach(id => {
         const c = C[id];
@@ -1449,6 +1459,21 @@ function renderCal(plan) {
     $("cal").innerHTML = h;
 }
 
+/** Atualiza os elementos visuais do cabeçalho do curso, metadados e documento. */
+export function updateCourseInfo() {
+    if ($("courseIcon")) $("courseIcon").textContent = CUR.icon || "🎓";
+    if ($("courseTitle")) $("courseTitle").textContent = CUR.title || "Curso";
+    if ($("subTxt")) $("subTxt").textContent = CUR.sub;
+    if ($("acLbl")) $("acLbl").textContent = `${CUR.acName || "Atividades Complementares"} (${AC_REQ}h) concluídas`;
+    if ($("tccBaseLbl")) $("tccBaseLbl").style.display = (!HAS_TCC || CUR.tccRest) ? "none" : "";
+    if ($("helpTccAnt")) $("helpTccAnt").style.display = CUR.tccRest ? "" : "none";
+    document.title = `Fluxograma — ${CUR.shortTitle || CUR.title}`;
+    const curSwEl = $("curSw");
+    if (curSwEl && curSwEl.value !== KEY) {
+        curSwEl.value = KEY;
+    }
+}
+
 // ---------- INICIALIZAÇÃO DE EVENTOS E CONTROLES DA INTERFACE ----------
 export function initEvents() {
     $("startYear").onchange = e => { S.startYear = +e.target.value; update(); };
@@ -1514,24 +1539,38 @@ export function initEvents() {
         const f = e.target.files[0];
         if (!f) return;
         try {
-            const j = JSON.parse(await f.text());
-            if (!j || typeof j !== "object" || Array.isArray(j)) {
-                throw new Error("Estrutura JSON inválida.");
+            const text = await f.text();
+            let j;
+            try {
+                j = JSON.parse(text);
+            } catch (parseErr) {
+                throw new Error("Sintaxe JSON corrompida ou inválida: " + parseErr.message);
             }
-            const targetCur = Object.prototype.hasOwnProperty.call(CURS, j.curriculo)
-                ? j.curriculo
-                : "nova";
+            const validation = validateStateSchema(j);
+            if (!validation.valid) {
+                throw new Error(validation.errors.join("\n• "));
+            }
+            const targetCur = validation.targetCur;
             if (targetCur !== KEY) {
-                const cleanOther = sanitizeState(j, targetCur);
-                localStorage.setItem(CURS[targetCur].ls, JSON.stringify(cleanOther));
-                localStorage.setItem("curriculo-ativo", targetCur);
-                location.reload();
-                return;
+                switchCourse(targetCur, j);
+                if (typeof history !== "undefined" && typeof history.replaceState === "function" &&
+                    typeof location !== "undefined" && location.search) {
+                    const url = new URL(location.href);
+                    url.searchParams.delete("curso");
+                    history.replaceState(null, "", url.pathname + (url.search ? url.search : ""));
+                }
+                inspectCard(null);
+                updateCourseInfo();
+                build();
+                update();
+                toast("Curso alternado e backup importado com sucesso!");
+            } else {
+                setState(j);
+                update();
+                toast("Backup importado com sucesso!");
             }
-            setState(j);
-            update();
         } catch (err) {
-            alert("JSON inválido: " + err.message);
+            alert("Não foi possível carregar o arquivo JSON:\n• " + err.message);
         }
         e.target.value = "";
     };
@@ -1630,12 +1669,7 @@ export function initEvents() {
         update();
     };
 
-    if ($("courseIcon")) $("courseIcon").textContent = CUR.icon || "🎓";
-    if ($("courseTitle")) $("courseTitle").textContent = CUR.title || "Curso";
-    $("subTxt").textContent = CUR.sub;
-    $("acLbl").textContent = `${CUR.acName || "Atividades Complementares"} (${AC_REQ}h) concluídas`;
-    $("tccBaseLbl").style.display = (!HAS_TCC || CUR.tccRest) ? "none" : "";
-    $("helpTccAnt").style.display = CUR.tccRest ? "" : "none";
+    updateCourseInfo();
 
     const curSwEl = $("curSw");
     if (curSwEl) {
@@ -1645,20 +1679,21 @@ export function initEvents() {
         curSwEl.value = KEY;
         curSwEl.onchange = e => {
             const nextKey = e.target.value;
-            if (!Object.prototype.hasOwnProperty.call(CURS, nextKey)) return;
+            if (!Object.prototype.hasOwnProperty.call(CURS, nextKey) || nextKey === KEY) return;
             persist();
-            try {
-                localStorage.setItem("curriculo-ativo", nextKey);
-            } catch (x) { }
-            if (typeof history !== "undefined" && typeof history.replaceState === "function" && typeof location !== "undefined" && location.search) {
+            switchCourse(nextKey);
+            if (typeof history !== "undefined" && typeof history.replaceState === "function" &&
+                typeof location !== "undefined" && location.search) {
                 const url = new URL(location.href);
                 url.searchParams.delete("curso");
-                history.replaceState(null, "", url.pathname + url.search);
+                history.replaceState(null, "", url.pathname + (url.search ? url.search : ""));
             }
-            location.reload();
+            inspectCard(null);
+            updateCourseInfo();
+            build();
+            update();
         };
     }
-    document.title = `Fluxograma — ${CUR.shortTitle || CUR.title}`;
 
     // Eventos da aba Prazos / Calendário
     $("calPrev").onclick = () => { calMonth.setMonth(calMonth.getMonth() - 1); renderTasks(); };
