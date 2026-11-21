@@ -65,7 +65,15 @@ const SAFE_HTML_FRAGMENTS = new Set([
     "overCapWarn",
     "groupCell",
     "maxCell",
-    "evalMeta"
+    "evalMeta",
+    "passBadge",
+    "statusBadge",
+    "destHtml",
+    "destSemHtml",
+    "destHHtml",
+    "outrosHtml",
+    "aproveitadasHtml",
+    "perdidasHtml"
 ]);
 
 /**
@@ -227,6 +235,7 @@ const JS_MODULES = [
     "assets/js/risk.js",
     "assets/js/planner.js",
     "assets/js/calendar.js",
+    "assets/js/equivalence.js",
     "assets/js/ui.js",
     "assets/js/script.js",
     "assets/js/feedback.js"
@@ -558,7 +567,9 @@ const containersToVerify = [
     "trFilterSubj",
     "trListBody",
     "trSubjectsCards",
-    "cal"
+    "cal",
+    "equivKpis",
+    "equivBody"
 ];
 
 for (const id of containersToVerify) {
@@ -596,7 +607,7 @@ assert.ok(
     getMockEl("horBody").innerHTML.includes("value=\"&quot;&gt;&lt;img src=x onerror=alert(&#39;sala&#39;)&gt;\""),
     "Campo sala com tentativa de XSS deve aparecer 100% escapado em #horBody"
 );
-ok("Todos os 12 containers de innerHTML renderizaram payloads maliciosos de forma 100% escapada e segura.");
+ok(`Todos os ${containersToVerify.length} containers de innerHTML renderizaram payloads maliciosos de forma 100% escapada e segura.`);
 
 // Verifica CSP em index.html
 const indexHtml = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
@@ -641,6 +652,8 @@ assert.ok(indexHtml.includes('aria-selected="true"'), 'index.html deve conter ar
 assert.ok(indexHtml.includes("<noscript>"), "index.html deve possuir bloco <noscript> de fallback");
 assert.ok(indexHtml.includes('id="flowFallback"'), "index.html deve possuir container #flowFallback para visão em lista");
 assert.ok(indexHtml.includes('id="flowInspect"'), "index.html deve possuir painel #flowInspect para inspeção sem hover");
+assert.ok(indexHtml.includes('id="tab-t-equiv"'), 'index.html deve conter botão da aba #tab-t-equiv');
+assert.ok(indexHtml.includes('id="t-equiv"'), 'index.html deve conter painel de equivalência #t-equiv');
 
 assert.ok(
     pedHtml.includes("../?curso=pedagogia") && pedHtml.includes('http-equiv="Content-Security-Policy"'),

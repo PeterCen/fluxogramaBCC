@@ -168,6 +168,12 @@ export function initMainTabs() {
     show(initialTab, false);
 }
 
+let renderEquivFn = null;
+/** Registra o renderizador da aba de equivalência para ser invocado no ciclo de update(). */
+export function registerEquivalenceRenderer(fn) {
+    renderEquivFn = fn;
+}
+
 // ---------- LAYOUT E INTERAÇÃO DO FLUXOGRAMA ----------
 const CW = 190, CH = 66, GX = 64, GY = 14, X0 = 20, Y0 = 56;
 const flow = $("flow");
@@ -779,6 +785,7 @@ export function update() {
     renderTasks();
     renderHor();
     renderAC();
+    if (renderEquivFn) renderEquivFn();
     persist();
 }
 

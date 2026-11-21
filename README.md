@@ -12,7 +12,17 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 
 - **Desacoplamento de Dados e Lógica (Scripts em `scripts/` vs. JSON Puro em `assets/data/courses/`)**: as matrizes curriculares foram completamente desacopladas do código JavaScript de execução e transformadas em arquivos JSON puros (`assets/data/courses/*.json`). Os scripts e matrizes históricas de extração dos PDFs (`raw_new.js`, `raw_old.js`) foram movidos para a pasta [`scripts/`](scripts/), acompanhados de documentação detalhada ([`scripts/README.md`](scripts/README.md)) e de um script utilitário de auditoria e paridade (`scripts/convert_raw_to_json.mjs`).
 
-- **Abas Acessíveis (WAI-ARIA & Teclado)**: a página é dividida em Fluxograma, Cursando agora, Trabalhos e Provas, Horários, Plano estimado, Atividades Compl., Configurações, Como funciona e Feedback, utilizando `role="tablist"`, `role="tab"`, `role="tabpanel"`, `aria-selected`, `aria-controls` e *roving tabindex* (`0`/`-1`), com navegação completa por teclado (`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, `End`, `Enter`, `Space`). O resumo (KPIs e barra de progresso) fica sempre visível no topo; a última aba usada é lembrada.
+- **Abas Acessíveis (WAI-ARIA & Teclado)**: a página é dividida em Fluxograma, Cursando agora, Trabalhos e Provas, Horários, Plano estimado, Atividades Compl., Equivalência, Configurações, Como funciona e Feedback, utilizando `role="tablist"`, `role="tab"`, `role="tabpanel"`, `aria-selected`, `aria-controls` e *roving tabindex* (`0`/`-1`), com navegação completa por teclado (`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, `End`, `Enter`, `Space`). O resumo (KPIs e barra de progresso) fica sempre visível no topo; a última aba usada é lembrada.
+
+- **Aba de Equivalência Curricular Bidirecional (PPC 2018 ↔ PPC 2022/2023)**:
+  - **Matriz Oficial Certificada**: baseada integralmente no documento formal assinado digitalmente pela Coordenação de Curso (`equivalencia matérias.pdf`, SUAP nº 1787471 · Código de Autenticação 406de5f92c · Portaria CBCC-PEP · Coordenador Prof. André Luis Olivete).
+  - **Suporte Bidirecional Completo**:
+    - **Grade Antiga (PPC 2018) ➔ Grade Nova (PPC 2022/2023)**: mapeia todas as 67 disciplinas (57 equivalentes diretas e 10 sem correspondência: `EL1C1`, `LACC1`, `LOGC1`, `FDSC2`, `FNCC4`, `TBDC5`, `CEMC6`, `TESC0`, `TEPC0`, `TPWC0`).
+    - **Grade Nova (PPC 2022/2023) ➔ Grade Antiga (PPC 2018)**: mapeia todas as 65 disciplinas (57 equivalentes diretas e 8 sem correspondência: `EDG1`, `EXT1`, `EXT2`, `ACAL`, `EXT3`, `EXT4`, `TCOM`, `SMIC`).
+  - **Cruzamento em Tempo Real com o Progresso do Aluno**: a tabela detecta automaticamente as disciplinas concluídas (`S.passed`) e calcula instantaneamente no topo os KPIs de horas e disciplinas aproveitadas vs. perdidas.
+  - **Simulação e Migração Automática (`⚡ Simular Migração de Matérias`)**: permite migrar o plano de estudos de um PPC para o outro com 1 clique, alternando a grade ativa sem recarregar a página e preservando apenas as disciplinas formalmente aproveitadas.
+  - **Equivalências Intercursos**: exibe equivalências com outros cursos do IFSP Câmpus Presidente Epitácio (BEE — Bacharelado em Engenharia Elétrica, TPG — Processos Gerenciais, CLP — Licenciatura em Pedagogia).
+  - **Filtros e Busca**: busca em tempo real por sigla ou nome (origem e destino), filtro por semestre (1º ao 8º e Eletivas/Optativas/TCC) e filtro por status (todas, com equivalência, sem correspondência ou aprovadas pelo aluno).
 
 - **Fluxograma (Desktop, Mobile/Touch, Teclado e Fallback em Lista)**:
   - **Grafo Visual**: disciplinas em colunas por semestre (1º ao 8º), eletivas/optativas e TCC, ligadas por setas de pré-requisito.
@@ -46,22 +56,24 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - `index.html` — aplicação única orientada a dados (abas, controles, tabelas e Content Security Policy).
 - `assets/data/courses/index.json` — catálogo manifesto dos cursos disponíveis no sistema.
 - `assets/data/courses/bcc-2022.json`, `bcc-2018.json`, `pedagogia-2023.json` — arquivos JSON independentes por curso (metadados, regras de TCC/estágio, atividades complementares e matriz curricular).
+- `assets/data/equivalence/bcc-equivalence.json` — matriz estruturada em JSON puro com as 67 disciplinas de 2018 e 65 de 2022/2023, mapeamento bidirecional e metadados de autenticidade (SUAP nº 1787471).
 - `assets/js/courses.js` — carregador e validador de schema (`validateCourseConfig()`) dos arquivos JSON de cursos.
 - `assets/js/state.js` — grafo curricular (`C`, `ORDER`, `anc`, `desc`, `depth`, `rebuildCourseGraph()`), estado global (`S`), alternância reativa sem reload (`switchCourse()`), validação formal de JSON (`validateStateSchema()`), escape HTML (`esc()`), sanitização (`sanitizeState()`) e persistência (`persist()`).
 - `assets/js/risk.js` — cálculo de risco de reprovação (`risk()`, `riskMap()`), prioridade automática (`effPrio()`), sincronização de notas de avaliações (`syncSubjectGrades()`) e calculadora do Anexo III (`acCalc()`).
 - `assets/js/planner.js` — planejador guloso de semestres por caminho crítico (`simulate()`), seleção de eletivas (`electivesPlanned()`), regras de TCC/estágio (`tccOpen()`) e simulação Monte Carlo (`monte()`, `seed()`).
 - `assets/js/calendar.js` — utilitários de datas, fórmulas de importância/urgência/prioridade (`importance()`, `urgency()`, `prioOf()`) e planejador diário de estudo no calendário (`planTasks()`).
+- `assets/js/equivalence.js` — matriz de equivalência bidirecional (`migratePassedDisciplines()`, `filterEquivalence()`, `calcEquivalenceStats()`, `renderEquivalence()`).
 - `assets/js/ui.js` — abas acessíveis WAI-ARIA (`bindTablist()`), renderização do fluxograma, modo mobile/toque, fallback em lista, tabelas e listeners de eventos.
 - `assets/js/script.js` — ponto de entrada principal que inicializa e reexporta os módulos da aplicação.
 - `assets/js/feedback.js` e `assets/js/config.js` — chamada para envio de feedback via Formspree.
 - `assets/css/styles.css` e `assets/img/` — estilos e ícone.
 - `pedagogia/index.html` e `assets/js/redirect-pedagogia.js` — redirecionamento compatível de `/pedagogia/` para `/?curso=pedagogia`.
-- `scripts/` — scripts e matrizes históricas de extração dos PDFs (`raw_new.js`, `raw_old.js`), script de auditoria/conversão (`convert_raw_to_json.mjs`), automação de cache busting (`cache_bust.mjs`) e documentação do pipeline (`scripts/README.md`), mantendo o ferramental separado dos dados em JSON puro.
+- `scripts/` — scripts e matrizes históricas de extração dos PDFs (`raw_new.js`, `raw_old.js`), auditoria de equivalência (`extract_equivalence.mjs`), conversão (`convert_raw_to_json.mjs`), automação de cache busting (`cache_bust.mjs`) e documentação do pipeline (`scripts/README.md`).
 - `tests/security-check.mjs` — suíte automatizada de análise estática (`innerHTML` vs `esc()`), validação dos JSONs de cursos, testes de acessibilidade WAI-ARIA/fallbacks e fuzzing anti-XSS.
-- `tests/core-logic.test.mjs` — testes unitários da lógica pura de domínio (grafo de pré-requisitos, cálculo de risco, planejador guloso de semestres, simulação Monte Carlo, planejador diário de tarefas, atividades complementares e catálogo multi-curso).
+- `tests/core-logic.test.mjs` — testes unitários da lógica pura de domínio (grafo de pré-requisitos, cálculo de risco, planejador guloso de semestres, simulação Monte Carlo, planejador diário de tarefas, atividades complementares, catálogo multi-curso e equivalência).
 - `.githooks/pre-commit` — hook de pré-commit que executa a verificação de segurança e os testes unitários antes de permitir novos commits.
 - `.github/workflows/security.yml` — workflow de CI (GitHub Actions) que valida pushes e pull requests automaticamente.
-- PDFs na raiz — PPCs usados como fonte dos dados (Ciência da Computação nova e antiga, e Pedagogia).
+- PDFs na raiz — PPCs e documento formal de equivalência usados como fonte oficial dos dados (`equivalencia matérias.pdf`, Ciência da Computação nova e antiga, e Pedagogia).
 
 ## Como Adicionar um Novo Curso (JSON)
 
