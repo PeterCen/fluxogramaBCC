@@ -56,7 +56,7 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - `assets/js/feedback.js` e `assets/js/config.js` — chamada para envio de feedback via Formspree.
 - `assets/css/styles.css` e `assets/img/` — estilos e ícone.
 - `pedagogia/index.html` e `assets/js/redirect-pedagogia.js` — redirecionamento compatível de `/pedagogia/` para `/?curso=pedagogia`.
-- `scripts/` — scripts e matrizes históricas de extração dos PDFs (`raw_new.js`, `raw_old.js`), script de auditoria/conversão (`convert_raw_to_json.mjs`) e documentação do pipeline (`scripts/README.md`), mantendo o ferramental separado dos dados em JSON puro.
+- `scripts/` — scripts e matrizes históricas de extração dos PDFs (`raw_new.js`, `raw_old.js`), script de auditoria/conversão (`convert_raw_to_json.mjs`), automação de cache busting (`cache_bust.mjs`) e documentação do pipeline (`scripts/README.md`), mantendo o ferramental separado dos dados em JSON puro.
 - `tests/security-check.mjs` — suíte automatizada de análise estática (`innerHTML` vs `esc()`), validação dos JSONs de cursos, testes de acessibilidade WAI-ARIA/fallbacks e fuzzing anti-XSS.
 - `tests/core-logic.test.mjs` — testes unitários da lógica pura de domínio (grafo de pré-requisitos, cálculo de risco, planejador guloso de semestres, simulação Monte Carlo, planejador diário de tarefas, atividades complementares e catálogo multi-curso).
 - `.githooks/pre-commit` — hook de pré-commit que executa a verificação de segurança e os testes unitários antes de permitir novos commits.

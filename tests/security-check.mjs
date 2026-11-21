@@ -606,6 +606,28 @@ assert.ok(
 );
 ok("index.html possui Content-Security-Policy ativa bloqueando scripts inline/injetados.");
 
+// Verifica cache-busting automatizado e ausência de código morto (<script> comentado)
+const { computeFileHash } = await import("../scripts/cache_bust.mjs");
+const expectedCssHash = computeFileHash(path.join(ROOT, "assets/css/styles.css"));
+const pedHtml = fs.readFileSync(path.join(ROOT, "pedagogia/index.html"), "utf8");
+assert.ok(
+    !/<!--[\s\S]*?<script[\s\S]*?-->/i.test(indexHtml),
+    "index.html não deve conter tags <script> comentadas (código morto)"
+);
+assert.ok(
+    indexHtml.includes(`styles.css?v=${expectedCssHash}`),
+    `index.html deve conter styles.css com hash SHA-256 automatizado (?v=${expectedCssHash})`
+);
+assert.ok(
+    !indexHtml.includes("styles.css?v=1.1") && !indexHtml.includes("styles.css?v=1.0"),
+    "index.html não deve utilizar versões manuais (?v=1.1) em styles.css"
+);
+assert.ok(
+    pedHtml.includes(`styles.css?v=${expectedCssHash}`),
+    `pedagogia/index.html deve conter styles.css com hash SHA-256 automatizado (?v=${expectedCssHash})`
+);
+ok(`Cache-busting automatizado verificado (?v=${expectedCssHash}) e código morto (<script> comentado) removido.`);
+
 // ============================================================================
 // 5. TESTE DE ACESSIBILIDADE (WAI-ARIA TABLIST, TECLADO, MOBILE & FALLBACK)
 // ============================================================================
@@ -620,7 +642,6 @@ assert.ok(indexHtml.includes("<noscript>"), "index.html deve possuir bloco <nosc
 assert.ok(indexHtml.includes('id="flowFallback"'), "index.html deve possuir container #flowFallback para visão em lista");
 assert.ok(indexHtml.includes('id="flowInspect"'), "index.html deve possuir painel #flowInspect para inspeção sem hover");
 
-const pedHtml = fs.readFileSync(path.join(ROOT, "pedagogia/index.html"), "utf8");
 assert.ok(
     pedHtml.includes("../?curso=pedagogia") && pedHtml.includes('http-equiv="Content-Security-Policy"'),
     "pedagogia/index.html deve redirecionar para o app unificado (../?curso=pedagogia) com CSP ativa"
