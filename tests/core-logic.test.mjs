@@ -124,7 +124,11 @@ const {
     urgency,
     prioOf,
     prioLbl,
-    planTasks
+    planTasks,
+    EQUIVALENCE_DATA,
+    migratePassedDisciplines,
+    filterEquivalence,
+    calcEquivalenceStats
 } = await import("../assets/js/script.js");
 
 function resetState(overrides = {}) {
@@ -577,4 +581,145 @@ test("Paridade entre matrizes de extração (scripts/raw_*.js) e JSON puro (asse
         assert.deepEqual(actual, expected, `Disciplina ${expected[0]} deve ser idêntica no JSON puro`);
     });
 });
+
+// ============================================================================
+// 10. MATRIZ OFICIAL DE EQUIVALÊNCIA E MIGRAÇÃO DE DISCIPLINAS
+// ============================================================================
+test("Integridade e consistência da matriz oficial de equivalência (bcc-equivalence.json)", () => {
+    // 1. Metadados oficiais
+    assert.equal(EQUIVALENCE_DATA.metadata.suapCode, "1787471");
+    assert.equal(EQUIVALENCE_DATA.metadata.authCode, "406de5f92c");
+    assert.ok(EQUIVALENCE_DATA.metadata.coordinator.includes("André Luis Olivete"));
+
+    // 2. Contagens de disciplinas
+    const { antigaParaNova, novaParaAntiga } = EQUIVALENCE_DATA;
+    assert.equal(antigaParaNova.length, 67, "PPC 2018 deve conter 67 disciplinas mapeadas");
+    assert.equal(novaParaAntiga.length, 65, "PPC 2022/2023 deve conter 65 disciplinas mapeadas");
+
+    // 3. Disciplinas equivalentes vs sem correspondência
+    const equivAntiga = antigaParaNova.filter(x => x.equivalente);
+    const noEquivAntiga = antigaParaNova.filter(x => !x.equivalente);
+    assert.equal(equivAntiga.length, 57, "57 disciplinas do PPC 2018 devem ter equivalência no PPC 2023");
+    assert.equal(noEquivAntiga.length, 10, "10 disciplinas do PPC 2018 não têm correspondência");
+
+    const expectedNoEquivAntiga = [
+        "EL1C1", "LACC1", "LOGC1", "FDSC2", "FNCC4", "TBDC5", "CEMC6", "TESC0", "TEPC0", "TPWC0"
+    ];
+    assert.deepEqual(noEquivAntiga.map(x => x.origem.id), expectedNoEquivAntiga);
+
+    const equivNova = novaParaAntiga.filter(x => x.equivalente);
+    const noEquivNova = novaParaAntiga.filter(x => !x.equivalente);
+    assert.equal(equivNova.length, 57, "57 disciplinas do PPC 2023 devem ter equivalência no PPC 2018");
+    assert.equal(noEquivNova.length, 8, "8 disciplinas do PPC 2023 não têm correspondência");
+
+    const expectedNoEquivNova = [
+        "EDG1", "EXT1", "EXT2", "ACAL", "EXT3", "EXT4", "TCOM", "SMIC"
+    ];
+    assert.deepEqual(noEquivNova.map(x => x.origem.id), expectedNoEquivNova);
+
+    // 4. Paridade com os catálogos dos cursos (todos os IDs devem existir em raw)
+    const antigaIds = new Set(CURS.antiga.raw.map(r => r[0]));
+    const novaIds = new Set(CURS.nova.raw.map(r => r[0]));
+
+    antigaParaNova.forEach(item => {
+        assert.ok(antigaIds.has(item.origem.id), `ID origem ${item.origem.id} deve existir em CURS.antiga`);
+        if (item.equivalente) {
+            assert.ok(item.destino, `Item com equivalência deve conter objeto destino: ${item.origem.id}`);
+            assert.ok(novaIds.has(item.destino.id), `ID destino ${item.destino.id} deve existir em CURS.nova`);
+        }
+    });
+
+    novaParaAntiga.forEach(item => {
+        assert.ok(novaIds.has(item.origem.id), `ID origem ${item.origem.id} deve existir em CURS.nova`);
+        if (item.equivalente) {
+            assert.ok(item.destino, `Item com equivalência deve conter objeto destino: ${item.origem.id}`);
+            assert.ok(antigaIds.has(item.destino.id), `ID destino ${item.destino.id} deve existir em CURS.antiga`);
+        }
+    });
+});
+
+test("Simulação e migração de disciplinas aprovadas entre PPCs (migratePassedDisciplines)", () => {
+    // 1. Migração Antiga -> Nova
+    const antigaPassed = ["AP1C1", "CL1C2", "EL1C1", "TCC1", "TCC2"];
+    const novaMigrated = migratePassedDisciplines(antigaPassed, "antiga", "nova");
+
+    // AP1C1 -> ALP1, CL1C2 -> CLC1, TCC1 -> TCC1, TCC2 -> TCC2, EL1C1 (sem correspondência) é descartada
+    assert.ok(novaMigrated.includes("ALP1"), "AP1C1 deve migrar para ALP1");
+    assert.ok(novaMigrated.includes("CLC1"), "CL1C2 deve migrar para CLC1");
+    assert.ok(novaMigrated.includes("TCC1"), "TCC1 deve migrar para TCC1");
+    assert.ok(novaMigrated.includes("TCC2"), "TCC2 deve migrar para TCC2");
+    assert.equal(novaMigrated.includes("EL1C1"), false, "EL1C1 não deve migrar pois não tem correspondência");
+    assert.equal(novaMigrated.length, 4);
+
+    // 2. Migração Nova -> Antiga
+    const novaPassed = ["ALP1", "CLC1", "EDG1", "TCC1", "TCC2"];
+    const antigaMigrated = migratePassedDisciplines(novaPassed, "nova", "antiga");
+
+    assert.ok(antigaMigrated.includes("AP1C1"), "ALP1 deve migrar para AP1C1");
+    assert.ok(antigaMigrated.includes("CL1C2"), "CLC1 deve migrar para CL1C2");
+    assert.ok(antigaMigrated.includes("TCC1"), "TCC1 deve migrar para TCC1");
+    assert.ok(antigaMigrated.includes("TCC2"), "TCC2 deve migrar para TCC2");
+    assert.equal(antigaMigrated.includes("EDG1"), false, "EDG1 não deve migrar pois não tem correspondência");
+    assert.equal(antigaMigrated.length, 4);
+
+    // 3. Idempotência quando mesma grade
+    assert.deepEqual(migratePassedDisciplines(["ALP1", "ED1"], "nova", "nova"), ["ALP1", "ED1"]);
+
+    // 4. Resiliência com valores nulos/vazios
+    assert.deepEqual(migratePassedDisciplines([], "antiga", "nova"), []);
+    assert.deepEqual(migratePassedDisciplines(null, "antiga", "nova"), []);
+});
+
+test("Filtros de busca, semestre e status na matriz de equivalência (filterEquivalence)", () => {
+    const list = EQUIVALENCE_DATA.antigaParaNova;
+
+    // 1. Busca textual por sigla
+    const resSigla = filterEquivalence(list, { search: "CL1C2" });
+    assert.equal(resSigla.length, 1);
+    assert.equal(resSigla[0].origem.id, "CL1C2");
+
+    // 2. Busca textual por nome
+    const resNome = filterEquivalence(list, { search: "estruturas de dados" });
+    assert.ok(resNome.some(x => x.origem.id === "ED1C3"));
+
+    // 3. Filtro por semestre
+    const sem1 = filterEquivalence(list, { sem: 1 });
+    assert.ok(sem1.length >= 6);
+    assert.ok(sem1.every(x => x.origem.sem === 1));
+
+    // 4. Filtro por status
+    const onlyEquiv = filterEquivalence(list, { status: "equiv" });
+    assert.equal(onlyEquiv.length, 57);
+
+    const onlyNoEquiv = filterEquivalence(list, { status: "no_equiv" });
+    assert.equal(onlyNoEquiv.length, 10);
+
+    // 5. Filtro por disciplinas concluídas
+    const passed = new Set(["CL1C2", "AP1C1", "EL1C1"]);
+    const onlyPassed = filterEquivalence(list, { status: "passed", passed });
+    assert.equal(onlyPassed.length, 3);
+});
+
+test("Estatísticas e KPIs de aproveitamento (calcEquivalenceStats)", () => {
+    const list = EQUIVALENCE_DATA.antigaParaNova;
+
+    // Sem disciplinas feitas
+    const s0 = calcEquivalenceStats(list, new Set());
+    assert.equal(s0.total, 67);
+    assert.equal(s0.equivalentes, 57);
+    assert.equal(s0.semCorrespondencia, 10);
+    assert.equal(s0.aproveitadasCount, 0);
+    assert.equal(s0.aproveitadasHoras, 0);
+    assert.equal(s0.perdidasCount, 0);
+    assert.equal(s0.perdidasHoras, 0);
+
+    // Com 1 equivalente (AP1C1 = 63.3h) e 1 sem correspondência (EL1C1 = 63.3h)
+    const passed = new Set(["AP1C1", "EL1C1"]);
+    const s1 = calcEquivalenceStats(list, passed);
+    assert.equal(s1.aproveitadasCount, 1);
+    assert.equal(s1.aproveitadasHoras, 63.3);
+    assert.equal(s1.perdidasCount, 1);
+    assert.equal(s1.perdidasHoras, 63.3);
+});
+
 

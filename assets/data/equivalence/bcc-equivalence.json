@@ -1,0 +1,2486 @@
+{
+  "metadata": {
+    "title": "Matriz de Equivalência Curricular entre PPC 2018 e PPC 2022/2023",
+    "document": "Matriz de equivalência do curso de BCC - 2018 / 2023",
+    "institution": "IFSP Câmpus Presidente Epitácio",
+    "coordinator": "Prof. André Luis Olivete (COORDENADOR CBCC-PEP)",
+    "signatureDate": "16/09/2024 18:09:52",
+    "suapCode": "1787471",
+    "authCode": "406de5f92c",
+    "sourcePdf": "equivalencia matérias.pdf",
+    "totalAntiga": 67,
+    "totalNova": 65,
+    "antigaEquivalentes": 57,
+    "antigaSemCorrespondencia": 10,
+    "novaEquivalentes": 57,
+    "novaSemCorrespondencia": 8
+  },
+  "antigaParaNova": [
+    {
+      "origem": {
+        "id": "ADMC1",
+        "name": "Administração",
+        "sem": 1,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "FADM",
+        "name": "Fundamentos de Administração",
+        "sem": 1,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "ADML9",
+          "name": "Administração",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPADMT",
+          "name": "Administração",
+          "h": 31.7
+        },
+        {
+          "curso": "TPG - 2022",
+          "code": "FADG1",
+          "name": "Fundamentos de Administração",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "AP1C1",
+        "name": "Algoritmos e Programação I",
+        "sem": 1,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ALP1",
+        "name": "Algoritmos e Programação 1",
+        "sem": 1,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "PR1L2",
+          "name": "Programação I",
+          "h": 63.3
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPPRG1",
+          "name": "Programação 1",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "EL1C1",
+        "name": "Eletrônica Digital I",
+        "sem": 1,
+        "h": 63.3
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "FMTC1",
+        "name": "Fundamentos de Matemática",
+        "sem": 1,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "FMAT",
+        "name": "Fundamentos de Matemática",
+        "sem": 1,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "INGC1",
+        "name": "Inglês Instrumental",
+        "sem": 1,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "INGL",
+        "name": "Inglês Técnico",
+        "sem": 2,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 4 aulas (63,3h) para 2 aulas (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "ICCC1",
+        "name": "Introdução à Ciência da Computação",
+        "sem": 1,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ICCO",
+        "name": "Introdução à Ciência da Computação",
+        "sem": 1,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "LACC1",
+        "name": "Laboratório de Computação",
+        "sem": 1,
+        "h": 31.7
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "LOGC1",
+        "name": "Lógica",
+        "sem": 1,
+        "h": 31.7
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "AP2C2",
+        "name": "Algoritmos e Programação II",
+        "sem": 2,
+        "h": 95.0
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ALP2",
+        "name": "Algoritmos e Programação 2",
+        "sem": 2,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 6 aulas (95h) para 4 aulas (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "AOCC2",
+        "name": "Arquitetura e Organização de Computadores",
+        "sem": 2,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "AROC",
+        "name": "Arquitetura e Organização de Computadores",
+        "sem": 2,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPORAC",
+          "name": "Organização e Arquitetura de Computadores",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "CL1C2",
+        "name": "Cálculo I",
+        "sem": 2,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CLC1",
+        "name": "Cálculo 1",
+        "sem": 2,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "CA1L1",
+          "name": "Cálculo I",
+          "h": 63.3
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPCAL1",
+          "name": "Cálculo I",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "COEC2",
+        "name": "Comunicação e Expressão",
+        "sem": 2,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "COEX",
+        "name": "Comunicação e Expressão",
+        "sem": 1,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "COEL1",
+          "name": "Comunicação e Expressão",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPCOEX",
+          "name": "Comunicação e Expressão",
+          "h": 31.7
+        },
+        {
+          "curso": "TPG - 2022",
+          "code": "COMG1",
+          "name": "Comunicação e Expressão",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "EL2C2",
+        "name": "Eletrônica Digital II",
+        "sem": 2,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "EDG2",
+        "name": "Eletrônica Digital 2",
+        "sem": 2,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "ED2L3",
+          "name": "Eletrônica Digital II",
+          "h": 63.3
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPEDG2",
+          "name": "Eletrônica Digital II",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "FDSC2",
+        "name": "Fundamentos de Sistemas",
+        "sem": 2,
+        "h": 31.7
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "MADC2",
+        "name": "Matemática Discreta",
+        "sem": 2,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "MDIS",
+        "name": "Matemática Discreta",
+        "sem": 1,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "MTPC2",
+        "name": "Metodologia de Pesquisa",
+        "sem": 2,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "MTPE",
+        "name": "Metodologia de Pesquisa",
+        "sem": 4,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "MPCL8",
+          "name": "Metodologia de Pesquisa Científica",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPMEPC",
+          "name": "Metodologia de Pesquisa Científica",
+          "h": 31.7
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "BD1C3",
+        "name": "Banco de Dados I",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "BDD1",
+        "name": "Banco de Dados 1",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "CL2C3",
+        "name": "Cálculo II",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CLC2",
+        "name": "Cálculo 2",
+        "sem": 3,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 4 aulas (63,3h) para 2 aulas (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "ENGC3",
+        "name": "Engenharia de Software",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ENGS",
+        "name": "Engenharia de Software",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "ED1C3",
+        "name": "Estruturas de Dados I",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "EDA1",
+        "name": "Estruturas de Dados 1",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "GPNC3",
+        "name": "Gestão de Processos de Negócio",
+        "sem": 3,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "GEPN",
+        "name": "Gestão de Processos de Negócio",
+        "sem": 2,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "LMOC3",
+        "name": "Linguagem de Montagem",
+        "sem": 3,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "LMON",
+        "name": "Linguagem de Montagem",
+        "sem": 3,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "POOC3",
+        "name": "Programação Orientada a Objetos",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "POOB",
+        "name": "Programação Orientada a Objetos",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "SOPC3",
+        "name": "Sistemas Operacionais",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "SOP1",
+        "name": "Sistemas Operacionais 1",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "APSC4",
+        "name": "Análise e Projeto de Sistemas",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "APRS",
+        "name": "Análise e Projeto de Sistemas",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "BD2C4",
+        "name": "Banco de Dados II",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "BDD2",
+        "name": "Banco de Dados 2",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "ED2C4",
+        "name": "Estruturas de Dados II",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "EDA2",
+        "name": "Estruturas de Dados 2",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "FP1C4",
+        "name": "Ferramentas de Programação I",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "FPR1",
+        "name": "Ferramentas de Programação 1",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "FNCC4",
+        "name": "Finanças e Custos",
+        "sem": 4,
+        "h": 31.7
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "GEAC4",
+        "name": "Geometria Analítica",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "GEAN",
+        "name": "Geometria Analítica",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "LPRC4",
+        "name": "Linguagens de Programação",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "LPRO",
+        "name": "Linguagens de Programação",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "RC1C4",
+        "name": "Redes de Computadores I",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "RCO1",
+        "name": "Redes de Computadores 1",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "ALIC5",
+        "name": "Álgebra Linear",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ALGL",
+        "name": "Álgebra Linear",
+        "sem": 5,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 4 aulas (63,3h) para 2 aulas (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "CANC5",
+        "name": "Cálculo Numérico",
+        "sem": 5,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CALN",
+        "name": "Cálculo Numérico",
+        "sem": 5,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "CNCL4",
+          "name": "Cálculo Numérico Computacional",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPCNCP",
+          "name": "Cálculo Numérico Computacional",
+          "h": 31.7
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "EMPC5",
+        "name": "Empreendedorismo",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "INOV",
+        "name": "Empreendedorismo e Inovação",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "TPG - 2022",
+          "code": "EMPG5",
+          "name": "Empreendedorismo",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "FP2C5",
+        "name": "Ferramentas de Programação II",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "FPR2",
+        "name": "Ferramentas de Programação 2",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Equivale também a Ferramentas de Programação 1 se necessário."
+    },
+    {
+      "origem": {
+        "id": "GPRC5",
+        "name": "Gestão de Projetos",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "GEPR",
+        "name": "Gestão de Projetos",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "RC2C5",
+        "name": "Redes de Computadores II",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "RCO2",
+        "name": "Redes de Computadores 2",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "TCOC5",
+        "name": "Teoria da Computação",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TECO",
+        "name": "Teoria da Computação",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "TBDC5",
+        "name": "Tópicos em Banco de Dados",
+        "sem": 5,
+        "h": 31.7
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "CPLC6",
+        "name": "Compiladores",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CPLD",
+        "name": "Compiladores",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "CEMC6",
+        "name": "Computação Embarcada",
+        "sem": 6,
+        "h": 31.7
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "CGRC6",
+        "name": "Computação Gráfica",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CGRA",
+        "name": "Computação Gráfica",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "FP3C6",
+        "name": "Ferramentas de Programação III",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "FPR3",
+        "name": "Ferramentas de Programação 3",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "GTIC6",
+        "name": "Gestão da Tecnologia da Informação",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "GOTI",
+        "name": "Governança em TI",
+        "sem": 8,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 4 aulas (63,3h) para 2 aulas (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "IHCC6",
+        "name": "Interação Humano-Computador",
+        "sem": 6,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "INHC",
+        "name": "Interação Humano-Computador",
+        "sem": 6,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "PREC6",
+        "name": "Probabilidade e Estatística",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "PEST",
+        "name": "Probabilidade e Estatística",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "SIDC6",
+        "name": "Sistemas Distribuídos",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "SDIS",
+        "name": "Sistemas Distribuídos",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "IARC7",
+        "name": "Inteligência Artificial",
+        "sem": 7,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "IART",
+        "name": "Inteligência Artificial",
+        "sem": 7,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "PI1C7",
+        "name": "Projeto Integrado I",
+        "sem": 7,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "PRI1",
+        "name": "Projeto Integrado 1",
+        "sem": 7,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "QSFC7",
+        "name": "Qualidade de Software",
+        "sem": 7,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "QSOF",
+        "name": "Qualidade de Software",
+        "sem": 7,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "SEGC7",
+        "name": "Segurança e Auditoria de Sistemas",
+        "sem": 7,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "SEGC",
+        "name": "Segurança Cibernética",
+        "sem": 7,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "TGRC7",
+        "name": "Teoria dos Grafos",
+        "sem": 7,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TGRA",
+        "name": "Teoria dos Grafos",
+        "sem": 7,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "CESC8",
+        "name": "Computação e Sociedade",
+        "sem": 8,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CSOC",
+        "name": "Computação e Sociedade",
+        "sem": 8,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "PI2C8",
+        "name": "Projeto Integrado II",
+        "sem": 8,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "PRI2",
+        "name": "Projeto Integrado 2",
+        "sem": 8,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "CIDC0",
+        "name": "Ciência de Dados",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CID",
+        "name": "Ciência de Dados",
+        "sem": 8,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva na grade antiga (63,3h) e obrigatória na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "IDSC0",
+        "name": "Implantação de Servidores",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "INFR",
+        "name": "Tópicos em Infraestrutura",
+        "sem": 9,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva na grade antiga (63,3h) e eletiva na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "VCOC0",
+        "name": "Visão Computacional",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "VCOM",
+        "name": "Visão Computacional",
+        "sem": 7,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva na grade antiga (63,3h) e obrigatória na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "RENC0",
+        "name": "Redes Neurais Artificiais",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "APRM",
+        "name": "Aprendizado de Máquina",
+        "sem": 8,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "RNAL0",
+          "name": "Redes Neurais Artificiais - Eletiva",
+          "h": 31.7
+        }
+      ],
+      "obs": "Eletiva na grade antiga (63,3h) e obrigatória na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "TESC0",
+        "name": "Tópicos em Eng. de Software",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "TEPC0",
+        "name": "Tópicos Especiais",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "TPRC0",
+        "name": "Tópicos em Programação",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TPRO",
+        "name": "Tópicos em Programação",
+        "sem": 9,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva em ambas as grades (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "TPWC0",
+        "name": "Tópicos em Programação Web",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Sem correspondência no PPC 2023. Não pode ser aproveitada."
+    },
+    {
+      "origem": {
+        "id": "TSOC0",
+        "name": "Tópicos em Sist. Operacionais",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "SOP2",
+        "name": "Sistemas Operacionais 2",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva na grade antiga (63,3h) e obrigatória na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "LBSC0",
+        "name": "Libras (optativa)",
+        "sem": 10,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "LIBG",
+        "name": "Libras (optativa)",
+        "sem": 10,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "LBL0",
+          "name": "Língua Brasileira de Sinais (LIBRAS) - Optativa",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPLIBG",
+          "name": "Libras",
+          "h": 31.7
+        },
+        {
+          "curso": "CLP - 2017",
+          "code": "LB1P4",
+          "name": "Língua Brasileira de Sinais 1",
+          "h": 31.7
+        },
+        {
+          "curso": "CLP - 2023",
+          "code": "PEPLIB1",
+          "name": "Língua Brasileira de Sinais 1",
+          "h": 31.7
+        },
+        {
+          "curso": "TPG - 2022",
+          "code": "LIBG",
+          "name": "Libras - Optativa",
+          "h": 31.7
+        }
+      ],
+      "obs": "Optativa em ambas as grades (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "TCC1",
+        "name": "TCC 1",
+        "sem": 11,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TCC1",
+        "name": "TCC 1",
+        "sem": 11,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": "Trabalho de Conclusão de Curso 1 (ambas as grades)."
+    },
+    {
+      "origem": {
+        "id": "TCC2",
+        "name": "TCC 2",
+        "sem": 12,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TCC2",
+        "name": "TCC 2",
+        "sem": 12,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": "Trabalho de Conclusão de Curso 2 (ambas as grades)."
+    }
+  ],
+  "novaParaAntiga": [
+    {
+      "origem": {
+        "id": "ALP1",
+        "name": "Algoritmos e Programação 1",
+        "sem": 1,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "AP1C1",
+        "name": "Algoritmos e Programação I",
+        "sem": 1,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "PR1L2",
+          "name": "Programação I",
+          "h": 63.3
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPPRG1",
+          "name": "Programação 1",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "COEX",
+        "name": "Comunicação e Expressão",
+        "sem": 1,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "COEC2",
+        "name": "Comunicação e Expressão",
+        "sem": 2,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "COEL1",
+          "name": "Comunicação e Expressão",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPCOEX",
+          "name": "Comunicação e Expressão",
+          "h": 31.7
+        },
+        {
+          "curso": "TPG - 2022",
+          "code": "COMG1",
+          "name": "Comunicação e Expressão",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "EDG1",
+        "name": "Eletrônica Digital 1",
+        "sem": 1,
+        "h": 31.7
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Componente curricular criado na reformulação PPC 2022/2023 sem equivalência direta no PPC 2018."
+    },
+    {
+      "origem": {
+        "id": "FADM",
+        "name": "Fundamentos de Administração",
+        "sem": 1,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ADMC1",
+        "name": "Administração",
+        "sem": 1,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "ADML9",
+          "name": "Administração",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPADMT",
+          "name": "Administração",
+          "h": 31.7
+        },
+        {
+          "curso": "TPG - 2022",
+          "code": "FADG1",
+          "name": "Fundamentos de Administração",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "FMAT",
+        "name": "Fundamentos de Matemática",
+        "sem": 1,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "FMTC1",
+        "name": "Fundamentos de Matemática",
+        "sem": 1,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "ICCO",
+        "name": "Introdução à Ciência da Computação",
+        "sem": 1,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ICCC1",
+        "name": "Introdução à Ciência da Computação",
+        "sem": 1,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "MDIS",
+        "name": "Matemática Discreta",
+        "sem": 1,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "MADC2",
+        "name": "Matemática Discreta",
+        "sem": 2,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "ALP2",
+        "name": "Algoritmos e Programação 2",
+        "sem": 2,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "AP2C2",
+        "name": "Algoritmos e Programação II",
+        "sem": 2,
+        "h": 95.0
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 6 aulas (95h) para 4 aulas (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "AROC",
+        "name": "Arquitetura e Organização de Computadores",
+        "sem": 2,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "AOCC2",
+        "name": "Arquitetura e Organização de Computadores",
+        "sem": 2,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPORAC",
+          "name": "Organização e Arquitetura de Computadores",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "CLC1",
+        "name": "Cálculo 1",
+        "sem": 2,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CL1C2",
+        "name": "Cálculo I",
+        "sem": 2,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "CA1L1",
+          "name": "Cálculo I",
+          "h": 63.3
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPCAL1",
+          "name": "Cálculo I",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "EDG2",
+        "name": "Eletrônica Digital 2",
+        "sem": 2,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "EL2C2",
+        "name": "Eletrônica Digital II",
+        "sem": 2,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "ED2L3",
+          "name": "Eletrônica Digital II",
+          "h": 63.3
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPEDG2",
+          "name": "Eletrônica Digital II",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "GEPN",
+        "name": "Gestão de Processos de Negócio",
+        "sem": 2,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "GPNC3",
+        "name": "Gestão de Processos de Negócio",
+        "sem": 3,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "INGL",
+        "name": "Inglês Técnico",
+        "sem": 2,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "INGC1",
+        "name": "Inglês Instrumental",
+        "sem": 1,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 4 aulas (63,3h) para 2 aulas (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "EXT1",
+        "name": "Atividades de Extensão 1",
+        "sem": 3,
+        "h": 31.7
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Componente curricular criado na reformulação PPC 2022/2023 sem equivalência direta no PPC 2018."
+    },
+    {
+      "origem": {
+        "id": "BDD1",
+        "name": "Banco de Dados 1",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "BD1C3",
+        "name": "Banco de Dados I",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "CLC2",
+        "name": "Cálculo 2",
+        "sem": 3,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CL2C3",
+        "name": "Cálculo II",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 4 aulas (63,3h) para 2 aulas (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "ENGS",
+        "name": "Engenharia de Software",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ENGC3",
+        "name": "Engenharia de Software",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "EDA1",
+        "name": "Estruturas de Dados 1",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ED1C3",
+        "name": "Estruturas de Dados I",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "LMON",
+        "name": "Linguagem de Montagem",
+        "sem": 3,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "LMOC3",
+        "name": "Linguagem de Montagem",
+        "sem": 3,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "LPRO",
+        "name": "Linguagens de Programação",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "LPRC4",
+        "name": "Linguagens de Programação",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "POOB",
+        "name": "Programação Orientada a Objetos",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "POOC3",
+        "name": "Programação Orientada a Objetos",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "SOP1",
+        "name": "Sistemas Operacionais 1",
+        "sem": 3,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "SOPC3",
+        "name": "Sistemas Operacionais",
+        "sem": 3,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "APRS",
+        "name": "Análise e Projeto de Sistemas",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "APSC4",
+        "name": "Análise e Projeto de Sistemas",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "EXT2",
+        "name": "Atividades de Extensão 2",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Componente curricular criado na reformulação PPC 2022/2023 sem equivalência direta no PPC 2018."
+    },
+    {
+      "origem": {
+        "id": "BDD2",
+        "name": "Banco de Dados 2",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "BD2C4",
+        "name": "Banco de Dados II",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "EDA2",
+        "name": "Estruturas de Dados 2",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ED2C4",
+        "name": "Estruturas de Dados II",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "FPR1",
+        "name": "Ferramentas de Programação 1",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "FP1C4",
+        "name": "Ferramentas de Programação I",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "GEAN",
+        "name": "Geometria Analítica",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "GEAC4",
+        "name": "Geometria Analítica",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "MTPE",
+        "name": "Metodologia de Pesquisa",
+        "sem": 4,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "MTPC2",
+        "name": "Metodologia de Pesquisa",
+        "sem": 2,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "MPCL8",
+          "name": "Metodologia de Pesquisa Científica",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPMEPC",
+          "name": "Metodologia de Pesquisa Científica",
+          "h": 31.7
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "RCO1",
+        "name": "Redes de Computadores 1",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "RC1C4",
+        "name": "Redes de Computadores I",
+        "sem": 4,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "SOP2",
+        "name": "Sistemas Operacionais 2",
+        "sem": 4,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TSOC0",
+        "name": "Tópicos em Sist. Operacionais",
+        "sem": 9,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva na grade antiga (63,3h) e obrigatória na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "ALGL",
+        "name": "Álgebra Linear",
+        "sem": 5,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "ALIC5",
+        "name": "Álgebra Linear",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 4 aulas (63,3h) para 2 aulas (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "ACAL",
+        "name": "Análise e Complexidade de Algoritmos",
+        "sem": 5,
+        "h": 31.7
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Componente curricular criado na reformulação PPC 2022/2023 sem equivalência direta no PPC 2018."
+    },
+    {
+      "origem": {
+        "id": "EXT3",
+        "name": "Atividades de Extensão 3",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Componente curricular criado na reformulação PPC 2022/2023 sem equivalência direta no PPC 2018."
+    },
+    {
+      "origem": {
+        "id": "CALN",
+        "name": "Cálculo Numérico",
+        "sem": 5,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CANC5",
+        "name": "Cálculo Numérico",
+        "sem": 5,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "CNCL4",
+          "name": "Cálculo Numérico Computacional",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPCNCP",
+          "name": "Cálculo Numérico Computacional",
+          "h": 31.7
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "INOV",
+        "name": "Empreendedorismo e Inovação",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "EMPC5",
+        "name": "Empreendedorismo",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "TPG - 2022",
+          "code": "EMPG5",
+          "name": "Empreendedorismo",
+          "h": 63.3
+        }
+      ],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "FPR2",
+        "name": "Ferramentas de Programação 2",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "FP2C5",
+        "name": "Ferramentas de Programação II",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Equivale também a Ferramentas de Programação 1 se necessário."
+    },
+    {
+      "origem": {
+        "id": "GEPR",
+        "name": "Gestão de Projetos",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "GPRC5",
+        "name": "Gestão de Projetos",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "RCO2",
+        "name": "Redes de Computadores 2",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "RC2C5",
+        "name": "Redes de Computadores II",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "TECO",
+        "name": "Teoria da Computação",
+        "sem": 5,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TCOC5",
+        "name": "Teoria da Computação",
+        "sem": 5,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "EXT4",
+        "name": "Atividades de Extensão 4",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Componente curricular criado na reformulação PPC 2022/2023 sem equivalência direta no PPC 2018."
+    },
+    {
+      "origem": {
+        "id": "CPLD",
+        "name": "Compiladores",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CPLC6",
+        "name": "Compiladores",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "CGRA",
+        "name": "Computação Gráfica",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CGRC6",
+        "name": "Computação Gráfica",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "FPR3",
+        "name": "Ferramentas de Programação 3",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "FP3C6",
+        "name": "Ferramentas de Programação III",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "INHC",
+        "name": "Interação Humano-Computador",
+        "sem": 6,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "IHCC6",
+        "name": "Interação Humano-Computador",
+        "sem": 6,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "PEST",
+        "name": "Probabilidade e Estatística",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "PREC6",
+        "name": "Probabilidade e Estatística",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "SDIS",
+        "name": "Sistemas Distribuídos",
+        "sem": 6,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "SIDC6",
+        "name": "Sistemas Distribuídos",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "IART",
+        "name": "Inteligência Artificial",
+        "sem": 7,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "IARC7",
+        "name": "Inteligência Artificial",
+        "sem": 7,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "PRI1",
+        "name": "Projeto Integrado 1",
+        "sem": 7,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "PI1C7",
+        "name": "Projeto Integrado I",
+        "sem": 7,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "QSOF",
+        "name": "Qualidade de Software",
+        "sem": 7,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "QSFC7",
+        "name": "Qualidade de Software",
+        "sem": 7,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "SEGC",
+        "name": "Segurança Cibernética",
+        "sem": 7,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "SEGC7",
+        "name": "Segurança e Auditoria de Sistemas",
+        "sem": 7,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "TGRA",
+        "name": "Teoria dos Grafos",
+        "sem": 7,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TGRC7",
+        "name": "Teoria dos Grafos",
+        "sem": 7,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "VCOM",
+        "name": "Visão Computacional",
+        "sem": 7,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "VCOC0",
+        "name": "Visão Computacional",
+        "sem": 9,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva na grade antiga (63,3h) e obrigatória na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "APRM",
+        "name": "Aprendizado de Máquina",
+        "sem": 8,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "RENC0",
+        "name": "Redes Neurais Artificiais",
+        "sem": 9,
+        "h": 63.3
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "RNAL0",
+          "name": "Redes Neurais Artificiais - Eletiva",
+          "h": 31.7
+        }
+      ],
+      "obs": "Eletiva na grade antiga (63,3h) e obrigatória na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "CID",
+        "name": "Ciência de Dados",
+        "sem": 8,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CIDC0",
+        "name": "Ciência de Dados",
+        "sem": 9,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva na grade antiga (63,3h) e obrigatória na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "CSOC",
+        "name": "Computação e Sociedade",
+        "sem": 8,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "CESC8",
+        "name": "Computação e Sociedade",
+        "sem": 8,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "GOTI",
+        "name": "Governança em TI",
+        "sem": 8,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "GTIC6",
+        "name": "Gestão da Tecnologia da Informação",
+        "sem": 6,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "C.H. ajustada de 4 aulas (63,3h) para 2 aulas (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "PRI2",
+        "name": "Projeto Integrado 2",
+        "sem": 8,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "PI2C8",
+        "name": "Projeto Integrado II",
+        "sem": 8,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": ""
+    },
+    {
+      "origem": {
+        "id": "TPRO",
+        "name": "Tópicos em Programação",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TPRC0",
+        "name": "Tópicos em Programação",
+        "sem": 9,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva em ambas as grades (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "INFR",
+        "name": "Tópicos em Infraestrutura",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "IDSC0",
+        "name": "Implantação de Servidores",
+        "sem": 9,
+        "h": 63.3
+      },
+      "outrosCursos": [],
+      "obs": "Eletiva na grade antiga (63,3h) e eletiva na grade nova (63,3h)."
+    },
+    {
+      "origem": {
+        "id": "TCOM",
+        "name": "Tópicos em Computação",
+        "sem": 9,
+        "h": 63.3
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Componente curricular criado na reformulação PPC 2022/2023 sem equivalência direta no PPC 2018."
+    },
+    {
+      "origem": {
+        "id": "LIBG",
+        "name": "Libras (optativa)",
+        "sem": 10,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "LBSC0",
+        "name": "Libras (optativa)",
+        "sem": 10,
+        "h": 31.7
+      },
+      "outrosCursos": [
+        {
+          "curso": "BEE - 2017",
+          "code": "LBL0",
+          "name": "Língua Brasileira de Sinais (LIBRAS) - Optativa",
+          "h": 31.7
+        },
+        {
+          "curso": "BEE - 2023",
+          "code": "PEPLIBG",
+          "name": "Libras",
+          "h": 31.7
+        },
+        {
+          "curso": "CLP - 2017",
+          "code": "LB1P4",
+          "name": "Língua Brasileira de Sinais 1",
+          "h": 31.7
+        },
+        {
+          "curso": "CLP - 2023",
+          "code": "PEPLIB1",
+          "name": "Língua Brasileira de Sinais 1",
+          "h": 31.7
+        },
+        {
+          "curso": "TPG - 2022",
+          "code": "LIBG",
+          "name": "Libras - Optativa",
+          "h": 31.7
+        }
+      ],
+      "obs": "Optativa em ambas as grades (31,7h)."
+    },
+    {
+      "origem": {
+        "id": "SMIC",
+        "name": "Sist. Microcontrolados (optativa)",
+        "sem": 10,
+        "h": 63.3
+      },
+      "equivalente": false,
+      "destino": null,
+      "outrosCursos": [],
+      "obs": "Componente curricular criado na reformulação PPC 2022/2023 sem equivalência direta no PPC 2018."
+    },
+    {
+      "origem": {
+        "id": "TCC1",
+        "name": "TCC 1",
+        "sem": 11,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TCC1",
+        "name": "TCC 1",
+        "sem": 11,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": "Trabalho de Conclusão de Curso 1 (ambas as grades)."
+    },
+    {
+      "origem": {
+        "id": "TCC2",
+        "name": "TCC 2",
+        "sem": 12,
+        "h": 31.7
+      },
+      "equivalente": true,
+      "destino": {
+        "id": "TCC2",
+        "name": "TCC 2",
+        "sem": 12,
+        "h": 31.7
+      },
+      "outrosCursos": [],
+      "obs": "Trabalho de Conclusão de Curso 2 (ambas as grades)."
+    }
+  ]
+}

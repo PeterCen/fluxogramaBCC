@@ -62,6 +62,7 @@
       <button type="button" role="tab" id="tab-t-hor" data-tab="t-hor" aria-controls="t-hor" aria-selected="false" tabindex="-1" title="Grade semanal de aulas e salas">🕒 Horários</button>
       <button type="button" role="tab" id="tab-t-plan" data-tab="t-plan" aria-controls="t-plan" aria-selected="false" tabindex="-1" title="Previsão de quando você conclui o curso">📅 Plano estimado</button>
       <button type="button" role="tab" id="tab-t-ac" data-tab="t-ac" aria-controls="t-ac" aria-selected="false" tabindex="-1" title="Horas de atividades complementares">🏅 Atividades Compl.</button>
+      <button type="button" role="tab" id="tab-t-equiv" data-tab="t-equiv" aria-controls="t-equiv" aria-selected="false" tabindex="-1" title="Matriz oficial de equivalência entre PPC 2018 e PPC 2022/2023">🔄 Equivalência</button>
       <button type="button" role="tab" id="tab-t-cfg" data-tab="t-cfg" aria-controls="t-cfg" aria-selected="false" tabindex="-1" title="Ajustes do plano, salvar/carregar progresso">⚙️ Configurações</button>
       <button type="button" role="tab" id="tab-t-help" data-tab="t-help" aria-controls="t-help" aria-selected="false" tabindex="-1" title="Regras e simplificações do modelo">❓ Como funciona</button>
       <button type="button" role="tab" id="tab-t-feedback" data-tab="t-feedback" aria-controls="t-feedback" aria-selected="false" tabindex="-1" title="Mandar sugestão ou relatar problema">💬 Feedback</button>
@@ -468,6 +469,105 @@
         </details>
       </div>
 
+    </div>
+
+    <!-- Aba de Equivalência entre PPCs -->
+    <div class="tabpane" id="t-equiv" role="tabpanel" aria-labelledby="tab-t-equiv" tabindex="0">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+          <div>
+            <h2 style="margin:0 0 4px">🔄 Matriz Oficial de Equivalência Curricular</h2>
+            <div class="note">
+              Documento Oficial do IFSP Presidente Epitácio (SUAP nº 1787471 · Portaria CBCC-PEP · Coordenador Prof. André Luis Olivete).
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <a href="equivalencia%20mat%C3%A9rias.pdf" target="_blank" rel="noopener noreferrer" class="btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+              📄 Abrir PDF Oficial da Equivalência
+            </a>
+          </div>
+        </div>
+
+        <!-- Seletor de Direção e Filtros -->
+        <div class="equiv-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px;background:var(--bg2,#151b2e);border-radius:8px;margin-bottom:14px">
+          <label class="inl" style="font-weight:600">
+            Direção da Equivalência:
+            <select id="equivDir" style="margin-left:6px;font-weight:600">
+              <option value="antiga_para_nova">Grade Antiga (PPC 2018) ➔ Grade Nova (PPC 2022/2023)</option>
+              <option value="nova_para_antiga">Grade Nova (PPC 2022/2023) ➔ Grade Antiga (PPC 2018)</option>
+            </select>
+          </label>
+
+          <label class="inl">
+            Filtrar:
+            <input type="text" id="equivSearch" placeholder="Buscar por sigla ou nome..." style="margin-left:6px;width:180px">
+          </label>
+
+          <label class="inl">
+            Status:
+            <select id="equivFilterStatus" style="margin-left:6px">
+              <option value="all">Todas as disciplinas</option>
+              <option value="equiv">Apenas com equivalência (✓)</option>
+              <option value="no_equiv">Sem correspondência (⚠️)</option>
+              <option value="passed">Minhas matérias aprovadas (🎓)</option>
+            </select>
+          </label>
+
+          <label class="inl">
+            Semestre:
+            <select id="equivFilterSem" style="margin-left:6px">
+              <option value="all">Todos os semestres</option>
+              <option value="1">1º Semestre</option>
+              <option value="2">2º Semestre</option>
+              <option value="3">3º Semestre</option>
+              <option value="4">4º Semestre</option>
+              <option value="5">5º Semestre</option>
+              <option value="6">6º Semestre</option>
+              <option value="7">7º Semestre</option>
+              <option value="8">8º Semestre</option>
+              <option value="el">Eletivas / Optativas / TCC</option>
+            </select>
+          </label>
+
+          <button type="button" id="btnApplyEquiv" class="btn-sm pri" title="Copiar aprovações correspondentes para a outra grade curricular no navegador" style="margin-left:auto">
+            ⚡ Simular Migração de Matérias
+          </button>
+        </div>
+
+        <!-- KPIs de Equivalência -->
+        <div id="equivKpis" class="kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
+        </div>
+
+        <!-- Aviso Pedagógico / Informativo -->
+        <div id="equivPedNote" class="note" style="display:none;margin-bottom:12px;padding:8px 12px;background:rgba(59,130,246,0.1);border-left:3px solid #3b82f6;border-radius:4px">
+          ℹ️ <b>Nota sobre o curso atual:</b> A matriz oficial de equivalência abaixo é aplicável entre as grades do <b>Bacharelado em Ciência da Computação</b> (PPC 2018 e PPC 2022/2023). O curso de Licenciatura em Pedagogia possui PPC próprio (2023).
+        </div>
+
+        <!-- Tabela de Equivalência -->
+        <div style="overflow-x:auto">
+          <table class="grid" style="width:100%;text-align:left;border-collapse:collapse">
+            <thead>
+              <tr>
+                <th style="min-width:200px" id="thOrigem">Disciplina Origem (PPC 2018)</th>
+                <th style="width:90px;text-align:center">Semestre</th>
+                <th style="width:70px;text-align:center">C.H.</th>
+                <th style="width:140px;text-align:center">Equivalência</th>
+                <th style="min-width:220px" id="thDestino">Disciplina Equivalente (PPC 2023)</th>
+                <th style="width:90px;text-align:center">Sem. Equiv.</th>
+                <th style="width:70px;text-align:center">C.H. Equiv.</th>
+                <th style="min-width:180px">Outros Cursos / Observações</th>
+              </tr>
+            </thead>
+            <tbody id="equivBody">
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Resumo Oficial e Certificação -->
+        <div style="margin-top:16px;padding:12px;background:var(--bg2,#151b2e);border-radius:8px;font-size:12px;color:var(--mut)">
+          <b>Autenticidade e Base Normativa:</b> Documento Digitalizado Público registrado no SUAP sob Código Verificador <code>1787471</code> e Código de Autenticação <code>406de5f92c</code>, assinado digitalmente pelo Prof. Me. André Luis Olivete (Coordenador do CBCC-PEP) em 16/09/2024. Disciplinas marcadas como <i>"Sem correspondência"</i> não podem ser aproveitadas automaticamente e devem ser cursadas caso haja migração de PPC.
+        </div>
+      </div>
     </div>
 
     <!-- Campo Como funciona -->

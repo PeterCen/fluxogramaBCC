@@ -28,6 +28,7 @@ Para evitar a mistura de dados com a lógica de execução e permitir a escalabi
 | [`raw_new.js`](raw_new.js) | Matriz de tuplas das 65 disciplinas da grade nova de Ciência da Computação. | `2022.12.06-PPC-BAC-Ciência-Computação-PEP-Reformulação.pdf` |
 | [`raw_old.js`](raw_old.js) | Matriz de tuplas das 67 disciplinas da grade antiga de Ciência da Computação. | `PPC-CienciadaComputacao-Epitacio-antiga.pdf` |
 | [`convert_raw_to_json.mjs`](convert_raw_to_json.mjs) | Script de auditoria e validação que verifica a paridade exata (100%) entre as matrizes raw e os arquivos JSON puros. | Pipeline de validação Node.js |
+| [`extract_equivalence.mjs`](extract_equivalence.mjs) | Script de auditoria e extração que valida a matriz oficial de equivalência entre PPC 2018 e PPC 2022/2023. | `equivalencia matérias.pdf` (SUAP 1787471) |
 | [`cache_bust.mjs`](cache_bust.mjs) | Script de automação de cache busting: gera hash SHA-256 de `styles.css` e atualiza `index.html` e `pedagogia/index.html`. | Automação de CI e Pre-commit |
 
 ---
