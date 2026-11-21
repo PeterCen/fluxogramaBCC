@@ -928,7 +928,7 @@ function renderCurrent() {
         const avgNota = fmt(cur.reduce((s, r) => s + r.nota, 0) / n);
         const avgFreq = fmt(cur.reduce((s, r) => s + risk(r).freq, 0) / n);
         const sumRisk = fmt(cur.reduce((s, r) => s + risk(r).p, 0));
-        $("curAvg").textContent = `Média das notas: ${avgNota} · Frequência média: ${avgFreq}% · Reprovações esperadas: ${sumRisk} de ${n}`;
+        $("curAvg").textContent = `Média das notas: ${avgNota} · Frequência média: ${avgFreq}%`;
     } else {
         $("curAvg").textContent = "";
     }
