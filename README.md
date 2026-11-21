@@ -10,6 +10,8 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
   - Grade antiga BCC (PPC 2018): 55 obrigatórias, 9 eletivas (mínimo 2 = 126,6 h), Libras optativa, TCC de 100 h (2×50 h), 80 h de atividades complementares, total 3251 h.
   - Licenciatura em Pedagogia (PPC 2023): 47 obrigatórias, 4 estágios supervisionados (`ES5` a `ES8`, total 400 h, liberados após 35% da carga horária mínima), 4 eletivas (escolher 2 = 66,6 h) e 200 h de Atividades Teórico-Práticas de Aprofundamento, total 3200,3 h. O endereço `/pedagogia/` redireciona automaticamente para `/?curso=pedagogia`.
 
+- **Desacoplamento de Dados e Lógica (Scripts em `scripts/` vs. JSON Puro em `assets/data/courses/`)**: as matrizes curriculares foram completamente desacopladas do código JavaScript de execução e transformadas em arquivos JSON puros (`assets/data/courses/*.json`). Os scripts e matrizes históricas de extração dos PDFs (`raw_new.js`, `raw_old.js`) foram movidos para a pasta [`scripts/`](scripts/), acompanhados de documentação detalhada ([`scripts/README.md`](scripts/README.md)) e de um script utilitário de auditoria e paridade (`scripts/convert_raw_to_json.mjs`).
+
 - **Abas Acessíveis (WAI-ARIA & Teclado)**: a página é dividida em Fluxograma, Cursando agora, Trabalhos e Provas, Horários, Plano estimado, Atividades Compl., Configurações, Como funciona e Feedback, utilizando `role="tablist"`, `role="tab"`, `role="tabpanel"`, `aria-selected`, `aria-controls` e *roving tabindex* (`0`/`-1`), com navegação completa por teclado (`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, `End`, `Enter`, `Space`). O resumo (KPIs e barra de progresso) fica sempre visível no topo; a última aba usada é lembrada.
 
 - **Fluxograma (Desktop, Mobile/Touch, Teclado e Fallback em Lista)**:
@@ -33,8 +35,9 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - **Configurações**: próximo semestre letivo a cursar, máximo de disciplinas por semestre, chance de não cursar uma disciplina (usada no cenário provável/pessimista), aproveitamento esperado nas avaliações que faltam, base dos 75% que liberam o TCC 1, oferta par/ímpar e atividades complementares concluídas. Também ficam aqui salvar/carregar JSON, checkpoint rápido e limpar progresso.
 - **Risco de reprovar (por matéria)**: combina faltas e nota. Faltas: limite de 25% das aulas previstas, projetando 60% do ritmo atual nas aulas restantes. Nota: compara o % dos pontos a receber necessário para chegar a 6 com o aproveitamento esperado; se a nota máxima possível for ≥ 4, a NAF reduz esse risco em 25%. É uma estimativa, não uma previsão. A prioridade "Auto" é Alta quando o risco está entre 15% e 75%, e Baixa fora disso.
 - **Como funciona**: aba dentro da página com as regras e simplificações do modelo.
-- **Salvamento em JSON**:
-  - Autosave no `localStorage` do navegador.
+- **Salvamento e Importação em JSON com Validação de Esquema**:
+  - Autosave no `localStorage` do navegador e troca reativa em tempo de execução (`switchCourse()`) sem recarregar a página (`location.reload()`), reconstruindo o grafo curricular e a interface instantaneamente.
+  - Validação estrita de esquema (`validateStateSchema()`): antes de carregar qualquer arquivo JSON, o sistema valida a integridade estrutural, a compatibilidade de currículo e a presença dos campos essenciais, rejeitando arquivos corrompidos ou incompatíveis com mensagens detalhadas de erro.
   - Botões Salvar/Carregar JSON; no Chrome/Edge o arquivo fica vinculado e é atualizado a cada mudança (File System Access API). Nos demais navegadores, baixa o arquivo.
   - Campos salvos: `passed`, `electivePlan`, `startYear`, `startHalf`, `maxLoad`, `failRate`, `respectParity`, `acDone`, `current`, `tasks`, `cap`, `weekend`, `hor`, `ac`, `savedAt`.
 
@@ -44,10 +47,16 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - `assets/data/courses/index.json` — catálogo manifesto dos cursos disponíveis no sistema.
 - `assets/data/courses/bcc-2022.json`, `bcc-2018.json`, `pedagogia-2023.json` — arquivos JSON independentes por curso (metadados, regras de TCC/estágio, atividades complementares e matriz curricular).
 - `assets/js/courses.js` — carregador e validador de schema (`validateCourseConfig()`) dos arquivos JSON de cursos.
-- `assets/js/script.js` — motor unificado: simulação, risco, trabalhos e provas, renderização segura (`esc()`), sanitização de estado (`sanitizeState()`) e salvamento.
+- `assets/js/state.js` — grafo curricular (`C`, `ORDER`, `anc`, `desc`, `depth`, `rebuildCourseGraph()`), estado global (`S`), alternância reativa sem reload (`switchCourse()`), validação formal de JSON (`validateStateSchema()`), escape HTML (`esc()`), sanitização (`sanitizeState()`) e persistência (`persist()`).
+- `assets/js/risk.js` — cálculo de risco de reprovação (`risk()`, `riskMap()`), prioridade automática (`effPrio()`), sincronização de notas de avaliações (`syncSubjectGrades()`) e calculadora do Anexo III (`acCalc()`).
+- `assets/js/planner.js` — planejador guloso de semestres por caminho crítico (`simulate()`), seleção de eletivas (`electivesPlanned()`), regras de TCC/estágio (`tccOpen()`) e simulação Monte Carlo (`monte()`, `seed()`).
+- `assets/js/calendar.js` — utilitários de datas, fórmulas de importância/urgência/prioridade (`importance()`, `urgency()`, `prioOf()`) e planejador diário de estudo no calendário (`planTasks()`).
+- `assets/js/ui.js` — abas acessíveis WAI-ARIA (`bindTablist()`), renderização do fluxograma, modo mobile/toque, fallback em lista, tabelas e listeners de eventos.
+- `assets/js/script.js` — ponto de entrada principal que inicializa e reexporta os módulos da aplicação.
 - `assets/js/feedback.js` e `assets/js/config.js` — chamada para envio de feedback via Formspree.
 - `assets/css/styles.css` e `assets/img/` — estilos e ícone.
 - `pedagogia/index.html` e `assets/js/redirect-pedagogia.js` — redirecionamento compatível de `/pedagogia/` para `/?curso=pedagogia`.
+- `scripts/` — scripts e matrizes históricas de extração dos PDFs (`raw_new.js`, `raw_old.js`), script de auditoria/conversão (`convert_raw_to_json.mjs`), automação de cache busting (`cache_bust.mjs`) e documentação do pipeline (`scripts/README.md`), mantendo o ferramental separado dos dados em JSON puro.
 - `tests/security-check.mjs` — suíte automatizada de análise estática (`innerHTML` vs `esc()`), validação dos JSONs de cursos, testes de acessibilidade WAI-ARIA/fallbacks e fuzzing anti-XSS.
 - `tests/core-logic.test.mjs` — testes unitários da lógica pura de domínio (grafo de pré-requisitos, cálculo de risco, planejador guloso de semestres, simulação Monte Carlo, planejador diário de tarefas, atividades complementares e catálogo multi-curso).
 - `.githooks/pre-commit` — hook de pré-commit que executa a verificação de segurança e os testes unitários antes de permitir novos commits.

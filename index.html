@@ -24,7 +24,7 @@
   <meta name="twitter:description" content="Fluxograma interativo e planejador acadêmico do Bacharelado em Ciência da Computação (IFSP Presidente Epitácio). Acompanhe disciplinas, pré-requisitos, notas, faltas, horários e previsão de conclusão.">
   <meta name="twitter:image" content="https://petercen.github.io/assets/img/logo-bcc.png">
 
-  <link rel="stylesheet" href="./assets/css/styles.css?v=1.1">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=75c1256b6d">
   <link rel="icon" href="./assets/img/logo-bcc.png" type="image/png">
 </head>
 
@@ -441,43 +441,169 @@
 
     <!-- Campo Como funciona -->
     <div class="tabpane" id="t-help" role="tabpanel" aria-labelledby="tab-t-help" tabindex="0">
+      <!-- Guia Rápido: Primeiros Passos -->
       <div class="panel">
-        <h3 style="margin:0 0 6px">Como a estimativa funciona</h3>
-        <ul class="note">
-          <li>Oferta: no 1º semestre do ano são oferecidas as disciplinas dos semestres <b>ímpares</b> (1,3,5,7) e no 2º
-            as dos <b>pares</b> (2,4,6,8). Perder uma disciplina significa esperar 2 semestres para o próximo
-            oferecimento. Eletivas são consideradas ofertadas todo semestre; o TCC 1 é ofertado no 1º semestre e o TCC 2
-            no 2º.</li>
-          <li>Uma disciplina só entra no semestre seguinte ao da aprovação de todos os seus pré-requisitos. O planejador
-            prioriza as que liberam a maior cadeia de disciplinas (caminho crítico).</li>
-          <li><b>Cenário provável / pessimista</b>: simulação Monte Carlo (1000 rodadas) em que cada disciplina
-            planejada
-            pode falhar com a chance configurada. Mediana = provável; percentil 90 = pessimista.</li>
-          <li>Eletivas: são necessárias 126,6h (2 disciplinas). Use ★ para escolher quais; as demais são sugeridas
-            automaticamente. Optativas (Libras, Sist. Microcontrolados) não contam.</li>
-          <li id="helpTccAnt" style="display:none"><b>Grade antiga:</b> o PPC 2018 não fixa percentual para o TCC (100 h
-            = TCC 1 + TCC 2 de 50 h): ele só deve ser feito por quem conclui o curso nos dois semestres seguintes. Aqui
-            o TCC 1 é liberado quando restam no máximo 2× o limite de disciplinas por semestre (obrigatórias +
-            eletivas). Atividades complementares: 80 h. Eletivas: 126,6 h (2 de 63,3 h). Pré-requisitos "FP1 ou FP2 ou
-            FP3" de Projeto Integrado I foram simplificados para FP1.</li>
-          <li>TCC: o PPC permite iniciar após 75% da carga horária obrigatória; aqui é modelado em duas etapas de 30h:
-            TCC
-            1 (1º semestre, liberado quando 75% foi concluído) e TCC 2 (2º semestre, exige o TCC 1). A base dos 75% é
-            escolhida nos controles: carga total do curso (obrigatórias + eletivas + atividades complementares, como a
-            barra de progresso) ou só a carga obrigatória. Confirme no PPC qual vale.</li>
-          <li>Prazo máximo de integralização pelo PPC: 16 semestres; mínimo: 8.</li>
-          <li><b>Matérias em curso</b> não entram mais como pendentes do próximo semestre: o mínimo assume aprovação em
-            todas, e o provável/pessimista sorteiam o resultado de cada uma pelo risco calculado. Quem reprova volta na
-            próxima oferta (par/ímpar).</li>
-          <li><b>Risco por matéria</b> = faltas + nota. Faltas: limite de 25% das aulas previstas, projetando 60% do seu
-            ritmo atual de faltas nas aulas restantes. Nota: compara o % dos pontos a receber que você precisa tirar
-            para
-            chegar a 6 com o aproveitamento esperado; se a nota máxima possível for ≥ 4, a NAF reduz esse risco em 25%.
-            É
-            uma estimativa, não uma previsão.</li>
-          <li><b>Prioridade automática:</b> Alta quando o risco está entre 15% e 75% (onde o esforço muda o resultado);
-            Baixa quando já está seguro ou praticamente perdido.</li>
-          <li><b>Trabalhos e Provas — ordem de execução:</b> <i>Importância</i> = peso da atividade na matéria (pontos ÷ total de pontos da matéria, mínimo 10) × (1 + 50% do risco de reprovar na matéria), em escala 0–100. <i>Urgência</i> = 100 quando não há folga; decai com a folga em dias (dias até o prazo − esforço ÷ horas diárias). <i>Prioridade</i> = 55% importância + 45% urgência. O calendário distribui as horas dia a dia: a cada dia recalcula a prioridade e preenche suas horas diárias a partir da atividade mais prioritária; o trabalho termina no dia anterior à entrega. Se as horas não couberem, a atividade aparece como "não cabe".</li>
+        <h3 style="margin:0 0 6px">🚀 Primeiros Passos — Como usar o planejador em 4 etapas</h3>
+        <div class="note" style="margin-bottom:12px">
+          Este aplicativo funciona 100% no seu navegador (sem cadastro ou servidor) e salva seu progresso automaticamente. Siga o roteiro abaixo para configurar sua jornada acadêmica:
+        </div>
+        <div class="help-steps-grid">
+          <div class="help-step-card">
+            <div class="help-step-num">1</div>
+            <div>
+              <b>Escolha o Curso e o Semestre</b>
+              <p class="note">No topo da página, selecione seu <b>Curso / Grade curricular</b> (BCC 2022, BCC 2018 ou Pedagogia 2023). Na aba <b>⚙️ Configurações</b>, ajuste o próximo semestre letivo e quantas matérias pretende puxar por semestre.</p>
+            </div>
+          </div>
+          <div class="help-step-card">
+            <div class="help-step-num">2</div>
+            <div>
+              <b>Marque o que já concluiu</b>
+              <p class="note">No <b>🗺️ Fluxograma</b>, clique/toque nas matérias em que já foi aprovado (elas ficarão verdes). Se já concluiu vários semestres inteiros, use o atalho <b>Checkpoint rápido</b> em Configurações.</p>
+            </div>
+          </div>
+          <div class="help-step-card">
+            <div class="help-step-num">3</div>
+            <div>
+              <b>Defina o que está cursando agora</b>
+              <p class="note">Adicione as matérias deste semestre clicando no botão <b>📚</b> nos cards do fluxograma (ou duplo clique no PC), pela aba <b>📚 Cursando agora</b> ou montando sua grade semanal em <b>🕒 Horários</b>.</p>
+            </div>
+          </div>
+          <div class="help-step-card">
+            <div class="help-step-num">4</div>
+            <div>
+              <b>Gerencie Prazos, Notas e Backup</b>
+              <p class="note">Cadastre provas e trabalhos em <b>📝 Prazos</b> para calcular suas médias automaticamente e gerar seu cronograma de estudo no calendário. Use <b>💾 Salvar JSON</b> para guardar uma cópia segura no computador ou celular.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tutorial Detalhado de Cada Ferramenta -->
+      <div class="panel">
+        <h3 style="margin:0 0 6px">🧰 Tutorial das Ferramentas (Aba por Aba)</h3>
+        <div class="note" style="margin-bottom:14px">
+          Conheça todos os recursos, atalhos e integrações entre as ferramentas do sistema:
+        </div>
+
+        <div class="help-tools-grid">
+          <!-- 1. Fluxograma -->
+          <article class="help-tool-card">
+            <div class="help-tool-head">
+              <h4>🗺️ 1. Fluxograma (Grafo Visual &amp; Lista por Semestre)</h4>
+              <button type="button" class="btn-xs pri" data-goto-tab="t-flow">Abrir Fluxograma →</button>
+            </div>
+            <ul class="note help-list">
+              <li><b>Cores e status dos cards:</b> <span class="tag g" style="padding:1px 6px;border-radius:4px">Verde</span> = Aprovada · <span class="tag b" style="padding:1px 6px;border-radius:4px">Azul</span> = Disponível (pré-requisitos cumpridos) · <span class="tag y" style="padding:1px 6px;border-radius:4px">Amarelo</span> = Cursando agora · <span class="tag r" style="padding:1px 6px;border-radius:4px">Vermelho</span> = Cursando com risco alto (≥ 60%) · <b>Cinza</b> = Bloqueada · <b>Borda rosa à esquerda</b> = Curricularização da Extensão.</li>
+              <li><b>Como interagir no Computador:</b> <b>1 clique</b> marca/desmarca aprovação; <b>duplo clique</b> (ou botão <b>📚</b> no card) adiciona/remove de <i>Cursando agora</i>; <b>passar o mouse</b> (ou clicar em <b>🔍</b>) destaca toda a cadeia de pré-requisitos e as matérias que ela libera; <b>★</b> escolhe quais eletivas pretende cursar.</li>
+              <li><b>Como usar no Celular / Tela Touch:</b> use a barra <b>Ação ao tocar/clicar</b> acima do mapa para escolher o que 1 toque faz (<b>✓ Aprovar</b>, <b>📚 Cursando</b> ou <b>🔍 Pré-requisitos</b>), ou toque diretamente nos ícones <b>📚</b> e <b>🔍</b> do card. Ao inspecionar com <b>🔍</b>, abre-se um painel detalhado com chips clicáveis dos pré-requisitos e dependentes.</li>
+              <li><b>Visão 📋 Lista por Semestre (Mobile &amp; Acessibilidade):</b> ideal para telas pequenas ou leitura rápida sem rolagem horizontal. Exibe cada semestre em cartões com os pré-requisitos escritos por extenso e botões diretos de 1 toque.</li>
+              <li><b>Atalhos de Teclado no Fluxograma:</b> navegue entre os cards com as <b>Setas direcionais</b> (`↑` `↓` `←` `→`) ou `Tab`, pressione `Enter`/`Espaço` para executar a ação ativa, `C` para alternar <i>Cursando agora</i>, `I` para inspecionar pré-requisitos, `S` para escolher eletiva e `Esc` para fechar a inspeção.</li>
+              <li><b>Checkpoint inteligente em cascata:</b> marcar uma disciplina avançada como aprovada marca automaticamente todos os pré-requisitos anteriores dela; desmarcar uma disciplina remove a aprovação das matérias posteriores que dependiam dela.</li>
+            </ul>
+          </article>
+
+          <!-- 2. Cursando agora -->
+          <article class="help-tool-card">
+            <div class="help-tool-head">
+              <h4>📚 2. Cursando Agora (Notas, Faltas e Risco)</h4>
+              <button type="button" class="btn-xs pri" data-goto-tab="t-cur">Abrir Cursando Agora →</button>
+            </div>
+            <ul class="note help-list">
+              <li><b>Vínculo Automático com Avaliações (🔗 / 🔓):</b> quando uma matéria possui provas ou trabalhos cadastrados na aba <b>📝 Prazos</b>, os campos <b>Nota atual</b> e <b>Pontos a receber</b> ficam vinculados automaticamente (<span style="color:#93c5fd">🔗 azul</span>). Para editar a nota manualmente, clique no ícone <b>🔗</b> para desvincular (<b>🔓</b>); clique novamente quando quiser reativar o cálculo automático.</li>
+              <li><b>Controle de Faltas e Frequência:</b> preencha suas <b>Faltas</b>, <b>Aulas cumpridas</b> (já dadas até hoje) e <b>Aulas previstas</b> (total do semestre, padrão 19 semanas). O sistema calcula sua frequência (%) e mostra quantas aulas de <b>folga</b> você ainda tem antes de estourar o limite de 25% de faltas (mínimo de 75% de presença do IFSP).</li>
+              <li><b>Risco de Reprovar e Prioridade:</b> combina a chance de estourar em faltas com a dificuldade de atingir nota 6,0 nos pontos restantes, indicando o que <i>pesa mais: faltas ou nota</i>. A prioridade <b>Auto</b> marca como <b>Alta</b> matérias com risco entre 15% e 75% (onde seu estudo faz diferença real) e <b>Baixa</b> quando já está garantida ou crítica.</li>
+              <li><b>Fase da Matéria:</b> <b>Consumindo</b> (aulas normais em andamento), <b>Revisando</b> (reta final / preparação para exame/NAF) e <b>Finalizada</b> (já passou na matéria neste semestre — ela passa a contar imediatamente como aprovada no fluxograma e na previsão de formatura!).</li>
+            </ul>
+          </article>
+
+          <!-- 3. Prazos -->
+          <article class="help-tool-card">
+            <div class="help-tool-head">
+              <h4>📝 3. Prazos (Tarefas, Provas, Notas e Calendário)</h4>
+              <button type="button" class="btn-xs pri" data-goto-tab="t-tr">Abrir Prazos →</button>
+            </div>
+            <ul class="note help-list">
+              <li><b>Os 3 Status de uma Avaliação:</b>
+                <ul>
+                  <li><b>⏳ A Fazer (Pendente):</b> atividade ainda não entregue/realizada. Entra na fila de prioridade, tem suas horas de estudo distribuídas no calendário e soma nos <i>Pontos a receber</i> da matéria.</li>
+                  <li><b>🔍 Avaliando (Aguardando nota):</b> você já fez a prova ou entregou o trabalho e aguarda o professor corrigir. Ela <b>sai do cronograma de estudo do calendário</b>, mas seus pontos continuam em disputa (não zera sua nota!).</li>
+                  <li><b>✅ Avaliada (Nota lançada):</b> assim que você digita a <b>Nota obtida</b> na tabela ou no card, o status muda automaticamente para <i>Avaliada</i> e os pontos entram na <b>Nota atual</b> da matéria!</li>
+                </ul>
+              </li>
+              <li><b>Visão 📋 Lista de Atividades:</b> reúne todas as entregas com alertas de prazo (<i>Hoje! ⚡</i>, <i>Amanhã</i>, <i>Em N dias</i> ou <i>Atrasada</i>), data sugerida para começar a estudar (<i>Ideal começar: DD/MM</i>), filtros por matéria/tipo/status e ordenação por prioridade, prazo, matéria ou pontuação.</li>
+              <li><b>Visão 📚 Por Matéria &amp; Notas:</b> exibe um painel por disciplina com barra de progresso dividida entre <span style="color:var(--ok)">pontos já obtidos (verde)</span> e <span style="color:var(--av)">pontos em disputa (azul)</span>, comparados com a linha tracejada da <b>meta 6,0 do IFSP</b>.</li>
+              <li><b>Visão 🗓️ Calendário &amp; Planejador:</b> distribui automaticamente o <b>Esforço (horas)</b> de cada atividade pendente nos dias disponíveis até a véspera da entrega. Ajuste suas <b>Horas de estudo/dia</b> (1h a 10h) e se estuda aos <b>Finais de semana</b>.</li>
+            </ul>
+          </article>
+
+          <!-- 4. Horários -->
+          <article class="help-tool-card">
+            <div class="help-tool-head">
+              <h4>🕒 4. Horários (Grade Semanal de Aulas e Salas)</h4>
+              <button type="button" class="btn-xs pri" data-goto-tab="t-hor">Abrir Horários →</button>
+            </div>
+            <ul class="note help-list">
+              <li><b>Oferta inteligente por semestre:</b> em cada horário (Segunda a Sexta, das 07:10 às 17:40), a caixa de seleção lista no topo o que você já está <b>Cursando agora</b> e, logo abaixo, apenas as disciplinas <b>Ofertadas no semestre atual</b> (ímpares no 1º semestre do ano, pares no 2º) cujos pré-requisitos você já cumpriu.</li>
+              <li><b>Sincronização automática:</b> escolher uma matéria em qualquer horário da grade a adiciona automaticamente à aba <b>📚 Cursando agora</b>.</li>
+              <li><b>Salas e destaque do dia:</b> preencha o campo <i>sala</i> (ex.: <i>Lab 3, B-104</i>) abaixo de cada matéria; a coluna do dia da semana atual fica destacada automaticamente na tabela.</li>
+            </ul>
+          </article>
+
+          <!-- 5. Plano Estimado e KPIs -->
+          <article class="help-tool-card">
+            <div class="help-tool-head">
+              <h4>📅 5. Plano Estimado &amp; Painel de Indicadores (KPIs)</h4>
+              <button type="button" class="btn-xs pri" data-goto-tab="t-plan">Abrir Plano Estimado →</button>
+            </div>
+            <ul class="note help-list">
+              <li><b>Indicadores sempre visíveis no topo:</b>
+                <ul>
+                  <li><b>Mínimo restante:</b> menor número de semestres para se formar se não houver nenhuma reprovação ou falta de oferta.</li>
+                  <li><b>Provável (Mediana):</b> estimativa realista considerando a taxa configurada de falha/choque/reprovação e o risco das matérias atuais.</li>
+                  <li><b>Pessimista (P90):</b> cenário cauteloso (90% das simulações terminam até esse semestre; fica amarelo se ultrapassar o prazo máximo de 16 semestres).</li>
+                  <li><b>Progresso (% e Horas):</b> soma obrigatórias + até 2 eletivas + TCC/Estágios + Atividades Complementares validadas.</li>
+                </ul>
+              </li>
+              <li><b>Simulador de Cenário na Linha do Tempo:</b> na aba <b>📅 Plano estimado</b>, alterne entre <i>"Passo em tudo que estou cursando"</i> e <i>"Reprovo nas matérias com risco ≥ 50%"</i> para ver imediatamente o impacto de uma eventual reprovação nos próximos semestres.</li>
+            </ul>
+          </article>
+
+          <!-- 6. Atividades Complementares e Configurações -->
+          <article class="help-tool-card">
+            <div class="help-tool-head">
+              <h4>🏅 6. Atividades Compl. &amp; ⚙️ Configurações / Backup JSON</h4>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button type="button" class="btn-xs pri" data-goto-tab="t-ac">Atividades Compl. →</button>
+                <button type="button" class="btn-xs pri" data-goto-tab="t-cfg">Configurações →</button>
+              </div>
+            </div>
+            <ul class="note help-list">
+              <li><b>Calculadora do Anexo III (BCC PPC 2022 — 65h):</b> clique em <i>"Ver e editar atividades (Anexo III)"</i> para lançar quantidades de artigos, iniciação científica, extensão, maratonas, semanas acadêmicas, cursos, ENADE e POSCOMP. O app aplica sozinho o limite máximo de unidades de cada item e o teto compartilhado do <b>Grupo A (máx. 40h somando publicações da Seção I)</b>.</li>
+              <li><b>Lançamento de Horas (BCC 2018 — 80h / Pedagogia ATPA — 200h):</b> informe diretamente o total de horas já validadas ou marque a opção de atividades concluídas em Configurações.</li>
+              <li><b>Salvamento Automático e Vínculo com Arquivo JSON:</b> tudo é salvo instantaneamente no navegador (`localStorage`), de forma independente para cada curso. Ao clicar em <b>💾 Salvar JSON</b> em navegadores baseados em Chromium (Chrome/Edge), o arquivo escolhido fica <b>vinculado em tempo real</b>: qualquer nota ou matéria alterada atualiza o arquivo no seu computador automaticamente! Use <b>📂 Carregar JSON</b> para restaurar ou transferir seus dados entre dispositivos.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+
+      <!-- Regras Acadêmicas e Matemática da Estimativa -->
+      <div class="panel">
+        <h3 style="margin:0 0 6px">📐 Regras Acadêmicas e Como os Cálculos Funcionam</h3>
+        <ul class="note help-list">
+          <li><b>Oferta Par / Ímpar:</b> no 1º semestre do ano são oferecidas as disciplinas dos semestres <b>ímpares</b> (1, 3, 5, 7) e no 2º as dos <b>pares</b> (2, 4, 6, 8). Perder uma disciplina obrigatória significa aguardar 2 semestres para a próxima oferta (pode ser desativado em <i>Respeitar oferta par/ímpar</i>). Eletivas são consideradas ofertadas todo semestre; o TCC 1 ocorre no 1º semestre e o TCC 2 no 2º.</li>
+          <li><b>Planejador Guloso por Caminho Crítico:</b> uma disciplina só pode ser cursada no semestre seguinte ao da aprovação de todos os seus pré-requisitos. Quando há mais disciplinas disponíveis do que o seu limite por semestre, o algoritmo prioriza aquelas que desbloqueiam a maior cadeia de matérias futuras.</li>
+          <li><b>Simulação Monte Carlo (Cenários Provável e Pessimista):</b> executa 1000 rodadas completas até a formatura, sorteando reprovações nas matérias atuais segundo o risco individual calculado e falhas futuras segundo a % configurada. A <b>mediana (P50)</b> define o cenário provável e o <b>percentil 90 (P90)</b> define o pessimista.</li>
+          <li><b>Eletivas e Optativas:</b> são exigidas 2 disciplinas eletivas (126,6h em BCC; 66,6h em Pedagogia). Use <b>★</b> para fixar suas preferidas; as restantes são escolhidas automaticamente. Optativas (Libras em BCC, Sist. Microcontrolados) não entram no cômputo obrigatório.</li>
+          <li id="helpTccAnt" style="display:none"><b>Regra específica — Grade Antiga BCC (PPC 2018):</b> o PPC 2018 não fixa percentual para o TCC (100h = TCC 1 + TCC 2 de 50h): ele é liberado quando restam no máximo 2× o limite de disciplinas por semestre (obrigatórias + eletivas). Atividades complementares: 80h. Pré-requisitos "FP1 ou FP2 ou FP3" de Projeto Integrado I foram simplificados para FP1.</li>
+          <li><b>Regras de TCC (BCC PPC 2022) e Estágio (Pedagogia PPC 2023):</b> em BCC (grade nova), o TCC 1 (30h) exige <b>75% da carga concluída</b> (configurável entre carga total do curso ou apenas obrigatórias) e o TCC 2 (30h) exige aprovação no TCC 1. Em Pedagogia, os 4 Estágios Supervisionados (400h nos semestres 5 a 8) exigem <b>35% da carga horária mínima (1.120,1h)</b> cumprida em disciplinas obrigatórias/estágios.</li>
+          <li><b>Fórmula do Risco de Reprovação (Faltas + Nota + NAF):</b>
+            <i>Risco por Faltas ($p_F$)</i> compara a folga até o limite de 25% com a projeção de 60% do seu ritmo atual de faltas nas aulas restantes via curva sigmoide.
+            <i>Risco por Nota ($p_N$)</i> compara a proporção de pontos que você precisa tirar ($\frac{6 - \text{nota}}{\text{pontos restantes}}$) com seu aproveitamento esperado; caso sua nota máxima possível ($\text{nota} + \text{pontos restantes}$) seja $\ge 4,0$, a possibilidade de <b>NAF (Avaliação Final)</b> reduz $p_N$ em 25%. O risco combinado é $p = 1 - (1 - p_F)(1 - p_N)$.</li>
+          <li><b>Fórmula de Prioridade e Distribuição de Estudo:</b>
+            <i>Importância</i> = $\frac{\text{pontos da atividade}}{\max(10,\ \text{total de pontos da matéria})} \times (1 + 0,5 \times \text{risco da matéria})$, escalada de 0 a 100.
+            <i>Urgência</i> = $100$ quando não há folga, decaindo com a folga líquida ($\text{dias até a entrega} - \frac{\text{horas restantes}}{\text{horas/dia}}$).
+            <i>Prioridade</i> = $55\% \text{ Importância} + 45\% \text{ Urgência}$. A cada dia, o planejador do calendário aloca suas horas diárias priorizando as atividades de maior pontuação de prioridade até a véspera da entrega.</li>
         </ul>
       </div>
     </div>
@@ -523,8 +649,6 @@
       </form>
     </div>
   </div>
-
-  <!-- <script src="assets/js/script.js"></script> -->
   <script type="module" src="assets/js/script.js"></script>
   <script type="module" src="assets/js/feedback.js"></script>
 </body>

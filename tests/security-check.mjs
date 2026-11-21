@@ -55,7 +55,17 @@ const SAFE_HTML_FRAGMENTS = new Set([
     "stBadge",
     "preHtml",
     "kidsHtml",
-    "cardsHtml"
+    "cardsHtml",
+    "expKpiHtml",
+    "listHtml",
+    "folgaNote",
+    "riskCellHtml",
+    "evalSpan",
+    "unlockBtn",
+    "overCapWarn",
+    "groupCell",
+    "maxCell",
+    "evalMeta"
 ]);
 
 /**
@@ -211,11 +221,38 @@ function auditFileForUnescapedHtml(relPath) {
     return { innerHtmlCount, escCallCount, lines: lines.length };
 }
 
-const scriptStats = auditFileForUnescapedHtml("assets/js/script.js");
-ok(`assets/js/script.js: ${scriptStats.innerHtmlCount} usos de innerHTML, ${scriptStats.escCallCount} chamadas a esc() — 0 interpolações HTML sem escape.`);
+const JS_MODULES = [
+    "assets/js/courses.js",
+    "assets/js/state.js",
+    "assets/js/risk.js",
+    "assets/js/planner.js",
+    "assets/js/calendar.js",
+    "assets/js/ui.js",
+    "assets/js/script.js",
+    "assets/js/feedback.js"
+];
+
+let totalInnerHtml = 0;
+let totalEscCalls = 0;
+for (const modPath of JS_MODULES) {
+    const stats = auditFileForUnescapedHtml(modPath);
+    totalInnerHtml += stats.innerHtmlCount;
+    totalEscCalls += stats.escCallCount;
+    // Verifica limite de tamanho do módulo e comprimento máximo de linha (<= 300 caracteres)
+    const rawLines = fs.readFileSync(path.join(ROOT, modPath), "utf8").split(/\r?\n/);
+    const longLines = rawLines
+        .map((l, idx) => ({ line: idx + 1, len: l.length }))
+        .filter(x => x.len > 300);
+    assert.equal(
+        longLines.length,
+        0,
+        `Módulo ${modPath} possui linha(s) com mais de 300 caracteres: ${JSON.stringify(longLines)}`
+    );
+}
+ok(`Modularização verificada (${JS_MODULES.length} módulos JS): ${totalInnerHtml} usos de innerHTML, ${totalEscCalls} chamadas a esc(), 0 interpolações sem escape e 0 linhas > 300 caracteres.`);
 assert.ok(
-    scriptStats.escCallCount >= scriptStats.innerHtmlCount,
-    `Esperado número de chamadas a esc() (${scriptStats.escCallCount}) >= usos de innerHTML (${scriptStats.innerHtmlCount})`
+    totalEscCalls >= totalInnerHtml,
+    `Esperado número de chamadas a esc() (${totalEscCalls}) >= usos de innerHTML (${totalInnerHtml})`
 );
 
 // Verifica catálogo de cursos orientado a dados (1 JSON por curso em assets/data/courses/)
@@ -310,7 +347,7 @@ globalThis.document = {
     querySelectorAll() { return []; }
 };
 
-const { esc, sanitizeState, bindTablist } = await import("../assets/js/script.js");
+const { esc, sanitizeState, validateStateSchema, bindTablist } = await import("../assets/js/script.js");
 
 assert.equal(esc('<script>alert("xss")</script>'), "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;");
 assert.equal(esc(`' onload='alert(1)`), "&#39; onload=&#39;alert(1)");
@@ -458,18 +495,49 @@ assert.deepEqual(clean.ac, {});
 assert.equal(clean.acHoras, 0);
 ok("sanitizeState() bloqueou prototype pollution, tipos inválidos e payloads XSS em todos os campos do JSON.");
 
+const valMalicious = validateStateSchema(maliciousJson);
+assert.equal(valMalicious.valid, false, "validateStateSchema() deve reprovar JSON com schema adulterado");
+assert.ok(valMalicious.errors.length >= 2, "validateStateSchema() deve reportar múltiplos erros estruturais");
+ok("validateStateSchema() detectou e rejeitou schema adulterado com mensagens claras.");
+
 // ============================================================================
 // 4. TESTE DE RENDERIZAÇÃO DOM COMPLETA E VERIFICAÇÃO DE CSP
 // ============================================================================
 console.log("\n🌐 [4/4] Testando renderização DOM completa com entradas maliciosas e CSP...");
 
-// Simula carregamento do JSON malicioso via input de arquivo (#fileIn)
+const xssPayloadJson = {
+    version: 1,
+    curriculo: "nova",
+    passed: ["ALP1"],
+    current: [{ id: "ALP1", nota: 5, pts: 5, prev: 76, cum: 76, falt: 0 }],
+    tasks: [{
+        id: "t1",
+        subj: "ALP1",
+        type: "Outro",
+        status: "pendente",
+        title: "\"><img src=x onerror=alert('title')><script>evil()</script>",
+        due: "",
+        pts: 2,
+        got: null,
+        eff: 1
+    }],
+    hor: {
+        cells: {
+            "0-0": {
+                id: "ALP1",
+                sala: "\"><img src=x onerror=alert('sala')>"
+            }
+        }
+    }
+};
+
+// Simula carregamento do JSON com payloads maliciosos via input de arquivo (#fileIn)
 const fileIn = getMockEl("fileIn");
 await fileIn.onchange({
     target: {
         files: [{
             async text() {
-                return JSON.stringify(maliciousJson);
+                return JSON.stringify(xssPayloadJson);
             }
         }],
         value: "malicious.json"
@@ -538,6 +606,28 @@ assert.ok(
 );
 ok("index.html possui Content-Security-Policy ativa bloqueando scripts inline/injetados.");
 
+// Verifica cache-busting automatizado e ausência de código morto (<script> comentado)
+const { computeFileHash } = await import("../scripts/cache_bust.mjs");
+const expectedCssHash = computeFileHash(path.join(ROOT, "assets/css/styles.css"));
+const pedHtml = fs.readFileSync(path.join(ROOT, "pedagogia/index.html"), "utf8");
+assert.ok(
+    !/<!--[\s\S]*?<script[\s\S]*?-->/i.test(indexHtml),
+    "index.html não deve conter tags <script> comentadas (código morto)"
+);
+assert.ok(
+    indexHtml.includes(`styles.css?v=${expectedCssHash}`),
+    `index.html deve conter styles.css com hash SHA-256 automatizado (?v=${expectedCssHash})`
+);
+assert.ok(
+    !indexHtml.includes("styles.css?v=1.1") && !indexHtml.includes("styles.css?v=1.0"),
+    "index.html não deve utilizar versões manuais (?v=1.1) em styles.css"
+);
+assert.ok(
+    pedHtml.includes(`styles.css?v=${expectedCssHash}`),
+    `pedagogia/index.html deve conter styles.css com hash SHA-256 automatizado (?v=${expectedCssHash})`
+);
+ok(`Cache-busting automatizado verificado (?v=${expectedCssHash}) e código morto (<script> comentado) removido.`);
+
 // ============================================================================
 // 5. TESTE DE ACESSIBILIDADE (WAI-ARIA TABLIST, TECLADO, MOBILE & FALLBACK)
 // ============================================================================
@@ -552,7 +642,6 @@ assert.ok(indexHtml.includes("<noscript>"), "index.html deve possuir bloco <nosc
 assert.ok(indexHtml.includes('id="flowFallback"'), "index.html deve possuir container #flowFallback para visão em lista");
 assert.ok(indexHtml.includes('id="flowInspect"'), "index.html deve possuir painel #flowInspect para inspeção sem hover");
 
-const pedHtml = fs.readFileSync(path.join(ROOT, "pedagogia/index.html"), "utf8");
 assert.ok(
     pedHtml.includes("../?curso=pedagogia") && pedHtml.includes('http-equiv="Content-Security-Policy"'),
     "pedagogia/index.html deve redirecionar para o app unificado (../?curso=pedagogia) com CSP ativa"
