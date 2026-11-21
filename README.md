@@ -3,6 +3,10 @@
 Página única ([index.html](index.html)), sem dependências: basta abrir no navegador.
 Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extraídos do PPC 2022 (`2022.12.06-PPC-BAC-Ciência-Computação-PEP-Reformulação.pdf`).
 
+> [!IMPORTANT]
+> **Aviso de Estimativas Não Oficiais (Isenção de Responsabilidade):**
+> Este simulador é uma ferramenta acadêmica independente desenvolvida de forma colaborativa por estudantes, sem vínculo institucional oficial com o IFSP. As estimativas de formatura, simulações Monte Carlo, projeções de risco de reprovação e sugestões de cronograma de estudos são modelos algorítmicos aproximados para fins de planejamento pessoal. Elas **não substituem** as informações oficiais registradas no SUAP nem as deliberações da Coordenadoria de Registros Acadêmicos (CRA), da Coordenação de Curso ou do Colegiado. Apenas os documentos oficiais assinados (como PPCs e Portarias de Equivalência) possuem validade jurídica institucional.
+
 ## O que foi feito
 
 - **Aplicativo Único Orientado a Dados (1 JSON por Curso)**: o seletor no topo (`#curSw`) e o parâmetro de URL `?curso=<id>` alternam dinamicamente entre qualquer curso cadastrado em `assets/data/courses/index.json` — atualmente **Ciência da Computação — PPC 2022** (`bcc-2022.json`), **Ciência da Computação — PPC 2018** (`bcc-2018.json`) e **Licenciatura em Pedagogia — PPC 2023** (`pedagogia-2023.json`). Todos os cursos compartilham o mesmo motor completo (fluxograma, cursando agora, trabalhos e provas, horários, plano estimado, atividades complementares e feedback), eliminando cópias de código por pasta. Cada curso salva seu progresso separadamente em sua própria chave do `localStorage`, e o JSON exportado guarda o campo `curriculo` para trocar automaticamente de curso ao ser importado.
@@ -75,50 +79,77 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - `.github/workflows/security.yml` — workflow de CI (GitHub Actions) que valida pushes e pull requests automaticamente.
 - PDFs na raiz — PPCs e documento formal de equivalência usados como fonte oficial dos dados (`equivalencia matérias.pdf`, Ciência da Computação nova e antiga, e Pedagogia).
 
-## Como Adicionar um Novo Curso (JSON)
+## Como Atualizar os Dados quando Sair um Novo PPC
 
-Para adicionar um novo curso ou uma nova reformulação de PPC sem duplicar código ou criar pastas:
+Quando o IFSP publicar uma reformulação, retificação ou aprovar um novo PPC de curso, siga este passo a passo para atualizar a aplicação:
 
-1. Crie o arquivo `assets/data/courses/<id-do-curso>.json` com o seguinte formato:
-   ```json
-   {
-     "id": "ads-2026",
-     "title": "Tecnologia em Análise e Desenvolvimento de Sistemas",
-     "shortTitle": "ADS (PPC 2026)",
-     "label": "ADS — PPC 2026 (Noturno)",
-     "icon": "💻",
-     "sub": "IFSP Câmpus Presidente Epitácio · PPC 2026",
-     "ls": "fluxo-ads-v1",
-     "unit": "aulas",
-     "tccH": 30,
-     "acReq": 40,
-     "acName": "Atividades Complementares",
-     "totalH": 2000,
-     "acTable": false,
-     "tccRest": false,
-     "tccPct": 0.75,
-     "estMinPct": 0,
-     "eletNeed": 2,
-     "eletHeaderSub": "126,6h de eletivas",
-     "eletDef": ["EL01", "EL02"],
-     "eletivas": ["EL01", "EL02"],
-     "tccLbl": "libera com 75% da carga",
-     "raw": [
-       ["ALG1", "Algoritmos e Programação", 1, 4, 0, []],
-       ["WEB1", "Desenvolvimento Web", 2, 4, 0, ["ALG1"]]
-     ]
-   }
-   ```
-   - Use `"unit": "aulas"` quando o 4º valor de cada item em `"raw"` for o número de aulas semanais (convertido por `aulas * 19 * 50 / 60`), ou `"unit": "horas"` quando o 4º valor já for a carga horária em horas (como em `pedagogia-2023.json`).
-   - Semestres `1..8` são obrigatórias (`ob`, ou `es` se o código começar com `"ES"`), `9` são eletivas (`el`), `10` são optativas (`op`) e `11..12` com código `"TCC*"` são etapas de TCC (`tcc`).
-2. Registre o novo arquivo em `assets/data/courses/index.json`:
-   ```json
-   {
-     "id": "ads-2026",
-     "file": "ads-2026.json",
-     "label": "ADS — PPC 2026 (Noturno)"
-   }
-   ```
+1. **Adicionar o PDF Oficial na Raiz**:
+   - Salve o documento PDF oficial na raiz do projeto (ex.: `AAAA.MM.DD-PPC-<CURSO>-PEP.pdf`).
+2. **Estruturar o JSON do Curso em `assets/data/courses/`**:
+   - Crie o arquivo `assets/data/courses/<id-do-curso>.json` (ex.: `bcc-2026.json`):
+     - `id`: identificador único alfanumérico (ex.: `"bcc-2026"`).
+     - `title`, `shortTitle`, `label`, `icon`, `sub`: textos e ícone exibidos no seletor e no topo.
+     - `unit`: `"aulas"` (se o valor na matriz for aulas/semana, convertido por `aulas * 19 * 50 / 60`) ou `"horas"` (se já estiver em horas líquidas).
+     - `tccH`, `tccRest`, `tccPct`: carga de TCC e regras de liberação (ex.: 75% da carga cumprida).
+     - `acReq`, `totalH`, `acTable`: carga de atividades complementares e total do curso.
+     - `raw`: matriz de disciplinas onde cada item é uma tupla `[sigla, nome, semestre, carga, extensao, prerequisitos]`:
+       - `semestre`: `1..8` (obrigatórias, ou estágio se começar com `"ES"`), `9` (eletivas), `10` (optativas), `11..12` (etapas de TCC).
+       - `extensao`: `1` se tiver extensão curricular (tarja rosa no fluxograma), `0` caso contrário.
+       - `prerequisitos`: lista de siglas `["SIGLA1", "SIGLA2"]` que devem estar concluídas.
+3. **Registrar no Catálogo Manifesto**:
+   - Adicione a entrada correspondente em [`assets/data/courses/index.json`](assets/data/courses/index.json):
+     ```json
+     {
+       "id": "bcc-2026",
+       "file": "bcc-2026.json",
+       "label": "BCC — PPC 2026 (Integral)"
+     }
+     ```
+4. **Atualizar Matriz de Equivalência (se aplicável)**:
+   - Se houver portaria de equivalência curricular entre o novo PPC e os anteriores, atualize [`assets/data/equivalence/bcc-equivalence.json`](assets/data/equivalence/bcc-equivalence.json) com os mapeamentos oficiais e metadados SUAP.
+5. **Auditar e Validar**:
+   - Execute os testes automatizados para garantir que o JSON segue o schema e que não há regressões:
+     ```bash
+     node tests/security-check.mjs
+     node tests/core-logic.test.mjs
+     ```
+
+## Como Contribuir
+
+Contribuições são bem-vindas! Este projeto é mantido por estudantes para estudantes. Para colaborar:
+
+1. **Execução Local Sem Dependências**:
+   - O projeto utiliza JavaScript puro (Vanilla ES Modules) e HTML/CSS padrão. Não é necessário executar `npm install`.
+   - Requisitos: **Node.js LTS (v18+)** para rodar os testes unitários e scripts de verificação.
+   - Para rodar a aplicação localmente no navegador, sirva a pasta com qualquer servidor estático HTTP local:
+     ```bash
+     # Usando npx
+     npx serve .
+     # Ou usando Python 3
+     python3 -m http.server 8000
+     ```
+2. **Diretrizes de Qualidade e Código**:
+   - **Modularização**: mantenha a divisão de responsabilidades (`courses.js`, `state.js`, `risk.js`, `planner.js`, `calendar.js`, `equivalence.js`, `ui.js`).
+   - **Comprimento de Linhas**: nenhum arquivo JavaScript de produção deve exceder 300 caracteres por linha (regra auditada no CI).
+   - **Segurança Anti-XSS**: toda interpolação dinâmica dentro de templates atribuídos a `innerHTML` deve obrigatoriamente passar pela função `esc()`.
+   - **Acessibilidade (WAI-ARIA)**: novos componentes devem suportar navegação por teclado (`ArrowLeft`, `ArrowRight`, `Home`, `End`, `Tab`) e manter conformidade semântica com leitores de tela.
+   - **Cache-Busting Automatizado**: ao alterar estilos em `assets/css/styles.css`, execute `node scripts/cache_bust.mjs` para atualizar o hash SHA-256 no HTML.
+3. **Fluxo de Trabalho Git**:
+   - Ative o hook de pré-commit local:
+     ```bash
+     git config core.hooksPath .githooks
+     ```
+   - Crie uma branch com nome descritivo para sua alteração:
+     ```bash
+     git checkout -b feat/nome-da-melhoria
+     # ou
+     git checkout -b fix/descricao-do-bug
+     ```
+   - Antes de commitar, execute a suíte de testes:
+     ```bash
+     ./.githooks/pre-commit
+     ```
+   - Abra um Pull Request no repositório descrevendo as mudanças propostas e os testes realizados.
 
 ## Segurança, Acessibilidade e Testes Automatizados
 
