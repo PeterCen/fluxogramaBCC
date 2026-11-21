@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Leitor de Matriz Curricular (PPC -> JSON)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #121212;
+            color: #eee;
+        }
+
+        .box {
+            border: 2px dashed #444;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            background: #1e1e1e;
+        }
+
+        button {
+            background: #2ea043;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #3fb950;
+        }
+
+        textarea {
+            width: 100%;
+            height: 420px;
+            background: #0d1117;
+            color: #7ee787;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .stats {
+            margin: 10px 0;
+            color: #8b949e;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Extrator de Matriz Curricular (PDF → JSON)</h2>
+
+    <div class="box">
+        <input type="file" id="pdfInput" accept="application/pdf">
+        <button onclick="copiarJSON()">Copiar JSON</button>
+    </div>
+
+    <div class="stats" id="status">Aguardando envio do PDF...</div>
+    <textarea id="output" placeholder="O JSON gerado aparecerá aqui..."></textarea>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        document.getElementById('pdfInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('status').textContent = 'Lendo PDF...';
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            let linhas = [];
+
+            // Extrai o texto de todas as páginas respeitando a ordem visual (Y depois X)
+            for (let p = 1; p <= pdf.numPages; p++) {
+                const page = await pdf.getPage(p);
+                const content = await page.getTextContent();
+
+                // Agrupa itens na mesma linha (tolerância de 4px no eixo Y)
+                const itens = content.items.map(item => ({
+                    texto: item.str.trim(),
+                    x: Math.round(item.transform[4]),
+                    y: Math.round(item.transform[5])
+                })).filter(i => i.texto.length > 0);
+
+                // Ordena de cima para baixo (Y decrescente) e esquerda para direita (X crescente)
+                itens.sort((a, b) => Math.abs(b.y - a.y) > 4 ? b.y - a.y : a.x - b.x);
+
+                let linhaAtual = [];
+                let ultimoY = null;
+
+                for (const item of itens) {
+                    if (ultimoY !== null && Math.abs(item.y - ultimoY) > 4) {
+                        linhas.push(linhaAtual.join(' | '));
+                        linhaAtual = [];
+                    }
+                    linhaAtual.push(item.texto);
+                    ultimoY = item.y;
+                }
+                if (linhaAtual.length) linhas.push(linhaAtual.join(' | '));
+            }
+
+            const resultado = parsearMatriz(linhas);
+            document.getElementById('output').value = JSON.stringify(resultado, null, 2);
+            document.getElementById('status').textContent = `Concluído! ${resultado.raw.length} disciplinas extraídas.`;
+        });
+
+        function parsearMatriz(linhas) {
+            const raw = [];
+            let semestre = 1;
+            const siglasUsadas = new Set();
+
+            // Regex global para capturar múltiplos códigos na mesma linha (ex: PEPGOTI e PEPPR12)
+            const regexCodigoGlobal = /\b[PР][EЕ][PР]([A-Z0-9]{4})\b/g;
+
+            for (let i = 0; i < linhas.length; i++) {
+                const linha = linhas[i];
+
+                if (/Subtotal/i.test(linha)) {
+                    semestre++;
+                    continue;
+                }
+                if (/Componente Curricular Eletivo/i.test(linha)) {
+                    semestre = 9;
+                    continue;
+                }
+                if (/Componente Curricular Optativo/i.test(linha)) {
+                    semestre = 10;
+                    continue;
+                }
+
+                const matches = [...linha.matchAll(regexCodigoGlobal)];
+
+                for (const match of matches) {
+                    let codigo = match[1];
+                    if (codigo === 'PR12') codigo = 'PRI2';
+                    if (siglasUsadas.has(codigo)) continue;
+
+                    const colunas = linha.split('|').map(c => c.trim());
+                    let nome = colunas[0];
+
+                    // Tratamento para quebra de linha em "SISTEMAS MICROCONTROLADOS"[cite: 9]
+                    if (/^MICROCONTROLADOS$/i.test(nome) && i > 0) {
+                        nome = 'Sistemas Microcontrolados';
+                    } else if (regexCodigoGlobal.test(nome) && i > 0) {
+                        nome = linhas[i - 1].split('|')[0].trim();
+                    }
+
+                    nome = formatarNome(nome);
+                    if (semestre === 10) nome += ' (optativa)';
+
+                    const numeros = colunas
+                        .slice(1)
+                        .map(v => parseFloat(v.replace(',', '.')))
+                        .filter(n => !isNaN(n));
+
+                    const aulasSemana = numeros.find(n => n === 2 || n === 4 || n === 6) || 4;
+                    const cargaExtensao = numeros.length >= 2 ? numeros[numeros.length - 2] : 0;
+                    const temExtensao = cargaExtensao > 0 ? 1 : 0;
+
+                    siglasUsadas.add(codigo);
+                    raw.push([codigo, nome, semestre, aulasSemana, temExtensao, []]);
+                }
+
+                // Adiciona TCC 1 e TCC 2 se constar na tabela final da pág. 3[cite: 9]
+                if (/TRABALHO DE CONCLUSÃO DE CURSO/i.test(linha) && !siglasUsadas.has('TCC1')) {
+                    siglasUsadas.add('TCC1');
+                    siglasUsadas.add('TCC2');
+                    raw.push(['TCC1', 'TCC 1', 11, 2, 0, []]);
+                    raw.push(['TCC2', 'TCC 2', 12, 2, 0, ['TCC1']]);
+                }
+            }
+
+            return { raw };
+        }
+
+        function formatarNome(str) {
+            const minusculas = new Set(['e', 'de', 'da', 'do', 'das', 'dos', 'à', 'a', 'em']);
+            return str.toLowerCase().split(' ').map((palavra, idx) => {
+                if (['1', '2', '3', '4', 'ii', 'iii', 'ti'].includes(palavra)) return palavra.toUpperCase();
+                if (idx > 0 && minusculas.has(palavra)) return palavra;
+                return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+            }).join(' ');
+        }
+
+        function copiarJSON() {
+            const textarea = document.getElementById('output');
+            textarea.select();
+            document.execCommand('copy');
+            alert('JSON copiado para a área de transferência!');
+        }
+    </script>
+</body>
+
+</html>
