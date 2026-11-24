@@ -137,6 +137,11 @@ const {
     buildOptimalSchedule,
     populateDefaultOfferings,
     getOfferedSemesters,
+    getAllEnrollmentSemesters,
+    getEnrollWeeks,
+    addEnrollWeek,
+    deleteEnrollWeek,
+    ELECTIVES_SEM,
     populateDefaultSemesterOffers,
     findMaxCoursesSchedule,
     ENROLL_STATE
@@ -845,6 +850,10 @@ test("Estrutura das 4 semanas de oferta, inibição de cursadas e maximização 
     const semsEven = getOfferedSemesters(2);
     assert.deepEqual(semsEven, [2, 4, 6, 8]);
 
+    // Semanas completas de inscrição (inclui semana dedicada a Eletivas/Optativas - semestre 9)
+    assert.deepEqual(getAllEnrollmentSemesters(1), [1, 3, 5, 7, ELECTIVES_SEM]);
+    assert.deepEqual(getAllEnrollmentSemesters(2), [2, 4, 6, 8, ELECTIVES_SEM]);
+
     // 2. Preenchimento e cadastro nas 4 semanas de oferta (sem inibição prévia durante a montagem das turmas)
     populateDefaultSemesterOffers(semsOdd);
     const state = getState();
@@ -876,6 +885,46 @@ test("Estrutura das 4 semanas de oferta, inibição de cursadas e maximização 
 
     // c) Maximização: algoritmo deve escolher a maior quantidade possível de matérias elegíveis sem choques
     assert.ok(decision.recommended.length >= 4, "Deve recomendar o máximo de matérias possíveis sem choques");
+
+    // d) Disciplinas na semana de Eletivas (semestre 9) são consideradas e avaliadas
+    state.enrollOffers[ELECTIVES_SEM] = { "1-1": "TPRO" };
+    const decisionWithElet = buildOptimalSchedule(null, {}, 9);
+    assert.ok(decisionWithElet.effectiveSlotsMap["TPRO"], "TPRO cadastrada na semana de eletivas deve ser mapeada");
+
+    // e) Gerenciamento dinâmico de semanas (adicionar e excluir semanas)
+    resetState();
+    const initialWeeksCount = getEnrollWeeks().length;
+    assert.equal(initialWeeksCount, 1, "Inicializa com 1 semana por padrão");
+    addEnrollWeek();
+    assert.equal(getEnrollWeeks().length, initialWeeksCount + 1, "Adiciona uma nova semana");
+    const lastAddedWeekId = getEnrollWeeks()[getEnrollWeeks().length - 1];
+    deleteEnrollWeek(lastAddedWeekId);
+    assert.equal(getEnrollWeeks().length, initialWeeksCount, "Exclui a semana especificada");
+
+    // f) Priorização de semestre anterior mais básico e desempates
+    const passedTie = new Set(["ALP2", "IART"]);
+    const scoreSOP2 = calcCourseDecisionScore("SOP2", passedTie);
+    const scoreAPRM = calcCourseDecisionScore("APRM", passedTie);
+    assert.ok(scoreSOP2.score > scoreAPRM.score, "SOP2 (4º sem) deve pontuar mais que APRM (8º sem) por ser anterior/básica");
+    const confTie = analyzeConflicts([scoreSOP2, scoreAPRM], { SOP2: ["2-0"], APRM: ["2-0"] });
+    assert.equal(confTie.conflicts[0].winner.id, "SOP2", "SOP2 deve vencer conflito direto com APRM");
+    assert.ok(confTie.conflicts[0].reason.includes("semestre anterior") || confTie.conflicts[0].diffPts > 0);
+
+    // g) Avaliação de trocas multi-matérias (1 vs N) na maximização da grade
+    // Simula: SDIS ocupa slots 3-0 e 3-1; FPR1 ocupa 3-0; APRS ocupa 3-1
+    resetState({ passed: ["POOB", "BDD1", "RCO2"] }); // Pré-requisitos para FPR1 e SDIS
+    const customSlots = {
+        SDIS: ["3-0", "3-1"],
+        FPR1: ["3-0"],
+        APRS: ["3-1"]
+    };
+    const multiDecision = buildOptimalSchedule(["SDIS", "FPR1", "APRS"], customSlots, 9);
+    assert.ok(multiDecision.recommended.some(r => r.id === "FPR1"), "FPR1 deve ser recomendada");
+    assert.ok(multiDecision.recommended.some(r => r.id === "APRS"), "APRS deve ser recomendada");
+    assert.ok(multiDecision.deferred.some(d => d.id === "SDIS"), "SDIS deve ser preterida em favor de 2 matérias");
+    assert.ok(multiDecision.tradeoffs.length >= 1, "Deve identificar a troca multi-matérias (1 vs 2)");
+    assert.equal(multiDecision.tradeoffs[0].deferredId, "SDIS");
+    assert.equal(multiDecision.tradeoffs[0].gainCount, 1);
 });
 
 

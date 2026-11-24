@@ -247,6 +247,7 @@ export const defaultState = (curKey = KEY) => ({
     scen: 0,
     hor: { cells: {} },
     enrollOffers: {},
+    enrollWeeks: [1],
     ac: {},
     acHoras: 0,
     tccBase: "total",
@@ -351,7 +352,7 @@ export function sanitizeState(raw, curKey = KEY) {
     if (raw.enrollOffers && typeof raw.enrollOffers === "object" && !Array.isArray(raw.enrollOffers)) {
         for (const [semStr, slots] of Object.entries(raw.enrollOffers)) {
             const sem = parseInt(semStr, 10);
-            if (sem >= 1 && sem <= 12 && slots && typeof slots === "object" && !Array.isArray(slots)) {
+            if (sem >= 1 && sem <= 50 && slots && typeof slots === "object" && !Array.isArray(slots)) {
                 enrollOffers[sem] = {};
                 for (const [slotKey, cid] of Object.entries(slots)) {
                     if (/^[0-4]-[0-4]$/.test(slotKey) && typeof cid === "string" && hasCourse(cid, cMap)) {
@@ -360,6 +361,18 @@ export function sanitizeState(raw, curKey = KEY) {
                 }
             }
         }
+    }
+
+    let enrollWeeks = [1];
+    if (Array.isArray(raw.enrollWeeks)) {
+        enrollWeeks = raw.enrollWeeks
+            .map(x => parseInt(x, 10))
+            .filter(x => Number.isInteger(x) && x >= 1 && x <= 50);
+        if (enrollWeeks.length === 0) enrollWeeks = [1];
+        enrollWeeks = [...new Set(enrollWeeks)];
+    } else if (raw.enrollOffers && typeof raw.enrollOffers === "object") {
+        const keys = Object.keys(raw.enrollOffers).map(x => parseInt(x, 10)).filter(x => x >= 1 && x <= 50);
+        if (keys.length > 0) enrollWeeks = [...new Set(keys)].sort((a, b) => a - b);
     }
 
     const ac = {};
@@ -387,6 +400,7 @@ export function sanitizeState(raw, curKey = KEY) {
         scen: +raw.scen === 1 ? 1 : 0,
         hor: { cells },
         enrollOffers,
+        enrollWeeks,
         ac,
         acHoras: clampNum(raw.acHoras, 0, 1000, 0),
         tccBase: raw.tccBase === "obr" ? "obr" : "total",
@@ -441,7 +455,7 @@ export function validateStateSchema(raw) {
 
     const appKeys = [
         "curriculo", "passed", "current", "tasks", "electivePlan",
-        "hor", "enrollOffers", "ac", "acHoras", "startYear", "startHalf", "maxLoad"
+        "hor", "enrollOffers", "enrollWeeks", "ac", "acHoras", "startYear", "startHalf", "maxLoad"
     ];
     const hasAnyAppKey = appKeys.some(k => Object.prototype.hasOwnProperty.call(raw, k));
     if (!hasAnyAppKey) {

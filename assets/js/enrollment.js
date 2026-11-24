@@ -43,14 +43,71 @@ export const ENROLL_STATE = {
     offered: new Set(),
     slots: {},
     lastCurKey: null,
-    lastStartHalf: null
+    lastStartHalf: null,
+    analysisRun: false
 };
 
+export const ELECTIVES_SEM = 9;
+
 /**
- * Retorna a lista dos 4 semestres ofertados com base no semestre letivo (1 = ímpar, 2 = par).
+ * Retorna a lista dos semestres regulares ofertados com base no semestre letivo (1 = ímpar, 2 = par).
+ * includeElectives: se true, anexa também a semana 9 dedicada a disciplinas eletivas/optativas.
  */
-export function getOfferedSemesters(startHalf = S.startHalf) {
-    return +startHalf === 2 ? [2, 4, 6, 8] : [1, 3, 5, 7];
+export function getOfferedSemesters(startHalf = S.startHalf, includeElectives = false) {
+    const regular = +startHalf === 2 ? [2, 4, 6, 8] : [1, 3, 5, 7];
+    return includeElectives ? [...regular, ELECTIVES_SEM] : regular;
+}
+
+/**
+ * Retorna todos os semestres/turmas de inscrição a serem renderizados (4 regulares + 1 eletivas).
+ */
+export function getAllEnrollmentSemesters(startHalf = S.startHalf) {
+    return getOfferedSemesters(startHalf, true);
+}
+
+/**
+ * Retorna a lista de semanas ativas cadastradas pelo usuário.
+ */
+export function getEnrollWeeks() {
+    if (Array.isArray(S.enrollWeeks) && S.enrollWeeks.length > 0) {
+        return S.enrollWeeks;
+    }
+    S.enrollWeeks = [1];
+    return S.enrollWeeks;
+}
+
+/**
+ * Adiciona uma nova semana de oferta à lista.
+ */
+export function addEnrollWeek() {
+    if (!Array.isArray(S.enrollWeeks)) S.enrollWeeks = [1];
+    const maxId = S.enrollWeeks.reduce((m, w) => Math.max(m, parseInt(w, 10) || 0), 0);
+    const newId = maxId + 1;
+    S.enrollWeeks.push(newId);
+    if (!S.enrollOffers) S.enrollOffers = {};
+    S.enrollOffers[newId] = {};
+    persist();
+    renderEnrollment();
+    toast(`✓ Semana ${S.enrollWeeks.length} adicionada!`);
+}
+
+/**
+ * Exclui uma semana de oferta cadastrada.
+ */
+export function deleteEnrollWeek(weekId) {
+    const wid = parseInt(weekId, 10);
+    if (!Array.isArray(S.enrollWeeks)) S.enrollWeeks = [1];
+    S.enrollWeeks = S.enrollWeeks.filter(w => parseInt(w, 10) !== wid);
+    if (S.enrollOffers) delete S.enrollOffers[wid];
+    if (S.enrollWeeks.length === 0) {
+        S.enrollWeeks = [1];
+        if (!S.enrollOffers) S.enrollOffers = {};
+        S.enrollOffers[1] = {};
+    }
+    persist();
+    renderEnrollment();
+    if (ENROLL_STATE.analysisRun) renderEnrollmentResults();
+    toast("Semana excluída.");
 }
 
 /**
@@ -119,13 +176,17 @@ export function populateDefaultSemesterOffers(semesters = getOfferedSemesters(),
 }
 
 /**
- * Retorna o mapa de matérias e seus respectivos slots cadastrados nas 4 semanas de oferta.
+ * Retorna o mapa de matérias e seus respectivos slots cadastrados nas semanas de oferta.
  */
-export function getAllOfferedCoursesFromOffers(offers = S.enrollOffers, targetSemesters = getOfferedSemesters()) {
+export function getAllOfferedCoursesFromOffers(offers = S.enrollOffers, targetSemesters = null) {
     const slotsByCourse = {};
     if (!offers || typeof offers !== "object") return slotsByCourse;
 
-    targetSemesters.forEach(sem => {
+    const keys = Array.isArray(targetSemesters) && targetSemesters.length > 0
+        ? targetSemesters
+        : [...new Set([...getEnrollWeeks(), ...Object.keys(offers).map(Number)])];
+
+    keys.forEach(sem => {
         const semGrid = offers[sem] || {};
         for (const [slotKey, cid] of Object.entries(semGrid)) {
             if (cid && hasCourse(cid)) {
@@ -313,6 +374,14 @@ export function calcCourseDecisionScore(courseId, passed = passedSet(), options 
         reasons.push("Eletiva ou optativa (+15 pts)");
     }
 
+    // Prioridade para matérias de semestres anteriores (mais básicas)
+    const semRank = Math.max(0, 10 - Math.min(10, c.sem || 1));
+    if (semRank > 0) {
+        const semBonus = semRank * 3;
+        score += semBonus;
+        reasons.push(`Semestre anterior/básico: ${c.sem}º sem (+${semBonus} pts)`);
+    }
+
     return {
         id: courseId,
         c,
@@ -335,7 +404,11 @@ export function calcCourseDecisionScore(courseId, passed = passedSet(), options 
  * 2. Em caso de empate na quantidade, desempata pela maior soma de pontuação acadêmica.
  */
 export function findMaxCoursesSchedule(eligibleCids, slotsByCourse, maxLoad, scoreMap) {
-    const sorted = [...eligibleCids].sort((a, b) => (scoreMap[b] || 0) - (scoreMap[a] || 0));
+    const sorted = [...eligibleCids].sort((a, b) =>
+        (scoreMap[b] || 0) - (scoreMap[a] || 0) ||
+        ((C[a] && C[a].sem) || 99) - ((C[b] && C[b].sem) || 99) ||
+        a.localeCompare(b)
+    );
     let bestSubset = [];
     let bestCount = 0;
     let bestScore = -1;
@@ -391,7 +464,11 @@ export function analyzeConflicts(candidates, slotsMap = {}) {
     const conflicts = [];
     for (const [slotKey, list] of Object.entries(slotToCourses)) {
         if (list.length > 1) {
-            const sorted = [...list].sort((a, b) => b.score - a.score);
+            const sorted = [...list].sort((a, b) =>
+                (b.score - a.score) ||
+                ((a.c && a.c.sem) || 99) - ((b.c && b.c.sem) || 99) ||
+                a.id.localeCompare(b.id)
+            );
             const winner = sorted[0];
             const losers = sorted.slice(1);
 
@@ -407,8 +484,12 @@ export function analyzeConflicts(candidates, slotsMap = {}) {
                     reason = `${winner.id} destrava ${winner.directUnlocks.length} matéria(s) imediatamente, contra ${loser.directUnlocks.length} de ${loser.id}.`;
                 } else if (winner.descCount > loser.descCount) {
                     reason = `${winner.id} possui mais dependentes no curso (${winner.descCount} vs ${loser.descCount}).`;
-                } else {
+                } else if (winner.c && loser.c && winner.c.sem < loser.c.sem) {
+                    reason = `${winner.id} é de um semestre anterior mais básico (${winner.c.sem}º sem vs ${loser.c.sem}º sem de ${loser.id}).`;
+                } else if (diffPts > 0) {
                     reason = `${winner.id} possui pontuação acadêmica superior (+${diffPts} pts).`;
+                } else {
+                    reason = `${winner.id} foi priorizada pelo algoritmo para viabilizar a melhor combinação da grade.`;
                 }
 
                 conflicts.push({
@@ -432,8 +513,7 @@ export function analyzeConflicts(candidates, slotsMap = {}) {
  */
 export function buildOptimalSchedule(candidateCourses = null, slotsMap = {}, maxLoad = S.maxLoad || 9) {
     const passed = passedSet();
-    const offeredSemesters = getOfferedSemesters();
-    const offersSlots = getAllOfferedCoursesFromOffers(S.enrollOffers, offeredSemesters);
+    const offersSlots = getAllOfferedCoursesFromOffers(S.enrollOffers);
 
     let courseIds = [];
     const isCustomCandidates = candidateCourses && Array.isArray(candidateCourses) && candidateCourses.length > 0;
@@ -444,10 +524,7 @@ export function buildOptimalSchedule(candidateCourses = null, slotsMap = {}, max
         if (fromOffers.length > 0) {
             courseIds = fromOffers;
         } else {
-            courseIds = ORDER.filter(id => {
-                const c = C[id];
-                return offeredSemesters.includes(c.sem) || c.kind === "el" || c.kind === "op";
-            });
+            courseIds = ORDER.filter(id => !passed.has(id));
         }
     }
 
@@ -494,19 +571,25 @@ export function buildOptimalSchedule(candidateCourses = null, slotsMap = {}, max
         if (!optimalSet.has(item.id)) {
             const slots = effectiveSlotsMap[item.id] || [];
             let conflictSlot = null;
-            let conflictWith = null;
+            const conflictingWithRec = [];
+            const conflictingSlots = [];
 
             for (const s of slots) {
                 if (occupiedSlots.has(s)) {
-                    conflictSlot = s;
-                    conflictWith = occupiedSlots.get(s);
-                    break;
+                    const recId = occupiedSlots.get(s);
+                    if (!conflictingWithRec.includes(recId)) {
+                        conflictingWithRec.push(recId);
+                    }
+                    conflictingSlots.push(s);
+                    if (!conflictSlot) conflictSlot = s;
                 }
             }
 
             let deferReason = "";
-            if (conflictWith) {
-                deferReason = `Choque de horário no slot ${formatSlotLabel(conflictSlot)} com a disciplina selecionada ${conflictWith}`;
+            if (conflictingWithRec.length > 1) {
+                deferReason = `Otimização 1 vs ${conflictingWithRec.length}: sua exclusão viabilizou alocar ${conflictingWithRec.length} matérias recomendadas (${conflictingWithRec.join(", ")}), aumentando a quantidade total cursada`;
+            } else if (conflictingWithRec.length === 1) {
+                deferReason = `Choque de horário no slot ${formatSlotLabel(conflictSlot)} com a disciplina selecionada ${conflictingWithRec[0]}`;
             } else if (recommended.length >= maxLoad) {
                 deferReason = `Limite máximo de matérias por semestre atingido (${maxLoad} disciplinas)`;
             } else {
@@ -516,8 +599,26 @@ export function buildOptimalSchedule(candidateCourses = null, slotsMap = {}, max
             deferred.push({
                 ...item,
                 deferReason,
-                conflictWith,
+                conflictWith: conflictingWithRec[0] || null,
+                conflictingWithRec,
+                conflictingSlots,
                 conflictSlot
+            });
+        }
+    });
+
+    // Avaliação de trocas multi-matérias (1 vs N): quando cancelar 1 matéria permitiu alocar 2 ou mais matérias
+    const tradeoffs = [];
+    deferred.forEach(item => {
+        if (item.conflictingWithRec && item.conflictingWithRec.length > 1) {
+            const gain = item.conflictingWithRec.length - 1;
+            tradeoffs.push({
+                deferredId: item.id,
+                deferredSem: item.c.sem,
+                replacedBy: item.conflictingWithRec,
+                gainCount: gain,
+                slots: item.conflictingSlots.map(formatSlotLabel),
+                explanation: `Ao não cursar ${item.id}, foi possível alocar ${item.conflictingWithRec.length} matérias na grade (${item.conflictingWithRec.join(", ")}), gerando um ganho líquido de +${gain} disciplina(s) na semana.`
             });
         }
     });
@@ -532,6 +633,7 @@ export function buildOptimalSchedule(candidateCourses = null, slotsMap = {}, max
         recommended,
         deferred,
         conflicts,
+        tradeoffs,
         weeklyGrid,
         effectiveSlotsMap,
         metrics: {
@@ -541,6 +643,7 @@ export function buildOptimalSchedule(candidateCourses = null, slotsMap = {}, max
             totalHoras: Math.round(totalHoras * 10) / 10,
             avoidedDelays,
             conflictsCount: conflicts.length,
+            tradeoffsCount: tradeoffs.length,
             totalOfferedCount: courseIds.length
         }
     };
@@ -676,112 +779,24 @@ export function applyEnrollmentToSchedule(weeklyGrid) {
 }
 
 /**
- * Renderiza todo o conteúdo da aba "🎯 Inscrição".
+ * Renderiza os resultados da análise e otimização da grade recomendada.
  */
-export function renderEnrollment() {
-    const panel = $("t-enroll");
-    if (!panel) return;
+export function renderEnrollmentResults() {
+    const resSec = $("enrollResultsSection");
+    if (!resSec) return;
 
-    const offeredSemesters = getOfferedSemesters();
-    if (!S.enrollOffers) S.enrollOffers = {};
-
-    // Inicializa ofertas padrão se o curso foi alternado ou se o startHalf mudou
-    const needDefaultOffers = ENROLL_STATE.lastCurKey !== KEY ||
-        ENROLL_STATE.lastStartHalf !== S.startHalf ||
-        offeredSemesters.every(sem => !S.enrollOffers[sem] || Object.keys(S.enrollOffers[sem]).length === 0);
-
-    if (needDefaultOffers) {
-        ENROLL_STATE.lastCurKey = KEY;
-        ENROLL_STATE.lastStartHalf = S.startHalf;
-        populateDefaultSemesterOffers(offeredSemesters);
+    if (!ENROLL_STATE.analysisRun) {
+        resSec.style.display = "none";
+        return;
     }
 
-    if (!offeredSemesters.includes(ENROLL_STATE.activeSem)) {
-        ENROLL_STATE.activeSem = offeredSemesters[0];
-    }
-
-    // 1. Atualiza Tag do Semestre Alvo
-    const halfTag = $("enrollCurrentHalfTag");
-    if (halfTag) {
-        const isOdd = +S.startHalf === 1;
-        halfTag.textContent = isOdd
-            ? "Ímpar (1º, 3º, 5º, 7º Semestres)"
-            : "Par (2º, 4º, 6º, 8º Semestres)";
-    }
-
-    // 2. Renderiza Abas das 4 Semanas de Oferta
-    const semTabsEl = $("enrollSemesterTabs");
-    if (semTabsEl) {
-        semTabsEl.innerHTML = offeredSemesters.map(sem => {
-            const count = Object.keys(S.enrollOffers[sem] || {}).length;
-            const isAct = sem === ENROLL_STATE.activeSem;
-            return (
-                `<button type="button" class="btn-sm enroll-sem-tab ${isAct ? "act" : ""}" data-sem="${esc(sem)}">` +
-                    `<b>${esc(sem)}º Semestre</b> <span class="note" style="color:inherit">(${esc(count)} aulas)</span>` +
-                `</button>`
-            );
-        }).join("");
-    }
-
-    // 3. Renderiza Título e Grade Interativa da Semana Selecionada
-    const activeSemTitle = $("enrollActiveSemTitle");
-    if (activeSemTitle) {
-        activeSemTitle.textContent = `Grade de Horários Ofertados — ${ENROLL_STATE.activeSem}º Semestre`;
-    }
-
-    const inputTableBody = $("enrollInputScheduleBody");
-    if (inputTableBody) {
-        const curSemOffers = S.enrollOffers[ENROLL_STATE.activeSem] || {};
-        const semCourses = ORDER.filter(id => C[id].sem === ENROLL_STATE.activeSem);
-        const otherCourses = ORDER.filter(id => C[id].sem !== ENROLL_STATE.activeSem);
-
-        const makeCourseOpt = (id, selId, showSem = false) => {
-            const isSel = id === selId;
-            if (isSel && showSem) {
-                return `<option value="${esc(id)}" selected>${esc(id)} · ${esc(C[id].name)} (${esc(C[id].sem)}º sem)</option>`;
-            }
-            if (isSel) {
-                return `<option value="${esc(id)}" selected>${esc(id)} · ${esc(C[id].name)}</option>`;
-            }
-            if (showSem) {
-                return `<option value="${esc(id)}">${esc(id)} · ${esc(C[id].name)} (${esc(C[id].sem)}º sem)</option>`;
-            }
-            return `<option value="${esc(id)}">${esc(id)} · ${esc(C[id].name)}</option>`;
-        };
-
-        inputTableBody.innerHTML = HORAS.map((h, i) =>
-            `<tr><th>${esc(h)}</th>` +
-            DIAS.map((_d, j) => {
-                const slotKey = `${i}-${j}`;
-                const selId = curSemOffers[slotKey] || "";
-                const optSemHtml = semCourses.map(id => makeCourseOpt(id, selId, false)).join("");
-                const optOtherHtml = otherCourses.map(id => makeCourseOpt(id, selId, true)).join("");
-
-                return (
-                    `<td>` +
-                        `<select class="enroll-slot-select" data-sem="${esc(ENROLL_STATE.activeSem)}" data-slot="${esc(slotKey)}" style="width:100%;font-size:12px">` +
-                            `<option value="">— (Livre)</option>` +
-                            `<optgroup label="Matérias do ${esc(ENROLL_STATE.activeSem)}º Semestre">` +
-                                `${optSemHtml}` +
-                            `</optgroup>` +
-                            `<optgroup label="Outras Matérias / Eletivas">` +
-                                `${optOtherHtml}` +
-                            `</optgroup>` +
-                        `</select>` +
-                    `</td>`
-                );
-            }).join("") +
-            `</tr>`
-        ).join("");
-    }
-
-    // 4. Executa Análise Otimizada
+    resSec.style.display = "block";
     const decision = buildOptimalSchedule(null, ENROLL_STATE.slots, S.maxLoad || 9);
     const recMap = new Map(decision.recommended.map(r => [r.id, r]));
     const defMap = new Map(decision.deferred.map(d => [d.id, d]));
     const passed = passedSet();
 
-    // 5. Renderiza KPIs da Decisão
+    // 1. Renderiza KPIs da Decisão
     const kpisEl = $("enrollKpis");
     if (kpisEl) {
         const kpisHtml =
@@ -806,17 +821,43 @@ export function renderEnrollment() {
                 `<div class="kpi">` +
                     `<b style="color:var(--acc)">${esc(decision.metrics.totalOfferedCount)}</b>` +
                     `<small>Matérias Cadastradas</small>` +
-                    `<div class="note" style="margin-top:2px">Distribuídas nas 4 semanas</div>` +
+                    `<div class="note" style="margin-top:2px">Distribuídas nas turmas</div>` +
                 `</div>` +
             `</div>`;
         kpisEl.innerHTML = kpisHtml;
     }
 
-    // 6. Renderiza Conflitos e Justificativas
+    // 2. Renderiza Conflitos e Justificativas
     const confWrap = $("enrollConflictsWrap");
     if (confWrap) {
+        let tradeoffsHtml = "";
+        if (decision.tradeoffs && decision.tradeoffs.length > 0) {
+            tradeoffsHtml =
+                `<div class="panel" style="margin-bottom:14px;padding:12px;background:var(--panel2,#1a2340);border-left:4px solid var(--av,#2563eb)">` +
+                    `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">` +
+                        `<h4 style="margin:0;color:var(--av,#2563eb)">🔄 Otimização de Quantidade de Matérias (Trocas 1 vs N)</h4>` +
+                    `</div>` +
+                    `<div class="note" style="margin-bottom:8px">` +
+                        `O algoritmo priorizou a quantidade total de disciplinas: ao não alocar 1 matéria concorrente, foi possível incluir 2 ou mais disciplinas na grade.` +
+                    `</div>` +
+                    decision.tradeoffs.map(t =>
+                        `<div style="margin-top:6px;padding:8px 12px;background:rgba(37,99,235,0.08);border-radius:6px">` +
+                            `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">` +
+                                `<b>Exclusão de ${esc(t.deferredId)} (${esc(t.deferredSem)}º sem):</b> ` +
+                                `<span>Permitiu cursar ${esc(t.replacedBy.length)} matérias (${esc(t.replacedBy.join(", "))})</span> ` +
+                                `<span class="tag g" style="font-weight:700;font-size:11px">+${esc(t.gainCount)} matéria líquida</span>` +
+                            `</div>` +
+                            `<div class="note" style="margin-top:4px;color:var(--txt)">` +
+                                `${esc(t.explanation)}` +
+                            `</div>` +
+                        `</div>`
+                    ).join("") +
+                `</div>`;
+        }
+
         if (decision.conflicts.length === 0) {
             confWrap.innerHTML =
+                tradeoffsHtml +
                 `<div class="note" style="padding:10px 14px;background:rgba(34,197,94,0.1);border-left:3px solid var(--ok);border-radius:6px;display:flex;align-items:center;gap:8px">` +
                     `<span style="font-size:16px">✅</span>` +
                     `<div><b>Grade 100% Livre de Choques:</b> Todas as disciplinas recomendadas possuem horários compatíveis na semana.</div>` +
@@ -839,6 +880,7 @@ export function renderEnrollment() {
             ).join("");
 
             confWrap.innerHTML =
+                tradeoffsHtml +
                 `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">` +
                     `<h4 style="margin:0;color:var(--warn)">⚠️ Conflitos de Horário Identificados e Resolvidos (${esc(decision.conflicts.length)})</h4>` +
                 `</div>` +
@@ -846,7 +888,7 @@ export function renderEnrollment() {
         }
     }
 
-    // 7. Renderiza Grade Semanal Sugerida (Sem Conflitos)
+    // 3. Renderiza Grade Semanal Sugerida (Sem Conflitos)
     const schedBody = $("enrollScheduleBody");
     const schedNote = $("enrollScheduleNote");
     if (schedNote) {
@@ -873,7 +915,7 @@ export function renderEnrollment() {
         ).join("");
     }
 
-    // 8. Renderiza Tabela Detalhada com Filtros e Busca
+    // 4. Renderiza Tabela Detalhada com Filtros e Busca
     const tableBody = $("enrollTableBody");
     if (tableBody) {
         const q = ENROLL_STATE.search.trim().toLowerCase();
@@ -968,101 +1010,206 @@ export function renderEnrollment() {
 }
 
 /**
+ * Renderiza todo o conteúdo da aba "🎯 Inscrição".
+ * As semanas dinâmicas permanecem abertas e empilhadas verticalmente.
+ */
+export function renderEnrollment() {
+    const panel = $("t-enroll");
+    if (!panel) return;
+
+    const weeks = getEnrollWeeks();
+    if (!S.enrollOffers) S.enrollOffers = {};
+
+    weeks.forEach(w => {
+        if (!S.enrollOffers[w]) S.enrollOffers[w] = {};
+    });
+
+    const passed = passedSet();
+
+    if (ENROLL_STATE.lastCurKey !== KEY) {
+        ENROLL_STATE.lastCurKey = KEY;
+        ENROLL_STATE.analysisRun = false;
+    }
+
+    // 1. Atualiza Tag do Contador de Semanas
+    const countTag = $("enrollWeeksCountTag");
+    if (countTag) {
+        countTag.textContent = `${weeks.length} Semana(s)`;
+    }
+
+    // 2. Filtra matérias elegíveis: não concluídas e com TODOS os pré-requisitos cumpridos
+    const eligibleCourses = ORDER.filter(id => {
+        if (!C[id]) return false;
+        if (passed.has(id)) return false;
+        const pre = C[id].pre || [];
+        return pre.every(p => passed.has(p));
+    });
+
+    const semsWithCourses = [...new Set(eligibleCourses.map(id => C[id].sem))].sort((a, b) => a - b);
+
+    // 3. Renderiza as Semanas Empilhadas
+    const container = $("enrollSemestersContainer");
+    if (container) {
+        container.innerHTML = weeks.map((weekId, idx) => {
+            const curWeekOffers = S.enrollOffers[weekId] || {};
+            const semCount = Object.keys(curWeekOffers).length;
+
+            const rowsHtml = HORAS.map((h, i) =>
+                `<tr><th>${esc(h)}</th>` +
+                DIAS.map((_d, j) => {
+                    const slotKey = `${i}-${j}`;
+                    let selId = curWeekOffers[slotKey] || "";
+                    if (selId && (!hasCourse(selId) || passed.has(selId) || !(C[selId].pre || []).every(p => passed.has(p)))) {
+                        delete curWeekOffers[slotKey];
+                        selId = "";
+                    }
+
+                    const optSemHtml = semsWithCourses.map(s => {
+                        const label = (s === 9 || s === 10)
+                            ? "Disciplinas Eletivas / Optativas"
+                            : `${s}º Semestre`;
+                        const courses = eligibleCourses.filter(id => C[id].sem === s);
+                        return (
+                            `<optgroup label="${esc(label)}">` +
+                            courses.map(id => {
+                                const isSel = id === selId;
+                                return isSel
+                                    ? `<option value="${esc(id)}" selected>${esc(id)} · ${esc(C[id].name)}</option>`
+                                    : `<option value="${esc(id)}">${esc(id)} · ${esc(C[id].name)}</option>`;
+                            }).join("") +
+                            `</optgroup>`
+                        );
+                    }).join("");
+
+                    return (
+                        `<td>` +
+                            `<select class="enroll-slot-select" data-week-id="${esc(weekId)}" data-slot="${esc(slotKey)}" style="width:100%;font-size:12px;padding:3px 4px;border-radius:4px;border:1px solid var(--border,#2b3758);background:var(--bg,#0b1020);color:var(--txt,#e2e8f0)">` +
+                                `<option value="">— (Livre)</option>` +
+                                `${optSemHtml}` +
+                            `</select>` +
+                        `</td>`
+                    );
+                }).join("") +
+                `</tr>`
+            ).join("");
+
+            return (
+                `<div class="panel" style="margin-top:0;background:var(--panel2,#1a2340);padding:14px;border:1px solid var(--border,#2b3758);border-radius:10px">` +
+                    `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">` +
+                        `<div style="display:flex;align-items:center;gap:10px">` +
+                            `<span class="tag b" style="font-weight:700;font-size:13px;padding:4px 10px">Semana ${esc(idx + 1)}</span>` +
+                        `</div>` +
+                        `<div style="display:flex;align-items:center;gap:12px">` +
+                            `<span class="note enroll-sem-count" data-week-id="${esc(weekId)}" style="color:var(--txt)">${esc(semCount)} horário(s) cadastrado(s)</span>` +
+                            `<button type="button" class="btn-sm btn-ghost btn-del-week" data-week-id="${esc(weekId)}" title="Excluir Semana ${esc(idx + 1)}" style="color:var(--danger,#ef4444);border-color:rgba(239,68,68,0.3)">` +
+                                `🗑️ Excluir Semana` +
+                            `</button>` +
+                        `</div>` +
+                    `</div>` +
+                    `<div class="tblwrap">` +
+                        `<table class="st hor" style="min-width:1000px">` +
+                            `<thead>` +
+                                `<tr>` +
+                                    `<th>Horas</th>` +
+                                    `<th>Seg</th>` +
+                                    `<th>Ter</th>` +
+                                    `<th>Qua</th>` +
+                                    `<th>Qui</th>` +
+                                    `<th>Sex</th>` +
+                                `</tr>` +
+                            `</thead>` +
+                            `<tbody>${rowsHtml}</tbody>` +
+                        `</table>` +
+                    `</div>` +
+                `</div>`
+            );
+        }).join("");
+    }
+
+    // 4. Renderiza a seção de resultados se a análise já tiver sido solicitada
+    renderEnrollmentResults();
+}
+
+/**
  * Inicializa os botões, listeners e eventos da aba "🎯 Inscrição".
  */
 export function initEnrollmentUI() {
-    const semTabsEl = $("enrollSemesterTabs");
-    if (semTabsEl) {
-        semTabsEl.onclick = e => {
-            const btn = e.target.closest("button.enroll-sem-tab");
-            if (btn && btn.dataset.sem) {
-                ENROLL_STATE.activeSem = parseInt(btn.dataset.sem, 10);
-                renderEnrollment();
-            }
-        };
-    }
-
-    const inputTableBody = $("enrollInputScheduleBody");
-    if (inputTableBody) {
-        inputTableBody.onchange = e => {
+    const container = $("enrollSemestersContainer");
+    if (container) {
+        container.onchange = e => {
             const sel = e.target.closest("select.enroll-slot-select");
-            if (sel && sel.dataset.sem && sel.dataset.slot) {
-                const sem = parseInt(sel.dataset.sem, 10);
+            if (sel && sel.dataset.weekId && sel.dataset.slot) {
+                const wid = sel.dataset.weekId;
                 const slotKey = sel.dataset.slot;
                 const cid = sel.value;
 
                 if (!S.enrollOffers) S.enrollOffers = {};
-                if (!S.enrollOffers[sem]) S.enrollOffers[sem] = {};
+                if (!S.enrollOffers[wid]) S.enrollOffers[wid] = {};
 
                 if (cid) {
-                    S.enrollOffers[sem][slotKey] = cid;
+                    S.enrollOffers[wid][slotKey] = cid;
                 } else {
-                    delete S.enrollOffers[sem][slotKey];
+                    delete S.enrollOffers[wid][slotKey];
+                }
+
+                const countBadge = document.querySelector(`.enroll-sem-count[data-week-id="${esc(wid)}"]`);
+                if (countBadge) {
+                    const cnt = Object.keys(S.enrollOffers[wid]).length;
+                    countBadge.textContent = `${cnt} horário(s) cadastrado(s)`;
                 }
 
                 persist();
-                renderEnrollment();
+
+                if (ENROLL_STATE.analysisRun) {
+                    renderEnrollmentResults();
+                }
+            }
+        };
+
+        container.onclick = e => {
+            const btnDel = e.target.closest("button.btn-del-week");
+            if (btnDel && btnDel.dataset.weekId) {
+                const wid = btnDel.dataset.weekId;
+                confirma(btnDel, "Confirmar exclusão?", () => {
+                    deleteEnrollWeek(wid);
+                });
             }
         };
     }
 
-    const btnFillDefault = $("btnFillDefaultOffers");
-    if (btnFillDefault) {
-        btnFillDefault.onclick = () => {
-            populateDefaultSemesterOffers();
-            persist();
-            renderEnrollment();
-            toast("✓ Horários padrão preenchidos nas 4 semanas de oferta!");
+    const btnAdd = $("btnAddWeek");
+    if (btnAdd) {
+        btnAdd.onclick = () => {
+            addEnrollWeek();
         };
     }
 
     const btnClearOffers = $("btnClearOffers");
     if (btnClearOffers) {
         btnClearOffers.onclick = () => {
-            const sems = getOfferedSemesters();
-            if (!S.enrollOffers) S.enrollOffers = {};
-            sems.forEach(s => { S.enrollOffers[s] = {}; });
-            persist();
-            renderEnrollment();
-            toast("Semanas de oferta limpas.");
-        };
-    }
-
-    const btnFillActive = $("btnFillActiveSemDefault");
-    if (btnFillActive) {
-        btnFillActive.onclick = () => {
-            populateDefaultSemesterOffers([ENROLL_STATE.activeSem]);
-            persist();
-            renderEnrollment();
-            toast(`✓ Horários do ${ENROLL_STATE.activeSem}º semestre preenchidos!`);
-        };
-    }
-
-    const btnClearActive = $("btnClearActiveSem");
-    if (btnClearActive) {
-        btnClearActive.onclick = () => {
-            if (S.enrollOffers && S.enrollOffers[ENROLL_STATE.activeSem]) {
-                S.enrollOffers[ENROLL_STATE.activeSem] = {};
+            confirma(btnClearOffers, "Tem certeza? Clique para limpar", () => {
+                const weeks = getEnrollWeeks();
+                if (!S.enrollOffers) S.enrollOffers = {};
+                weeks.forEach(w => { S.enrollOffers[w] = {}; });
+                ENROLL_STATE.analysisRun = false;
                 persist();
                 renderEnrollment();
-                toast(`Horários do ${ENROLL_STATE.activeSem}º semestre limpos.`);
-            }
+                toast("Todas as semanas de oferta foram limpas.");
+            });
         };
     }
 
     const btnRun = $("btnRunAnalysis");
     if (btnRun) {
         btnRun.onclick = () => {
-            renderEnrollment();
-            toast("✓ Análise de inscrição atualizada!");
-        };
-    }
-
-    const btnGoCfg = $("btnGoToConfig");
-    if (btnGoCfg) {
-        btnGoCfg.onclick = () => {
-            const cfgTab = $("tab-t-cfg");
-            if (cfgTab) cfgTab.click();
+            ENROLL_STATE.analysisRun = true;
+            renderEnrollmentResults();
+            const resSec = $("enrollResultsSection");
+            if (resSec) {
+                resSec.style.display = "block";
+                resSec.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+            toast("✓ Análise de inscrição e otimização concluídas!");
         };
     }
 
@@ -1070,7 +1217,7 @@ export function initEnrollmentUI() {
     if (searchInput) {
         searchInput.oninput = e => {
             ENROLL_STATE.search = e.target.value || "";
-            renderEnrollment();
+            if (ENROLL_STATE.analysisRun) renderEnrollmentResults();
         };
     }
 
@@ -1078,7 +1225,7 @@ export function initEnrollmentUI() {
     if (filterSel) {
         filterSel.onchange = e => {
             ENROLL_STATE.filterStatus = e.target.value || "all";
-            renderEnrollment();
+            if (ENROLL_STATE.analysisRun) renderEnrollmentResults();
         };
     }
 
@@ -1101,6 +1248,4 @@ export function initEnrollmentUI() {
             });
         };
     }
-
-    ENROLL_STATE.activeSem = getOfferedSemesters()[0];
 }

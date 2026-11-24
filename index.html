@@ -397,92 +397,60 @@
           <div>
             <h2 style="margin:0 0 4px">🎯 Avaliação e Decisão de Inscrição no Semestre</h2>
             <div class="note">
-              Cadastre as aulas ofertadas em cada semana de semestre conforme publicado pelo campus. O sistema analisa conflitos de horário, valida pré-requisitos, desconsidera o que você já concluiu e monta a grade com a maior quantidade de matérias possíveis.
+              Cadastre as aulas ofertadas nas turmas abaixo conforme divulgado pela instituição. Em seguida, clique em <b>Analisar Inscrição e Otimizar Grade</b> para verificar pré-requisitos, detectar choques e gerar sua grade recomendada.
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <button type="button" class="pri" id="btnApplyEnrollCurrent" title="Inscreve as matérias recomendadas diretamente na aba 'Cursando agora'">
-              🚀 Aplicar em Cursando Agora
-            </button>
-            <button type="button" id="btnApplyEnrollSchedule" title="Preenche a grade semanal na aba 'Horários' com as matérias recomendadas">
-              📅 Preencher Grade de Horários
+            <button type="button" class="btn-sm btn-ghost" id="btnClearOffers" title="Limpar todos os horários cadastrados em todas as semanas">
+              🧹 Limpar Todas as Semanas
             </button>
           </div>
         </div>
 
-        <!-- Barra de Configuração e Ações Globais de Oferta -->
-        <div class="enroll-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;background:var(--bg2,#151b2e);border-radius:10px;margin-bottom:14px">
+        <!-- Barra Informativa Simples -->
+        <div class="enroll-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px;background:var(--bg2,#151b2e);border-radius:10px;margin-bottom:18px">
           <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-weight:600;font-size:13px">Semestre Letivo Alvo:</span>
-            <span class="tag b" id="enrollCurrentHalfTag" style="font-weight:700">Ímpar (1º, 3º, 5º, 7º)</span>
+            <span style="font-weight:600;font-size:13px">Turmas e Horários Ofertados:</span>
+            <span class="tag b" id="enrollWeeksCountTag" style="font-weight:700">1 Semana</span>
           </div>
-
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-            <button type="button" class="btn-sm" id="btnFillDefaultOffers" title="Preenche as 4 semanas com a distribuição padrão de horários das turmas">
-              ⚡ Preencher Horários Padrão
-            </button>
-            <button type="button" class="btn-sm btn-ghost" id="btnClearOffers" title="Limpa todos os horários cadastrados nas 4 semanas">
-              🧹 Limpar Semanas
-            </button>
-            <button type="button" class="btn-sm pri" id="btnRunAnalysis" title="Executa a análise de conflitos, pré-requisitos e maximização de matérias">
-              🎯 Executar Análise
-            </button>
-          </div>
-
-          <div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap">
-            <button type="button" class="btn-sm btn-ghost" id="btnGoToConfig" title="Mudar próximo semestre letivo nas Configurações">
-              ⚙️ Mudar Semestre nas Configurações
-            </button>
+          <div style="margin-left:auto;font-size:12px" class="note">
+            Apenas matérias não cursadas e com todos os pré-requisitos cumpridos estão disponíveis para escolha.
           </div>
         </div>
 
-        <!-- Seção 1: Montagem das 4 Semanas de Oferta -->
-        <div style="margin-bottom:18px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-            <div>
-              <h3 style="margin:0 0 2px">📅 1. Montagem das Turmas / Semanas Ofertadas</h3>
-              <div class="note">Selecione uma semana abaixo para cadastrar as aulas ofertadas pelo campus naquele semestre:</div>
-            </div>
-            <div id="enrollSemesterTabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-          </div>
+        <!-- Container com as Semanas de Oferta Abertas e Empilhadas -->
+        <div id="enrollSemestersContainer" style="display:flex;flex-direction:column;gap:20px;margin-bottom:14px"></div>
 
-          <!-- Grade Interativa de Horários da Semana Selecionada -->
-          <div class="panel" style="margin-top:0;background:var(--panel2,#1a2340);padding:14px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-              <h4 id="enrollActiveSemTitle" style="margin:0">Grade de Horários Ofertados</h4>
-              <div style="display:flex;gap:6px;align-items:center">
-                <button type="button" class="btn-sm btn-ghost" id="btnFillActiveSemDefault" title="Preenche horários sugeridos apenas para este semestre">
-                  ⚡ Preencher Este Semestre
-                </button>
-                <button type="button" class="btn-sm btn-ghost" id="btnClearActiveSem" title="Limpa horários deste semestre">
-                  🧹 Limpar Este Semestre
-                </button>
+        <!-- Botão para Adicionar Nova Semana -->
+        <div style="text-align:center;margin:10px 0 20px">
+          <button type="button" class="btn-sm" id="btnAddWeek" style="padding:10px 24px;font-size:13px;font-weight:600;border:1px dashed var(--av,#2563eb);background:rgba(37,99,235,0.08);color:var(--txt,#e2e8f0);border-radius:8px;cursor:pointer">
+            ➕ Adicionar Semana
+          </button>
+        </div>
+
+        <!-- Botão Principal de Ação: Analisar e Otimizar -->
+        <div style="text-align:center;padding:18px 0;margin:16px 0 24px;border-top:1px solid var(--border,#2b3758);border-bottom:1px solid var(--border,#2b3758)">
+          <button type="button" class="pri btn-lg" id="btnRunAnalysis" style="padding:12px 32px;font-size:15px;font-weight:700;border-radius:8px;cursor:pointer">
+            🚀 Analisar Inscrição e Otimizar Grade
+          </button>
+        </div>
+
+        <!-- Seção de Resultados da Análise (gerada após clique) -->
+        <div id="enrollResultsSection" style="display:none;margin-top:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="margin:0 0 2px">📊 Grade Recomendada e Sugestões do Algoritmo</h3>
+              <div class="note">
+                Maximização da quantidade de matérias cursáveis sem choque na semana, priorizando impacto no tempo de formatura.
               </div>
             </div>
-            <div class="tblwrap">
-              <table class="st hor" id="enrollInputScheduleTable" style="min-width:1000px">
-                <thead>
-                  <tr>
-                    <th>Horas</th>
-                    <th>Seg</th>
-                    <th>Ter</th>
-                    <th>Qua</th>
-                    <th>Qui</th>
-                    <th>Sex</th>
-                  </tr>
-                </thead>
-                <tbody id="enrollInputScheduleBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Seção 2: Resultados da Análise -->
-        <div style="margin-top:20px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
-            <div>
-              <h3 style="margin:0 0 2px">📊 2. Análise e Otimização para Inscrição</h3>
-              <div class="note">Desconsidera disciplinas já cursadas, valida pré-requisitos e maximiza o número de disciplinas que você pode cursar sem choques.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button type="button" class="pri" id="btnApplyEnrollCurrent" title="Inscreve as matérias recomendadas diretamente na aba 'Cursando agora'">
+                🚀 Aplicar em Cursando Agora
+              </button>
+              <button type="button" id="btnApplyEnrollSchedule" title="Preenche a grade semanal na aba 'Horários' com as matérias recomendadas">
+                📅 Preencher Grade de Horários
+              </button>
             </div>
           </div>
 
