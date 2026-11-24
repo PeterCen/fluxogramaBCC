@@ -136,6 +136,9 @@ const {
     analyzeConflicts,
     buildOptimalSchedule,
     populateDefaultOfferings,
+    getOfferedSemesters,
+    populateDefaultSemesterOffers,
+    findMaxCoursesSchedule,
     ENROLL_STATE
 } = await import("../assets/js/script.js");
 
@@ -830,6 +833,49 @@ test("Construção de grade semanal ótima sem choques e dentro do limite maxLoa
     assert.equal(restrictedPlan.recommended.length, 3, "Não deve ultrapassar maxLoad = 3");
     assert.equal(restrictedPlan.deferred.length, candidates.length - 3);
     assert.ok(restrictedPlan.deferred.some(d => d.deferReason.includes("Limite máximo")));
+});
+
+test("Estrutura das 4 semanas de oferta, inibição de cursadas e maximização de matérias", () => {
+    // 1. Semestre configurado como Ímpar (startHalf = 1) -> 1º, 3º, 5º e 7º semestres
+    resetState({ startHalf: 1, passed: ["ALP1", "COEX", "EDG1"] });
+    const semsOdd = getOfferedSemesters(1);
+    assert.deepEqual(semsOdd, [1, 3, 5, 7]);
+
+    // Semestre configurado como Par (startHalf = 2) -> 2º, 4º, 6º e 8º semestres
+    const semsEven = getOfferedSemesters(2);
+    assert.deepEqual(semsEven, [2, 4, 6, 8]);
+
+    // 2. Preenchimento e cadastro nas 4 semanas de oferta (sem inibição prévia durante a montagem das turmas)
+    populateDefaultSemesterOffers(semsOdd);
+    const state = getState();
+    assert.ok(state.enrollOffers[1] && Object.keys(state.enrollOffers[1]).length > 0, "1º semestre deve ter aulas cadastradas");
+    assert.ok(state.enrollOffers[3] && Object.keys(state.enrollOffers[3]).length > 0, "3º semestre deve ter aulas cadastradas");
+    assert.ok(state.enrollOffers[5] && Object.keys(state.enrollOffers[5]).length > 0, "5º semestre deve ter aulas cadastradas");
+    assert.ok(state.enrollOffers[7] && Object.keys(state.enrollOffers[7]).length > 0, "7º semestre deve ter aulas cadastradas");
+
+    // 3. Simula colisão manual entre matéria de 1º semestre e matéria de 3º semestre
+    // FMAT (1º sem, pendente) colocada no slot 0-0
+    // BDD1 (3º sem, pendente e pré-requisito ALP1 já cumprido) colocada também no slot 0-0
+    state.enrollOffers[1]["0-0"] = "FMAT";
+    state.enrollOffers[3]["0-0"] = "BDD1";
+
+    const decision = buildOptimalSchedule(null, {}, 9);
+
+    // 4. Validação da análise:
+    // a) Disciplinas já aprovadas (ALP1, COEX, EDG1) devem ser desconsideradas da recomendação
+    const recIds = decision.recommended.map(r => r.id);
+    assert.equal(recIds.includes("ALP1"), false, "ALP1 já concluída NÃO deve ser recomendada");
+    assert.equal(recIds.includes("COEX"), false, "COEX já concluída NÃO deve ser recomendada");
+    assert.equal(recIds.includes("EDG1"), false, "EDG1 já concluída NÃO deve ser recomendada");
+
+    // b) Conflito entre FMAT e BDD1 no slot 0-0 deve ser detectado e apenas UMA deve ser recomendada
+    assert.ok(decision.conflicts.some(c => c.slotKey === "0-0"), "Deve detectar choque de horário em 0-0");
+    const hasFmat = recIds.includes("FMAT");
+    const hasBdd1 = recIds.includes("BDD1");
+    assert.ok((hasFmat || hasBdd1) && !(hasFmat && hasBdd1), "Apenas uma das conflitantes em 0-0 pode ser escolhida");
+
+    // c) Maximização: algoritmo deve escolher a maior quantidade possível de matérias elegíveis sem choques
+    assert.ok(decision.recommended.length >= 4, "Deve recomendar o máximo de matérias possíveis sem choques");
 });
 
 

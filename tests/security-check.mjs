@@ -86,7 +86,9 @@ const SAFE_HTML_FRAGMENTS = new Set([
     "delayTag",
     "depthTag",
     "unlockTag",
-    "scoreTag"
+    "scoreTag",
+    "optSemHtml",
+    "optOtherHtml"
 ]);
 
 /**

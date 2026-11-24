@@ -2,13 +2,14 @@
  * Módulo de Avaliação e Tomada de Decisão para Inscrição no Semestre (enrollment.js)
  *
  * Responsabilidades:
- * - Identificar matérias ofertadas por tipo de semestre (par, ímpar ou todos).
- * - Inibir a seleção de matérias já concluídas (S.passed) e sinalizar pré-requisitos pendentes.
- * - Detectar choques e conflitos de horários nos respectivos dias da semana.
- * - Avaliar qual matéria é melhor em caso de conflito com base em:
- *   1. Impacto direto no tempo de conclusão do curso (delta em semestres de formatura).
- *   2. Pré-requisitos (profundidade depth, dependentes desc e destravamento imediato).
- * - Montar grade semanal sugerida sem conflitos respeitando o limite maxLoad.
+ * - Renderizar 4 semanas de oferta de acordo com o próximo semestre letivo configurado (startHalf):
+ *   - Ímpar (startHalf = 1): 1º, 3º, 5º e 7º Semestres.
+ *   - Par (startHalf = 2): 2º, 4º, 6º e 8º Semestres.
+ * - Permitir cadastro interativo das aulas ofertadas pelo campus em cada semana de semestre.
+ * - Desconsiderar disciplinas já concluídas (S.passed) e verificar pré-requisitos pendentes.
+ * - Detectar conflitos reais de horário entre matérias de diferentes semestres.
+ * - Otimizar a grade priorizando a MAIOR QUANTIDADE de matérias possíveis sem conflitos.
+ * - Desempatar por impacto na formatura (deltaTerms), caminho crítico (depth) e dependentes.
  * - Aplicar decisão diretamente em S.current ("Cursando agora") e S.hor.cells ("Horários").
  */
 
@@ -32,16 +33,25 @@ import { toast, confirma, update } from "./ui.js";
 const $ = id => document.getElementById(id);
 
 /**
- * Estado interno da tela de tomada de decisão de inscrição.
+ * Estado reativo da interface de tomada de decisão de inscrição.
  */
 export const ENROLL_STATE = {
+    activeSem: 1,
+    search: "",
+    filterStatus: "all",
     parity: "odd",
     offered: new Set(),
     slots: {},
-    search: "",
-    filterStatus: "all",
-    lastCurKey: null
+    lastCurKey: null,
+    lastStartHalf: null
 };
+
+/**
+ * Retorna a lista dos 4 semestres ofertados com base no semestre letivo (1 = ímpar, 2 = par).
+ */
+export function getOfferedSemesters(startHalf = S.startHalf) {
+    return +startHalf === 2 ? [2, 4, 6, 8] : [1, 3, 5, 7];
+}
 
 /**
  * Converte índice de período (0..4) e dia (0..4) em rótulo amigável (ex.: "Seg 07:10").
@@ -57,8 +67,7 @@ export function formatSlotLabel(slotKey) {
 }
 
 /**
- * Gera deterministicamente horários padrão sem conflitos internos para um semestre,
- * simulando sobreposições realistas entre semestres diferentes.
+ * Gera deterministicamente horários padrão sem conflitos internos para um semestre.
  */
 export function getDefaultCourseSlots(courseId, cur = CUR) {
     const raw = cur.raw || [];
@@ -69,18 +78,22 @@ export function getDefaultCourseSlots(courseId, cur = CUR) {
     const aulas = Number(item[3]) || 2;
     const neededSlots = Math.max(1, Math.min(3, Math.round(aulas / 2)));
 
-    // Agrupa disciplinas do mesmo semestre para ordenar seus horários
     const sameSem = raw.filter(r => Number(r[2]) === sem);
     const posInSem = sameSem.findIndex(r => r[0] === courseId);
     const idx = posInSem >= 0 ? posInSem : 0;
 
-    const slots = [];
-    const baseDay = (idx * 2) % 5;
-    const basePeriod = (Math.floor((idx * 2) / 5) + (sem > 4 ? 2 : 0)) % 4;
+    let offset = 0;
+    for (let i = 0; i < idx; i++) {
+        const a = Number(sameSem[i][3]) || 2;
+        offset += Math.max(1, Math.min(3, Math.round(a / 2)));
+    }
 
+    const semBasePeriod = (sem > 4 ? 2 : 0);
+    const slots = [];
     for (let s = 0; s < neededSlots; s++) {
-        const d = (baseDay + s * 2) % 5;
-        const p = (basePeriod + Math.floor((baseDay + s * 2) / 5)) % 5;
+        const k = offset + s;
+        const d = k % 5;
+        const p = (semBasePeriod + Math.floor(k / 5)) % 5;
         slots.push(`${p}-${d}`);
     }
 
@@ -88,18 +101,61 @@ export function getDefaultCourseSlots(courseId, cur = CUR) {
 }
 
 /**
- * Retorna os slots de horário configurados para uma matéria, com fallback para o default.
+ * Preenche deterministicamente as grades de horários das 4 semanas de oferta.
+ */
+export function populateDefaultSemesterOffers(semesters = getOfferedSemesters(), cur = CUR) {
+    if (!S.enrollOffers) S.enrollOffers = {};
+    semesters.forEach(sem => {
+        S.enrollOffers[sem] = {};
+        const sameSem = (cur.raw || []).filter(r => Number(r[2]) === sem);
+        sameSem.forEach(r => {
+            const cid = r[0];
+            const sls = getDefaultCourseSlots(cid, cur);
+            sls.forEach(s => {
+                S.enrollOffers[sem][s] = cid;
+            });
+        });
+    });
+}
+
+/**
+ * Retorna o mapa de matérias e seus respectivos slots cadastrados nas 4 semanas de oferta.
+ */
+export function getAllOfferedCoursesFromOffers(offers = S.enrollOffers, targetSemesters = getOfferedSemesters()) {
+    const slotsByCourse = {};
+    if (!offers || typeof offers !== "object") return slotsByCourse;
+
+    targetSemesters.forEach(sem => {
+        const semGrid = offers[sem] || {};
+        for (const [slotKey, cid] of Object.entries(semGrid)) {
+            if (cid && hasCourse(cid)) {
+                if (!slotsByCourse[cid]) slotsByCourse[cid] = [];
+                if (!slotsByCourse[cid].includes(slotKey)) {
+                    slotsByCourse[cid].push(slotKey);
+                }
+            }
+        }
+    });
+
+    return slotsByCourse;
+}
+
+/**
+ * Retorna os slots de horário configurados para uma matéria.
  */
 export function getCourseSlots(courseId) {
     if (ENROLL_STATE.slots[courseId] && ENROLL_STATE.slots[courseId].length > 0) {
         return ENROLL_STATE.slots[courseId];
     }
+    const fromOffers = getAllOfferedCoursesFromOffers();
+    if (fromOffers[courseId] && fromOffers[courseId].length > 0) {
+        return fromOffers[courseId];
+    }
     return getDefaultCourseSlots(courseId);
 }
 
 /**
- * Simula de forma determinística a conclusão do curso com ou sem adiamento de uma disciplina,
- * medindo o impacto direto no número de semestres até a formatura (deltaTerms).
+ * Simula determinística de conclusão do curso com ou sem adiamento de uma disciplina.
  */
 export function calcGraduationImpact(courseId, passed = passedSet(), options = {}) {
     const maxLoad = options.maxLoad || S.maxLoad || 9;
@@ -135,7 +191,6 @@ export function calcGraduationImpact(courseId, passed = passedSet(), options = {
             const take = cands.slice(0, maxLoad);
 
             if (take.length === 0 && pending.size > 0) {
-                // Avança semestre sem ofertas elegíveis
                 k++;
                 continue;
             }
@@ -192,7 +247,7 @@ export function calcCourseDecisionScore(courseId, passed = passedSet(), options 
             depthVal: depth[courseId] || 1,
             descCount: desc(courseId).size,
             directUnlocks: [],
-            reasons: ["Matéria já concluída com aproveitamento"]
+            reasons: ["Matéria já concluída no histórico escolar"]
         };
     }
 
@@ -225,43 +280,34 @@ export function calcCourseDecisionScore(courseId, passed = passedSet(), options 
     let score = 0;
     const reasons = [];
 
-    // 1. Impacto no tempo de formatura (peso máximo)
     if (deltaTerms > 0) {
         score += deltaTerms * 160;
-        reasons.push(
-            `Impacto no prazo: atrasa a formatura em +${deltaTerms} semestre(s) se adiada (+${deltaTerms * 160} pts)`
-        );
+        reasons.push(`Atrasa a formatura em +${deltaTerms} sem. se adiada (+${deltaTerms * 160} pts)`);
     } else {
         reasons.push("Sem impacto direto na data final de formatura");
     }
 
-    // 2. Profundidade no caminho crítico
     score += depthVal * 20;
-    reasons.push(`Caminho crítico: profundidade ${depthVal} até a formatura (+${depthVal * 20} pts)`);
+    reasons.push(`Caminho crítico: profundidade ${depthVal} (+${depthVal * 20} pts)`);
 
-    // 3. Destravamento imediato de matérias no semestre seguinte
     if (directUnlocks.length > 0) {
         const unlockBonus = directUnlocks.length * 35;
         score += unlockBonus;
-        reasons.push(
-            `Destrava no próximo semestre: ${directUnlocks.join(", ")} (+${unlockBonus} pts)`
-        );
+        reasons.push(`Destrava no próximo semestre: ${directUnlocks.join(", ")} (+${unlockBonus} pts)`);
     }
 
-    // 4. Volume total de disciplinas dependentes a jusante
     if (descCount > 0) {
         const descBonus = descCount * 8;
         score += descBonus;
-        reasons.push(`Cadeia de dependentes: ${descCount} matéria(s) a jusante (+${descBonus} pts)`);
+        reasons.push(`Cadeia a jusante: ${descCount} matéria(s) (+${descBonus} pts)`);
     }
 
-    // 5. Tipo de disciplina e regularização de atraso
     if (c.kind === "ob") {
         score += 40;
         reasons.push("Disciplina obrigatória (+40 pts)");
     } else if (c.kind === "tcc" || c.kind === "es") {
         score += 60;
-        reasons.push("Marco de conclusão / TCC / Estágio (+60 pts)");
+        reasons.push("TCC ou Estágio (+60 pts)");
     } else {
         score += 15;
         reasons.push("Eletiva ou optativa (+15 pts)");
@@ -284,8 +330,53 @@ export function calcCourseDecisionScore(courseId, passed = passedSet(), options 
 }
 
 /**
- * Detecta conflitos de horário entre as matérias candidatas e resolve cada choque
- * apontando a matéria vencedora e a justificativa comparativa.
+ * Algoritmo exato de busca e otimização para encontrar a combinação de matérias sem choques:
+ * 1. Prioriza ESTRITAMENTE a MAIOR QUANTIDADE de matérias possíveis (|M|).
+ * 2. Em caso de empate na quantidade, desempata pela maior soma de pontuação acadêmica.
+ */
+export function findMaxCoursesSchedule(eligibleCids, slotsByCourse, maxLoad, scoreMap) {
+    const sorted = [...eligibleCids].sort((a, b) => (scoreMap[b] || 0) - (scoreMap[a] || 0));
+    let bestSubset = [];
+    let bestCount = 0;
+    let bestScore = -1;
+
+    function search(index, currentSubset, occupiedSlots, currentScore) {
+        const remaining = sorted.length - index;
+        if (currentSubset.length + remaining < bestCount) return;
+
+        if (currentSubset.length >= maxLoad || index === sorted.length) {
+            if (
+                currentSubset.length > bestCount ||
+                (currentSubset.length === bestCount && currentScore > bestScore)
+            ) {
+                bestCount = currentSubset.length;
+                bestScore = currentScore;
+                bestSubset = [...currentSubset];
+            }
+            return;
+        }
+
+        const cand = sorted[index];
+        const cSlots = slotsByCourse[cand] || [];
+        const hasConflict = cSlots.some(s => occupiedSlots.has(s));
+
+        if (!hasConflict && currentSubset.length < maxLoad) {
+            cSlots.forEach(s => occupiedSlots.add(s));
+            currentSubset.push(cand);
+            search(index + 1, currentSubset, occupiedSlots, currentScore + (scoreMap[cand] || 0));
+            currentSubset.pop();
+            cSlots.forEach(s => occupiedSlots.delete(s));
+        }
+
+        search(index + 1, currentSubset, occupiedSlots, currentScore);
+    }
+
+    search(0, [], new Set(), 0);
+    return bestSubset;
+}
+
+/**
+ * Detecta conflitos de horário entre as matérias candidatas.
  */
 export function analyzeConflicts(candidates, slotsMap = {}) {
     const slotToCourses = {};
@@ -300,7 +391,6 @@ export function analyzeConflicts(candidates, slotsMap = {}) {
     const conflicts = [];
     for (const [slotKey, list] of Object.entries(slotToCourses)) {
         if (list.length > 1) {
-            // Ordena os conflitantes pelo score decrescente
             const sorted = [...list].sort((a, b) => b.score - a.score);
             const winner = sorted[0];
             const losers = sorted.slice(1);
@@ -310,7 +400,7 @@ export function analyzeConflicts(candidates, slotsMap = {}) {
                 let reason = "";
 
                 if (winner.deltaTerms > loser.deltaTerms) {
-                    reason = `${winner.id} evita atraso de +${winner.deltaTerms} semestre(s) na formatura, enquanto ${loser.id} não impacta o prazo.`;
+                    reason = `${winner.id} evita atraso de +${winner.deltaTerms} sem. na formatura, enquanto ${loser.id} não impacta o prazo.`;
                 } else if (winner.depthVal > loser.depthVal) {
                     reason = `${winner.id} está mais profunda no caminho crítico (prof. ${winner.depthVal} vs ${loser.depthVal}).`;
                 } else if (winner.directUnlocks.length > loser.directUnlocks.length) {
@@ -337,61 +427,102 @@ export function analyzeConflicts(candidates, slotsMap = {}) {
 }
 
 /**
- * Constrói a recomendação da melhor grade possível sem conflitos de horário
- * e respeitando a carga máxima do semestre (maxLoad).
+ * Constrói a recomendação da melhor grade possível sem conflitos de horário,
+ * maximizando a quantidade de matérias cursáveis e respeitando maxLoad.
  */
-export function buildOptimalSchedule(candidateCourses, slotsMap = {}, maxLoad = S.maxLoad || 9) {
+export function buildOptimalSchedule(candidateCourses = null, slotsMap = {}, maxLoad = S.maxLoad || 9) {
     const passed = passedSet();
-    const scoredList = candidateCourses
-        .map(cid => calcCourseDecisionScore(cid, passed))
-        .filter(cand => cand.isEligible && !cand.isPassed)
-        .sort((a, b) => b.score - a.score || a.c.sem - b.c.sem);
+    const offeredSemesters = getOfferedSemesters();
+    const offersSlots = getAllOfferedCoursesFromOffers(S.enrollOffers, offeredSemesters);
 
-    const { conflicts } = analyzeConflicts(scoredList, slotsMap);
-
-    const recommended = [];
-    const deferred = [];
-    const occupiedSlots = new Map(); // slotKey -> courseId
-    const weeklyGrid = {};
-
-    for (const cand of scoredList) {
-        const slots = slotsMap[cand.id] || getCourseSlots(cand.id);
-
-        if (recommended.length >= maxLoad) {
-            deferred.push({
-                ...cand,
-                deferReason: `Limite máximo de matérias por semestre atingido (${maxLoad} disciplinas)`
-            });
-            continue;
-        }
-
-        // Verifica choque com as matérias já recomendadas
-        let hasConflict = false;
-        let conflictWith = null;
-        let conflictingSlot = null;
-
-        for (const slotKey of slots) {
-            if (occupiedSlots.has(slotKey)) {
-                hasConflict = true;
-                conflictWith = occupiedSlots.get(slotKey);
-                conflictingSlot = slotKey;
-                break;
-            }
-        }
-
-        if (hasConflict) {
-            deferred.push({
-                ...cand,
-                deferReason: `Choque de horário no slot ${formatSlotLabel(conflictingSlot)} com a disciplina prioritária ${conflictWith}`
-            });
+    let courseIds = [];
+    const isCustomCandidates = candidateCourses && Array.isArray(candidateCourses) && candidateCourses.length > 0;
+    if (isCustomCandidates) {
+        courseIds = [...new Set(candidateCourses)];
+    } else {
+        const fromOffers = Object.keys(offersSlots);
+        if (fromOffers.length > 0) {
+            courseIds = fromOffers;
         } else {
-            recommended.push(cand);
-            slots.forEach(slotKey => {
-                occupiedSlots.set(slotKey, cand.id);
-                weeklyGrid[slotKey] = cand.id;
+            courseIds = ORDER.filter(id => {
+                const c = C[id];
+                return offeredSemesters.includes(c.sem) || c.kind === "el" || c.kind === "op";
             });
         }
     }
+
+    const effectiveSlotsMap = {};
+    courseIds.forEach(cid => {
+        if (slotsMap && slotsMap[cid] && slotsMap[cid].length > 0) {
+            effectiveSlotsMap[cid] = slotsMap[cid];
+        } else if (!isCustomCandidates && offersSlots[cid] && offersSlots[cid].length > 0) {
+            effectiveSlotsMap[cid] = offersSlots[cid];
+        } else {
+            effectiveSlotsMap[cid] = getDefaultCourseSlots(cid);
+        }
+    });
+
+    const evaluatedList = courseIds.map(cid => calcCourseDecisionScore(cid, passed));
+    const scoreMap = {};
+    evaluatedList.forEach(item => { scoreMap[item.id] = item.score; });
+
+    const eligibleList = evaluatedList.filter(cand => cand.isEligible && !cand.isPassed);
+    const eligibleCids = eligibleList.map(item => item.id);
+
+    const optimalCids = findMaxCoursesSchedule(
+        eligibleCids,
+        effectiveSlotsMap,
+        maxLoad,
+        scoreMap
+    );
+
+    const optimalSet = new Set(optimalCids);
+    const recommended = eligibleList.filter(item => optimalSet.has(item.id));
+    const weeklyGrid = {};
+    const occupiedSlots = new Map();
+
+    recommended.forEach(item => {
+        const slots = effectiveSlotsMap[item.id] || [];
+        slots.forEach(slotKey => {
+            occupiedSlots.set(slotKey, item.id);
+            weeklyGrid[slotKey] = item.id;
+        });
+    });
+
+    const deferred = [];
+    eligibleList.forEach(item => {
+        if (!optimalSet.has(item.id)) {
+            const slots = effectiveSlotsMap[item.id] || [];
+            let conflictSlot = null;
+            let conflictWith = null;
+
+            for (const s of slots) {
+                if (occupiedSlots.has(s)) {
+                    conflictSlot = s;
+                    conflictWith = occupiedSlots.get(s);
+                    break;
+                }
+            }
+
+            let deferReason = "";
+            if (conflictWith) {
+                deferReason = `Choque de horário no slot ${formatSlotLabel(conflictSlot)} com a disciplina selecionada ${conflictWith}`;
+            } else if (recommended.length >= maxLoad) {
+                deferReason = `Limite máximo de matérias por semestre atingido (${maxLoad} disciplinas)`;
+            } else {
+                deferReason = "Não incluída na combinação ótima de horários";
+            }
+
+            deferred.push({
+                ...item,
+                deferReason,
+                conflictWith,
+                conflictSlot
+            });
+        }
+    });
+
+    const { conflicts } = analyzeConflicts(eligibleList, effectiveSlotsMap);
 
     const totalAulas = recommended.reduce((sum, item) => sum + (item.c.aulas || 0), 0);
     const totalHoras = recommended.reduce((sum, item) => sum + (item.c.h || 0), 0);
@@ -402,28 +533,40 @@ export function buildOptimalSchedule(candidateCourses, slotsMap = {}, maxLoad = 
         deferred,
         conflicts,
         weeklyGrid,
+        effectiveSlotsMap,
         metrics: {
             recommendedCount: recommended.length,
             maxLoad,
             totalAulas,
             totalHoras: Math.round(totalHoras * 10) / 10,
             avoidedDelays,
-            conflictsCount: conflicts.length
+            conflictsCount: conflicts.length,
+            totalOfferedCount: courseIds.length
         }
     };
 }
 
 /**
  * Inicializa e sincroniza as ofertas do curso atual de acordo com a paridade selecionada.
+ * Mantido para paridade com suítes de testes automatizados e seleções rápidas.
  */
 export function populateDefaultOfferings(parity = ENROLL_STATE.parity) {
     ENROLL_STATE.parity = parity;
     ENROLL_STATE.offered.clear();
     const passed = passedSet();
 
+    if (parity === "odd") {
+        S.startHalf = 1;
+    } else if (parity === "even") {
+        S.startHalf = 2;
+    }
+
+    const sems = parity === "odd" ? [1, 3, 5, 7] : parity === "even" ? [2, 4, 6, 8] : [1, 2, 3, 4, 5, 6, 7, 8];
+    populateDefaultSemesterOffers(sems);
+
     ORDER.forEach(id => {
         const c = C[id];
-        if (passed.has(id)) return; // Inibe seleção de matérias já concluídas
+        if (passed.has(id)) return;
 
         if (parity === "all") {
             ENROLL_STATE.offered.add(id);
@@ -539,18 +682,106 @@ export function renderEnrollment() {
     const panel = $("t-enroll");
     if (!panel) return;
 
-    if (ENROLL_STATE.lastCurKey !== KEY) {
+    const offeredSemesters = getOfferedSemesters();
+    if (!S.enrollOffers) S.enrollOffers = {};
+
+    // Inicializa ofertas padrão se o curso foi alternado ou se o startHalf mudou
+    const needDefaultOffers = ENROLL_STATE.lastCurKey !== KEY ||
+        ENROLL_STATE.lastStartHalf !== S.startHalf ||
+        offeredSemesters.every(sem => !S.enrollOffers[sem] || Object.keys(S.enrollOffers[sem]).length === 0);
+
+    if (needDefaultOffers) {
         ENROLL_STATE.lastCurKey = KEY;
-        populateDefaultOfferings(ENROLL_STATE.parity);
+        ENROLL_STATE.lastStartHalf = S.startHalf;
+        populateDefaultSemesterOffers(offeredSemesters);
     }
 
-    const passed = passedSet();
-    const offeredIds = [...ENROLL_STATE.offered];
-    const decision = buildOptimalSchedule(offeredIds, ENROLL_STATE.slots, S.maxLoad || 9);
+    if (!offeredSemesters.includes(ENROLL_STATE.activeSem)) {
+        ENROLL_STATE.activeSem = offeredSemesters[0];
+    }
+
+    // 1. Atualiza Tag do Semestre Alvo
+    const halfTag = $("enrollCurrentHalfTag");
+    if (halfTag) {
+        const isOdd = +S.startHalf === 1;
+        halfTag.textContent = isOdd
+            ? "Ímpar (1º, 3º, 5º, 7º Semestres)"
+            : "Par (2º, 4º, 6º, 8º Semestres)";
+    }
+
+    // 2. Renderiza Abas das 4 Semanas de Oferta
+    const semTabsEl = $("enrollSemesterTabs");
+    if (semTabsEl) {
+        semTabsEl.innerHTML = offeredSemesters.map(sem => {
+            const count = Object.keys(S.enrollOffers[sem] || {}).length;
+            const isAct = sem === ENROLL_STATE.activeSem;
+            return (
+                `<button type="button" class="btn-sm enroll-sem-tab ${isAct ? "act" : ""}" data-sem="${esc(sem)}">` +
+                    `<b>${esc(sem)}º Semestre</b> <span class="note" style="color:inherit">(${esc(count)} aulas)</span>` +
+                `</button>`
+            );
+        }).join("");
+    }
+
+    // 3. Renderiza Título e Grade Interativa da Semana Selecionada
+    const activeSemTitle = $("enrollActiveSemTitle");
+    if (activeSemTitle) {
+        activeSemTitle.textContent = `Grade de Horários Ofertados — ${ENROLL_STATE.activeSem}º Semestre`;
+    }
+
+    const inputTableBody = $("enrollInputScheduleBody");
+    if (inputTableBody) {
+        const curSemOffers = S.enrollOffers[ENROLL_STATE.activeSem] || {};
+        const semCourses = ORDER.filter(id => C[id].sem === ENROLL_STATE.activeSem);
+        const otherCourses = ORDER.filter(id => C[id].sem !== ENROLL_STATE.activeSem);
+
+        const makeCourseOpt = (id, selId, showSem = false) => {
+            const isSel = id === selId;
+            if (isSel && showSem) {
+                return `<option value="${esc(id)}" selected>${esc(id)} · ${esc(C[id].name)} (${esc(C[id].sem)}º sem)</option>`;
+            }
+            if (isSel) {
+                return `<option value="${esc(id)}" selected>${esc(id)} · ${esc(C[id].name)}</option>`;
+            }
+            if (showSem) {
+                return `<option value="${esc(id)}">${esc(id)} · ${esc(C[id].name)} (${esc(C[id].sem)}º sem)</option>`;
+            }
+            return `<option value="${esc(id)}">${esc(id)} · ${esc(C[id].name)}</option>`;
+        };
+
+        inputTableBody.innerHTML = HORAS.map((h, i) =>
+            `<tr><th>${esc(h)}</th>` +
+            DIAS.map((_d, j) => {
+                const slotKey = `${i}-${j}`;
+                const selId = curSemOffers[slotKey] || "";
+                const optSemHtml = semCourses.map(id => makeCourseOpt(id, selId, false)).join("");
+                const optOtherHtml = otherCourses.map(id => makeCourseOpt(id, selId, true)).join("");
+
+                return (
+                    `<td>` +
+                        `<select class="enroll-slot-select" data-sem="${esc(ENROLL_STATE.activeSem)}" data-slot="${esc(slotKey)}" style="width:100%;font-size:12px">` +
+                            `<option value="">— (Livre)</option>` +
+                            `<optgroup label="Matérias do ${esc(ENROLL_STATE.activeSem)}º Semestre">` +
+                                `${optSemHtml}` +
+                            `</optgroup>` +
+                            `<optgroup label="Outras Matérias / Eletivas">` +
+                                `${optOtherHtml}` +
+                            `</optgroup>` +
+                        `</select>` +
+                    `</td>`
+                );
+            }).join("") +
+            `</tr>`
+        ).join("");
+    }
+
+    // 4. Executa Análise Otimizada
+    const decision = buildOptimalSchedule(null, ENROLL_STATE.slots, S.maxLoad || 9);
     const recMap = new Map(decision.recommended.map(r => [r.id, r]));
     const defMap = new Map(decision.deferred.map(d => [d.id, d]));
+    const passed = passedSet();
 
-    // 1. Renderiza KPIs
+    // 5. Renderiza KPIs da Decisão
     const kpisEl = $("enrollKpis");
     if (kpisEl) {
         const kpisHtml =
@@ -562,46 +793,46 @@ export function renderEnrollment() {
                 `</div>` +
                 `<div class="kpi">` +
                     `<b style="color:var(--av)">${esc(decision.metrics.avoidedDelays > 0 ? "+" + decision.metrics.avoidedDelays + " sem." : "No Prazo")}</b>` +
-                    `<small>Atrasos de Formatura Evitados</small>` +
+                    `<small>Atrasos Evitados</small>` +
                     `<div class="note" style="margin-top:2px">Priorização do caminho crítico</div>` +
                 `</div>` +
                 `<div class="kpi">` +
                     `<b style="color:${decision.metrics.conflictsCount > 0 ? "var(--warn)" : "var(--ok)"}">` +
                         `${esc(decision.metrics.conflictsCount)}` +
                     `</b>` +
-                    `<small>Conflitos de Horário</small>` +
-                    `<div class="note" style="margin-top:2px">${decision.metrics.conflictsCount > 0 ? "Choques analisados e resolvidos" : "Grade 100% livre de choques"}</div>` +
+                    `<small>Conflitos Analisados</small>` +
+                    `<div class="note" style="margin-top:2px">${decision.metrics.conflictsCount > 0 ? "Choques resolvidos sem sobreposição" : "Nenhum choque de horário"}</div>` +
                 `</div>` +
                 `<div class="kpi">` +
-                    `<b style="color:var(--acc)">${esc(ENROLL_STATE.offered.size)}</b>` +
-                    `<small>Matérias no Pool de Oferta</small>` +
-                    `<div class="note" style="margin-top:2px">Semestre ${esc(ENROLL_STATE.parity === "odd" ? "Ímpar" : ENROLL_STATE.parity === "even" ? "Par" : "Geral")}</div>` +
+                    `<b style="color:var(--acc)">${esc(decision.metrics.totalOfferedCount)}</b>` +
+                    `<small>Matérias Cadastradas</small>` +
+                    `<div class="note" style="margin-top:2px">Distribuídas nas 4 semanas</div>` +
                 `</div>` +
             `</div>`;
         kpisEl.innerHTML = kpisHtml;
     }
 
-    // 2. Renderiza Painel de Conflitos e Justificativas
+    // 6. Renderiza Conflitos e Justificativas
     const confWrap = $("enrollConflictsWrap");
     if (confWrap) {
         if (decision.conflicts.length === 0) {
             confWrap.innerHTML =
                 `<div class="note" style="padding:10px 14px;background:rgba(34,197,94,0.1);border-left:3px solid var(--ok);border-radius:6px;display:flex;align-items:center;gap:8px">` +
                     `<span style="font-size:16px">✅</span>` +
-                    `<div><b>Nenhum conflito de horário detectado:</b> Todas as disciplinas recomendadas possuem horários livres e compatíveis na semana.</div>` +
+                    `<div><b>Grade 100% Livre de Choques:</b> Todas as disciplinas recomendadas possuem horários compatíveis na semana.</div>` +
                 `</div>`;
         } else {
             const conflictCardsHtml = decision.conflicts.map(conf =>
                 `<div class="panel" style="margin-top:8px;padding:12px;background:var(--panel2,#1a2340);border-left:4px solid var(--warn)">` +
                     `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">` +
                         `<div>` +
-                            `<span class="tag y" style="font-weight:700">⚠️ Choque de Horário: ${esc(conf.slotLabel)}</span> ` +
+                            `<span class="tag y" style="font-weight:700">⚠️ Choque: ${esc(conf.slotLabel)}</span> ` +
                             `<b>${esc(conf.winner.id)}</b> vs <b>${esc(conf.loser.id)}</b>` +
                         `</div>` +
                         `<span class="tag g" style="font-weight:700">🏆 Escolha do Sistema: ${esc(conf.winner.id)}</span>` +
                     `</div>` +
                     `<div class="note" style="margin-top:8px;color:var(--txt);line-height:1.45">` +
-                        `💡 <b>Justificativa da decisão:</b> ${esc(conf.reason)} ` +
+                        `💡 <b>Motivo:</b> ${esc(conf.reason)} ` +
                         `(Score: <b>${esc(conf.winner.id)} = ${esc(conf.winner.score)} pts</b> vs <b>${esc(conf.loser.id)} = ${esc(conf.loser.score)} pts</b>).` +
                     `</div>` +
                 `</div>`
@@ -615,11 +846,11 @@ export function renderEnrollment() {
         }
     }
 
-    // 3. Renderiza Grade Semanal Recomendada
+    // 7. Renderiza Grade Semanal Sugerida (Sem Conflitos)
     const schedBody = $("enrollScheduleBody");
     const schedNote = $("enrollScheduleNote");
     if (schedNote) {
-        schedNote.textContent = `${decision.recommended.length} disciplina(s) alocadas sem conflito`;
+        schedNote.textContent = `${decision.recommended.length} disciplina(s) alocadas sem choque de horário`;
     }
     if (schedBody) {
         schedBody.innerHTML = HORAS.map((h, i) =>
@@ -642,16 +873,18 @@ export function renderEnrollment() {
         ).join("");
     }
 
-    // 4. Renderiza Tabela Detalhada de Matérias Ofertadas
+    // 8. Renderiza Tabela Detalhada com Filtros e Busca
     const tableBody = $("enrollTableBody");
     if (tableBody) {
         const q = ENROLL_STATE.search.trim().toLowerCase();
         const fStatus = ENROLL_STATE.filterStatus;
+        const allOfferedMap = decision.effectiveSlotsMap || {};
+        const allCids = Object.keys(allOfferedMap);
 
-        const rowsHtml = ORDER.map(cid => {
+        const rowsHtml = allCids.map(cid => {
             const c = C[cid];
+            if (!c) return "";
             const isPassed = passed.has(cid);
-            const isOffered = ENROLL_STATE.offered.has(cid);
             const missingPre = c.pre.filter(p => !passed.has(p));
             const isEligible = !isPassed && missingPre.length === 0;
 
@@ -659,25 +892,21 @@ export function renderEnrollment() {
             const isDef = defMap.has(cid);
             const defItem = defMap.get(cid);
 
-            // Filtro por texto
             if (q) {
                 const match = cid.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
                 if (!match) return "";
             }
 
-            // Filtro por status
             if (fStatus === "recommended" && !isRec) return "";
             if (fStatus === "conflict" && (!isDef || !defItem.deferReason.includes("Choque"))) return "";
             if (fStatus === "blocked" && (isPassed || isEligible)) return "";
             if (fStatus === "passed" && !isPassed) return "";
 
-            // Monta slots
-            const slots = getCourseSlots(cid);
-            const slotChipsHtml = slots.map(s =>
-                `<span class="tag b" style="font-size:11px">${esc(formatSlotLabel(s))}</span>`
-            ).join(" ");
+            const slots = allOfferedMap[cid] || [];
+            const slotChipsHtml = slots.length > 0
+                ? slots.map(s => `<span class="tag b" style="font-size:11px">${esc(formatSlotLabel(s))}</span>`).join(" ")
+                : "<span class='note'>Nenhum slot</span>";
 
-            // Badge de decisão
             let decisionBadgeHtml = "";
             if (isPassed) {
                 decisionBadgeHtml = `<span class="tag g">✓ Já Concluída</span>`;
@@ -689,16 +918,13 @@ export function renderEnrollment() {
                 decisionBadgeHtml = `<span class="tag y" title="${esc(defItem.deferReason)}">⚠️ Preterida (Choque)</span>`;
             } else if (isDef) {
                 decisionBadgeHtml = `<span class="tag b" title="${esc(defItem.deferReason)}">⏸️ Carga Máxima</span>`;
-            } else if (isOffered) {
-                decisionBadgeHtml = `<span class="tag b">Disponível</span>`;
             } else {
-                decisionBadgeHtml = `<span class="note">Não ofertada</span>`;
+                decisionBadgeHtml = `<span class="tag b">Disponível</span>`;
             }
 
-            // Análise explicativa
             let analysisHtml = "";
             if (isPassed) {
-                analysisHtml = `<span class="note">Disciplina concluída com aprovação no histórico.</span>`;
+                analysisHtml = `<span class="note">Disciplina concluída com aprovação no histórico escolar (dispensada).</span>`;
             } else if (!isEligible) {
                 analysisHtml = `<span style="color:var(--warn)">Requisitos pendentes: <b>${esc(missingPre.join(", "))}</b></span>`;
             } else {
@@ -717,16 +943,10 @@ export function renderEnrollment() {
                 }
             }
 
-            // Checkbox: inibido/desabilitado se já foi concluída
-            const chkDisabled = isPassed ? "disabled" : "";
-            const chkChecked = (isOffered && !isPassed) ? "checked" : "";
-            const rowClass = isPassed ? "style='opacity:0.55;background:rgba(255,255,255,0.02)'" : "";
+            const rowClass = isPassed ? "style='opacity:0.6;background:rgba(255,255,255,0.02)'" : "";
 
             return (
                 `<tr ${rowClass}>` +
-                    `<td style="text-align:center">` +
-                        `<input type="checkbox" data-enroll-cid="${esc(cid)}" ${chkChecked} ${chkDisabled} title="${isPassed ? "Matéria já concluída — inibida da análise" : "Marcar/desmarcar oferta da matéria"}">` +
-                    `</td>` +
                     `<td><b>${esc(cid)}</b></td>` +
                     `<td>` +
                         `<div style="${isPassed ? "text-decoration:line-through" : ""}">${esc(c.name)}</div>` +
@@ -751,62 +971,98 @@ export function renderEnrollment() {
  * Inicializa os botões, listeners e eventos da aba "🎯 Inscrição".
  */
 export function initEnrollmentUI() {
-    const btnParityOdd = $("btnParityOdd");
-    const btnParityEven = $("btnParityEven");
-    const btnParityAll = $("btnParityAll");
-
-    function updateParityButtons() {
-        if (btnParityOdd) btnParityOdd.classList.toggle("act", ENROLL_STATE.parity === "odd");
-        if (btnParityEven) btnParityEven.classList.toggle("act", ENROLL_STATE.parity === "even");
-        if (btnParityAll) btnParityAll.classList.toggle("act", ENROLL_STATE.parity === "all");
-    }
-
-    if (btnParityOdd) {
-        btnParityOdd.onclick = () => {
-            populateDefaultOfferings("odd");
-            updateParityButtons();
-            renderEnrollment();
-        };
-    }
-    if (btnParityEven) {
-        btnParityEven.onclick = () => {
-            populateDefaultOfferings("even");
-            updateParityButtons();
-            renderEnrollment();
-        };
-    }
-    if (btnParityAll) {
-        btnParityAll.onclick = () => {
-            populateDefaultOfferings("all");
-            updateParityButtons();
-            renderEnrollment();
+    const semTabsEl = $("enrollSemesterTabs");
+    if (semTabsEl) {
+        semTabsEl.onclick = e => {
+            const btn = e.target.closest("button.enroll-sem-tab");
+            if (btn && btn.dataset.sem) {
+                ENROLL_STATE.activeSem = parseInt(btn.dataset.sem, 10);
+                renderEnrollment();
+            }
         };
     }
 
-    const btnLoad = $("btnLoadParityOfferings");
-    if (btnLoad) {
-        btnLoad.onclick = () => {
-            populateDefaultOfferings(ENROLL_STATE.parity);
-            renderEnrollment();
-            toast(`✓ Ofertas de semestres ${ENROLL_STATE.parity === "odd" ? "ímpares" : ENROLL_STATE.parity === "even" ? "pares" : "gerais"} carregadas!`);
+    const inputTableBody = $("enrollInputScheduleBody");
+    if (inputTableBody) {
+        inputTableBody.onchange = e => {
+            const sel = e.target.closest("select.enroll-slot-select");
+            if (sel && sel.dataset.sem && sel.dataset.slot) {
+                const sem = parseInt(sel.dataset.sem, 10);
+                const slotKey = sel.dataset.slot;
+                const cid = sel.value;
+
+                if (!S.enrollOffers) S.enrollOffers = {};
+                if (!S.enrollOffers[sem]) S.enrollOffers[sem] = {};
+
+                if (cid) {
+                    S.enrollOffers[sem][slotKey] = cid;
+                } else {
+                    delete S.enrollOffers[sem][slotKey];
+                }
+
+                persist();
+                renderEnrollment();
+            }
         };
     }
 
-    const btnSyncSlots = $("btnSyncScheduleSlots");
-    if (btnSyncSlots) {
-        btnSyncSlots.onclick = () => {
-            const count = syncSlotsFromHor();
+    const btnFillDefault = $("btnFillDefaultOffers");
+    if (btnFillDefault) {
+        btnFillDefault.onclick = () => {
+            populateDefaultSemesterOffers();
+            persist();
             renderEnrollment();
-            toast(`✓ ${count} matéria(s) sincronizadas da aba Horários!`);
+            toast("✓ Horários padrão preenchidos nas 4 semanas de oferta!");
         };
     }
 
-    const btnClear = $("btnClearOfferings");
-    if (btnClear) {
-        btnClear.onclick = () => {
-            ENROLL_STATE.offered.clear();
+    const btnClearOffers = $("btnClearOffers");
+    if (btnClearOffers) {
+        btnClearOffers.onclick = () => {
+            const sems = getOfferedSemesters();
+            if (!S.enrollOffers) S.enrollOffers = {};
+            sems.forEach(s => { S.enrollOffers[s] = {}; });
+            persist();
             renderEnrollment();
-            toast("Seleção de ofertas limpa.");
+            toast("Semanas de oferta limpas.");
+        };
+    }
+
+    const btnFillActive = $("btnFillActiveSemDefault");
+    if (btnFillActive) {
+        btnFillActive.onclick = () => {
+            populateDefaultSemesterOffers([ENROLL_STATE.activeSem]);
+            persist();
+            renderEnrollment();
+            toast(`✓ Horários do ${ENROLL_STATE.activeSem}º semestre preenchidos!`);
+        };
+    }
+
+    const btnClearActive = $("btnClearActiveSem");
+    if (btnClearActive) {
+        btnClearActive.onclick = () => {
+            if (S.enrollOffers && S.enrollOffers[ENROLL_STATE.activeSem]) {
+                S.enrollOffers[ENROLL_STATE.activeSem] = {};
+                persist();
+                renderEnrollment();
+                toast(`Horários do ${ENROLL_STATE.activeSem}º semestre limpos.`);
+            }
+        };
+    }
+
+    const btnRun = $("btnRunAnalysis");
+    if (btnRun) {
+        btnRun.onclick = () => {
+            renderEnrollment();
+            toast("✓ Análise de inscrição atualizada!");
+        };
+    }
+
+    const btnGoCfg = $("btnGoToConfig");
+    if (btnGoCfg) {
+        btnGoCfg.onclick = () => {
+            const cfgTab = $("tab-t-cfg");
+            if (cfgTab) cfgTab.click();
         };
     }
 
@@ -826,28 +1082,10 @@ export function initEnrollmentUI() {
         };
     }
 
-    // Listener delegado para checkboxes na tabela
-    const tableBody = $("enrollTableBody");
-    if (tableBody) {
-        tableBody.onchange = e => {
-            const chk = e.target.closest("input[data-enroll-cid]");
-            if (chk) {
-                const cid = chk.dataset.enrollCid;
-                if (chk.checked) {
-                    ENROLL_STATE.offered.add(cid);
-                } else {
-                    ENROLL_STATE.offered.delete(cid);
-                }
-                renderEnrollment();
-            }
-        };
-    }
-
-    // Botões de aplicação
     const btnCur = $("btnApplyEnrollCurrent");
     if (btnCur) {
         btnCur.onclick = () => {
-            const decision = buildOptimalSchedule([...ENROLL_STATE.offered], ENROLL_STATE.slots, S.maxLoad || 9);
+            const decision = buildOptimalSchedule(null, ENROLL_STATE.slots, S.maxLoad || 9);
             confirma(btnCur, "Confirmar inscrição?", () => {
                 applyEnrollmentToCurrent(decision.recommended);
             });
@@ -857,13 +1095,12 @@ export function initEnrollmentUI() {
     const btnSched = $("btnApplyEnrollSchedule");
     if (btnSched) {
         btnSched.onclick = () => {
-            const decision = buildOptimalSchedule([...ENROLL_STATE.offered], ENROLL_STATE.slots, S.maxLoad || 9);
+            const decision = buildOptimalSchedule(null, ENROLL_STATE.slots, S.maxLoad || 9);
             confirma(btnSched, "Preencher grade semanal?", () => {
                 applyEnrollmentToSchedule(decision.weeklyGrid);
             });
         };
     }
 
-    populateDefaultOfferings(ENROLL_STATE.parity);
-    updateParityButtons();
+    ENROLL_STATE.activeSem = getOfferedSemesters()[0];
 }

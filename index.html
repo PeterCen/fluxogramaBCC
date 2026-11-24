@@ -24,7 +24,7 @@
   <meta name="twitter:description" content="Fluxograma interativo e planejador acadêmico do Bacharelado em Ciência da Computação (IFSP Presidente Epitácio). Acompanhe disciplinas, pré-requisitos, notas, faltas, horários e previsão de conclusão.">
   <meta name="twitter:image" content="https://petercen.github.io/assets/img/logo-bcc.png">
 
-  <link rel="stylesheet" href="./assets/css/styles.css?v=75c1256b6d">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=b52afda62b">
   <link rel="icon" href="./assets/img/logo-bcc.png" type="image/png">
 </head>
 
@@ -397,7 +397,7 @@
           <div>
             <h2 style="margin:0 0 4px">🎯 Avaliação e Decisão de Inscrição no Semestre</h2>
             <div class="note">
-              Identifique as ofertas do início do semestre, analise conflitos de horários e decida a melhor combinação com base no tempo de conclusão e pré-requisitos.
+              Cadastre as aulas ofertadas em cada semana de semestre conforme publicado pelo campus. O sistema analisa conflitos de horário, valida pré-requisitos, desconsidera o que você já concluiu e monta a grade com a maior quantidade de matérias possíveis.
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -410,90 +410,148 @@
           </div>
         </div>
 
-        <!-- Barra de Seleção de Oferta e Filtros -->
+        <!-- Barra de Configuração e Ações Globais de Oferta -->
         <div class="enroll-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;background:var(--bg2,#151b2e);border-radius:10px;margin-bottom:14px">
-          <div class="enroll-parity-group" style="display:flex;align-items:center;gap:6px">
-            <span style="font-weight:600;font-size:13px">Semestre Ofertado:</span>
-            <button type="button" class="btn-sm enroll-parity-btn act" data-parity="odd" id="btnParityOdd" title="Ofertas de semestres ímpares (1º, 3º, 5º, 7º)">☀️ Ímpar</button>
-            <button type="button" class="btn-sm enroll-parity-btn" data-parity="even" id="btnParityEven" title="Ofertas de semestres pares (2º, 4º, 6º, 8º)">🌙 Par</button>
-            <button type="button" class="btn-sm enroll-parity-btn" data-parity="all" id="btnParityAll" title="Todas as disciplinas da grade">🌐 Todos</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-weight:600;font-size:13px">Semestre Letivo Alvo:</span>
+            <span class="tag b" id="enrollCurrentHalfTag" style="font-weight:700">Ímpar (1º, 3º, 5º, 7º)</span>
           </div>
 
-          <div style="display:flex;gap:6px;align-items:center">
-            <button type="button" class="btn-sm" id="btnLoadParityOfferings" title="Seleciona todas as matérias regulares ofertadas neste tipo de semestre">
-              ⚡ Carregar Ofertas do Semestre
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <button type="button" class="btn-sm" id="btnFillDefaultOffers" title="Preenche as 4 semanas com a distribuição padrão de horários das turmas">
+              ⚡ Preencher Horários Padrão
             </button>
-            <button type="button" class="btn-sm" id="btnSyncScheduleSlots" title="Sincroniza os horários das matérias com a grade atual da aba Horários">
-              🔄 Sincronizar Horários
+            <button type="button" class="btn-sm btn-ghost" id="btnClearOffers" title="Limpa todos os horários cadastrados nas 4 semanas">
+              🧹 Limpar Semanas
             </button>
-            <button type="button" class="btn-sm btn-ghost" id="btnClearOfferings" title="Desmarca todas as matérias">
-              🧹 Limpar
+            <button type="button" class="btn-sm pri" id="btnRunAnalysis" title="Executa a análise de conflitos, pré-requisitos e maximização de matérias">
+              🎯 Executar Análise
             </button>
           </div>
 
           <div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap">
-            <label class="inl" style="margin:0">
-              Buscar:
-              <input type="text" id="enrollSearch" placeholder="Sigla ou nome..." style="margin-left:4px;width:150px">
-            </label>
-            <label class="inl" style="margin:0">
-              Filtro:
-              <select id="enrollFilterStatus" style="margin-left:4px">
-                <option value="all">Todas as matérias</option>
-                <option value="recommended">Apenas recomendadas (🏆)</option>
-                <option value="conflict">Com choque de horário (⚠️)</option>
-                <option value="blocked">Pré-requisito pendente (🔒)</option>
-                <option value="passed">Já concluídas (🎓)</option>
-              </select>
-            </label>
+            <button type="button" class="btn-sm btn-ghost" id="btnGoToConfig" title="Mudar próximo semestre letivo nas Configurações">
+              ⚙️ Mudar Semestre nas Configurações
+            </button>
           </div>
         </div>
 
-        <!-- KPIs da Decisão -->
-        <div id="enrollKpis"></div>
-
-        <!-- Painel de Conflitos e Justificativas -->
-        <div id="enrollConflictsWrap" style="margin-bottom:14px"></div>
-
-        <!-- Visualização da Grade Semanal Recomendada -->
-        <div class="panel" style="margin-top:0;margin-bottom:14px;background:var(--panel2,#1a2340)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <h4 style="margin:0">🗓️ Organização Semanal Sugerida (Sem Conflitos)</h4>
-            <span class="note" id="enrollScheduleNote"></span>
+        <!-- Seção 1: Montagem das 4 Semanas de Oferta -->
+        <div style="margin-bottom:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="margin:0 0 2px">📅 1. Montagem das Turmas / Semanas Ofertadas</h3>
+              <div class="note">Selecione uma semana abaixo para cadastrar as aulas ofertadas pelo campus naquele semestre:</div>
+            </div>
+            <div id="enrollSemesterTabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
           </div>
+
+          <!-- Grade Interativa de Horários da Semana Selecionada -->
+          <div class="panel" style="margin-top:0;background:var(--panel2,#1a2340);padding:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+              <h4 id="enrollActiveSemTitle" style="margin:0">Grade de Horários Ofertados</h4>
+              <div style="display:flex;gap:6px;align-items:center">
+                <button type="button" class="btn-sm btn-ghost" id="btnFillActiveSemDefault" title="Preenche horários sugeridos apenas para este semestre">
+                  ⚡ Preencher Este Semestre
+                </button>
+                <button type="button" class="btn-sm btn-ghost" id="btnClearActiveSem" title="Limpa horários deste semestre">
+                  🧹 Limpar Este Semestre
+                </button>
+              </div>
+            </div>
+            <div class="tblwrap">
+              <table class="st hor" id="enrollInputScheduleTable" style="min-width:1000px">
+                <thead>
+                  <tr>
+                    <th>Horas</th>
+                    <th>Seg</th>
+                    <th>Ter</th>
+                    <th>Qua</th>
+                    <th>Qui</th>
+                    <th>Sex</th>
+                  </tr>
+                </thead>
+                <tbody id="enrollInputScheduleBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção 2: Resultados da Análise -->
+        <div style="margin-top:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="margin:0 0 2px">📊 2. Análise e Otimização para Inscrição</h3>
+              <div class="note">Desconsidera disciplinas já cursadas, valida pré-requisitos e maximiza o número de disciplinas que você pode cursar sem choques.</div>
+            </div>
+          </div>
+
+          <!-- KPIs da Decisão -->
+          <div id="enrollKpis"></div>
+
+          <!-- Painel de Conflitos e Justificativas -->
+          <div id="enrollConflictsWrap" style="margin-bottom:14px"></div>
+
+          <!-- Visualização da Grade Semanal Recomendada -->
+          <div class="panel" style="margin-top:0;margin-bottom:14px;background:var(--panel2,#1a2340)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <h4 style="margin:0">🗓️ Grade Semanal Sugerida para Você (Sem Conflitos)</h4>
+              <span class="note" id="enrollScheduleNote"></span>
+            </div>
+            <div class="tblwrap">
+              <table class="st hor" id="enrollScheduleTable" style="min-width:1000px">
+                <thead>
+                  <tr>
+                    <th>Horas</th>
+                    <th>Seg</th>
+                    <th>Ter</th>
+                    <th>Qua</th>
+                    <th>Qui</th>
+                    <th>Sex</th>
+                  </tr>
+                </thead>
+                <tbody id="enrollScheduleBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Barra de Busca e Filtro da Tabela de Decisão -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <h4 style="margin:0">📋 Quadro Detalhado de Matérias Analisadas</h4>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <label class="inl" style="margin:0">
+                Buscar:
+                <input type="text" id="enrollSearch" placeholder="Sigla ou nome..." style="margin-left:4px;width:150px">
+              </label>
+              <label class="inl" style="margin:0">
+                Filtro:
+                <select id="enrollFilterStatus" style="margin-left:4px">
+                  <option value="all">Todas as matérias</option>
+                  <option value="recommended">Apenas recomendadas (🏆)</option>
+                  <option value="conflict">Com choque de horário (⚠️)</option>
+                  <option value="blocked">Pré-requisito pendente (🔒)</option>
+                  <option value="passed">Já concluídas (🎓)</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <!-- Tabela Detalhada de Matérias Ofertadas e Decisão -->
           <div class="tblwrap">
-            <table class="st hor" id="enrollScheduleTable" style="min-width:1000px">
+            <table class="grid" style="width:100%;text-align:left;border-collapse:collapse">
               <thead>
                 <tr>
-                  <th>Horas</th>
-                  <th>Seg</th>
-                  <th>Ter</th>
-                  <th>Qua</th>
-                  <th>Qui</th>
-                  <th>Sex</th>
+                  <th style="width:80px">Sigla</th>
+                  <th>Disciplina</th>
+                  <th style="width:100px">Sem./C.H.</th>
+                  <th style="width:200px">Horários Cadastrados</th>
+                  <th>Análise (Pré-requisitos &amp; Conflitos)</th>
+                  <th style="width:180px">Decisão Final</th>
                 </tr>
               </thead>
-              <tbody id="enrollScheduleBody"></tbody>
+              <tbody id="enrollTableBody"></tbody>
             </table>
           </div>
-        </div>
-
-        <!-- Tabela Detalhada de Matérias Ofertadas e Decisão -->
-        <div class="tblwrap">
-          <table class="grid" style="width:100%;text-align:left;border-collapse:collapse">
-            <thead>
-              <tr>
-                <th style="width:40px;text-align:center" title="Selecionar se a matéria está ofertada">Oferta</th>
-                <th style="width:80px">Sigla</th>
-                <th>Disciplina</th>
-                <th style="width:100px">Sem./C.H.</th>
-                <th style="width:200px">Dias &amp; Horários Ofertados</th>
-                <th>Análise de Decisão &amp; Pré-requisitos</th>
-                <th style="width:180px">Decisão do Sistema</th>
-              </tr>
-            </thead>
-            <tbody id="enrollTableBody"></tbody>
-          </table>
         </div>
       </div>
     </div>

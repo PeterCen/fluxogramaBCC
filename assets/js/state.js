@@ -246,6 +246,7 @@ export const defaultState = (curKey = KEY) => ({
     expect: 70,
     scen: 0,
     hor: { cells: {} },
+    enrollOffers: {},
     ac: {},
     acHoras: 0,
     tccBase: "total",
@@ -346,6 +347,21 @@ export function sanitizeState(raw, curKey = KEY) {
         }
     }
 
+    const enrollOffers = {};
+    if (raw.enrollOffers && typeof raw.enrollOffers === "object" && !Array.isArray(raw.enrollOffers)) {
+        for (const [semStr, slots] of Object.entries(raw.enrollOffers)) {
+            const sem = parseInt(semStr, 10);
+            if (sem >= 1 && sem <= 12 && slots && typeof slots === "object" && !Array.isArray(slots)) {
+                enrollOffers[sem] = {};
+                for (const [slotKey, cid] of Object.entries(slots)) {
+                    if (/^[0-4]-[0-4]$/.test(slotKey) && typeof cid === "string" && hasCourse(cid, cMap)) {
+                        enrollOffers[sem][slotKey] = cid;
+                    }
+                }
+            }
+        }
+    }
+
     const ac = {};
     if (raw.ac && typeof raw.ac === "object" && !Array.isArray(raw.ac)) {
         for (let i = 0; i < AC_MAX_ITEMS; i++) {
@@ -370,6 +386,7 @@ export function sanitizeState(raw, curKey = KEY) {
         expect: clampNum(raw.expect, 30, 95, def.expect),
         scen: +raw.scen === 1 ? 1 : 0,
         hor: { cells },
+        enrollOffers,
         ac,
         acHoras: clampNum(raw.acHoras, 0, 1000, 0),
         tccBase: raw.tccBase === "obr" ? "obr" : "total",
@@ -424,7 +441,7 @@ export function validateStateSchema(raw) {
 
     const appKeys = [
         "curriculo", "passed", "current", "tasks", "electivePlan",
-        "hor", "ac", "acHoras", "startYear", "startHalf", "maxLoad"
+        "hor", "enrollOffers", "ac", "acHoras", "startYear", "startHalf", "maxLoad"
     ];
     const hasAnyAppKey = appKeys.some(k => Object.prototype.hasOwnProperty.call(raw, k));
     if (!hasAnyAppKey) {
