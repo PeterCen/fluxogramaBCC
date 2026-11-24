@@ -73,7 +73,20 @@ const SAFE_HTML_FRAGMENTS = new Set([
     "destHHtml",
     "outrosHtml",
     "aproveitadasHtml",
-    "perdidasHtml"
+    "perdidasHtml",
+    "kpisHtml",
+    "conflictCardsHtml",
+    "rowsHtml",
+    "slotChipsHtml",
+    "decisionBadgeHtml",
+    "analysisHtml",
+    "rowClass",
+    "chkDisabled",
+    "chkChecked",
+    "delayTag",
+    "depthTag",
+    "unlockTag",
+    "scoreTag"
 ]);
 
 /**
@@ -236,6 +249,7 @@ const JS_MODULES = [
     "assets/js/planner.js",
     "assets/js/calendar.js",
     "assets/js/equivalence.js",
+    "assets/js/enrollment.js",
     "assets/js/ui.js",
     "assets/js/script.js",
     "assets/js/feedback.js"

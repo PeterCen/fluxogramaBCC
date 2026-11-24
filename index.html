@@ -60,6 +60,7 @@
       <button type="button" role="tab" id="tab-t-cur" data-tab="t-cur" aria-controls="t-cur" aria-selected="false" tabindex="-1" title="Matérias deste semestre: notas, faltas e risco de reprovar">📚 Cursando agora</button>
       <button type="button" role="tab" id="tab-t-tr" data-tab="t-tr" aria-controls="t-tr" aria-selected="false" tabindex="-1" title="Provas e trabalhos, com prioridade sugerida e calendário">📝 Prazos</button>
       <button type="button" role="tab" id="tab-t-hor" data-tab="t-hor" aria-controls="t-hor" aria-selected="false" tabindex="-1" title="Grade semanal de aulas e salas">🕒 Horários</button>
+      <button type="button" role="tab" id="tab-t-enroll" data-tab="t-enroll" aria-controls="t-enroll" aria-selected="false" tabindex="-1" title="Avaliação e tomada de decisão para inscrição/matrícula de matérias no semestre">🎯 Inscrição</button>
       <button type="button" role="tab" id="tab-t-plan" data-tab="t-plan" aria-controls="t-plan" aria-selected="false" tabindex="-1" title="Previsão de quando você conclui o curso">📅 Plano estimado</button>
       <button type="button" role="tab" id="tab-t-ac" data-tab="t-ac" aria-controls="t-ac" aria-selected="false" tabindex="-1" title="Horas de atividades complementares">🏅 Atividades Compl.</button>
       <button type="button" role="tab" id="tab-t-equiv" data-tab="t-equiv" aria-controls="t-equiv" aria-selected="false" tabindex="-1" title="Matriz oficial de equivalência entre PPC 2018 e PPC 2022/2023">🔄 Equivalência</button>
@@ -387,6 +388,114 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- Aba de Decisão e Inscrição de Matérias -->
+    <div class="tabpane" id="t-enroll" role="tabpanel" aria-labelledby="tab-t-enroll" tabindex="0">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+          <div>
+            <h2 style="margin:0 0 4px">🎯 Avaliação e Decisão de Inscrição no Semestre</h2>
+            <div class="note">
+              Identifique as ofertas do início do semestre, analise conflitos de horários e decida a melhor combinação com base no tempo de conclusão e pré-requisitos.
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button type="button" class="pri" id="btnApplyEnrollCurrent" title="Inscreve as matérias recomendadas diretamente na aba 'Cursando agora'">
+              🚀 Aplicar em Cursando Agora
+            </button>
+            <button type="button" id="btnApplyEnrollSchedule" title="Preenche a grade semanal na aba 'Horários' com as matérias recomendadas">
+              📅 Preencher Grade de Horários
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra de Seleção de Oferta e Filtros -->
+        <div class="enroll-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;background:var(--bg2,#151b2e);border-radius:10px;margin-bottom:14px">
+          <div class="enroll-parity-group" style="display:flex;align-items:center;gap:6px">
+            <span style="font-weight:600;font-size:13px">Semestre Ofertado:</span>
+            <button type="button" class="btn-sm enroll-parity-btn act" data-parity="odd" id="btnParityOdd" title="Ofertas de semestres ímpares (1º, 3º, 5º, 7º)">☀️ Ímpar</button>
+            <button type="button" class="btn-sm enroll-parity-btn" data-parity="even" id="btnParityEven" title="Ofertas de semestres pares (2º, 4º, 6º, 8º)">🌙 Par</button>
+            <button type="button" class="btn-sm enroll-parity-btn" data-parity="all" id="btnParityAll" title="Todas as disciplinas da grade">🌐 Todos</button>
+          </div>
+
+          <div style="display:flex;gap:6px;align-items:center">
+            <button type="button" class="btn-sm" id="btnLoadParityOfferings" title="Seleciona todas as matérias regulares ofertadas neste tipo de semestre">
+              ⚡ Carregar Ofertas do Semestre
+            </button>
+            <button type="button" class="btn-sm" id="btnSyncScheduleSlots" title="Sincroniza os horários das matérias com a grade atual da aba Horários">
+              🔄 Sincronizar Horários
+            </button>
+            <button type="button" class="btn-sm btn-ghost" id="btnClearOfferings" title="Desmarca todas as matérias">
+              🧹 Limpar
+            </button>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap">
+            <label class="inl" style="margin:0">
+              Buscar:
+              <input type="text" id="enrollSearch" placeholder="Sigla ou nome..." style="margin-left:4px;width:150px">
+            </label>
+            <label class="inl" style="margin:0">
+              Filtro:
+              <select id="enrollFilterStatus" style="margin-left:4px">
+                <option value="all">Todas as matérias</option>
+                <option value="recommended">Apenas recomendadas (🏆)</option>
+                <option value="conflict">Com choque de horário (⚠️)</option>
+                <option value="blocked">Pré-requisito pendente (🔒)</option>
+                <option value="passed">Já concluídas (🎓)</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <!-- KPIs da Decisão -->
+        <div id="enrollKpis"></div>
+
+        <!-- Painel de Conflitos e Justificativas -->
+        <div id="enrollConflictsWrap" style="margin-bottom:14px"></div>
+
+        <!-- Visualização da Grade Semanal Recomendada -->
+        <div class="panel" style="margin-top:0;margin-bottom:14px;background:var(--panel2,#1a2340)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h4 style="margin:0">🗓️ Organização Semanal Sugerida (Sem Conflitos)</h4>
+            <span class="note" id="enrollScheduleNote"></span>
+          </div>
+          <div class="tblwrap">
+            <table class="st hor" id="enrollScheduleTable" style="min-width:1000px">
+              <thead>
+                <tr>
+                  <th>Horas</th>
+                  <th>Seg</th>
+                  <th>Ter</th>
+                  <th>Qua</th>
+                  <th>Qui</th>
+                  <th>Sex</th>
+                </tr>
+              </thead>
+              <tbody id="enrollScheduleBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tabela Detalhada de Matérias Ofertadas e Decisão -->
+        <div class="tblwrap">
+          <table class="grid" style="width:100%;text-align:left;border-collapse:collapse">
+            <thead>
+              <tr>
+                <th style="width:40px;text-align:center" title="Selecionar se a matéria está ofertada">Oferta</th>
+                <th style="width:80px">Sigla</th>
+                <th>Disciplina</th>
+                <th style="width:100px">Sem./C.H.</th>
+                <th style="width:200px">Dias &amp; Horários Ofertados</th>
+                <th>Análise de Decisão &amp; Pré-requisitos</th>
+                <th style="width:180px">Decisão do Sistema</th>
+              </tr>
+            </thead>
+            <tbody id="enrollTableBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Campo Fluxograma -->

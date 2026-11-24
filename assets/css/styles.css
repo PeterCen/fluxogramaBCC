@@ -1738,3 +1738,39 @@ th .q {
     padding-left: 16px;
     margin: 4px 0;
 }
+
+/* ---------- ABA INSCRIÇÃO E DECISÃO DE MATÉRIAS ---------- */
+.enroll-toolbar {
+    border: 1px solid var(--line);
+}
+
+.enroll-parity-btn {
+    border: 1px solid var(--line);
+    background: var(--panel2);
+    color: var(--mut);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.enroll-parity-btn:hover {
+    color: var(--txt);
+    border-color: var(--av);
+}
+
+.enroll-parity-btn.act {
+    background: var(--av);
+    color: #0b1020;
+    font-weight: 700;
+    border-color: var(--av);
+}
+
+#enrollScheduleTable td {
+    padding: 6px;
+    vertical-align: top;
+    height: 48px;
+    transition: background 0.15s ease;
+}
+
+#enrollScheduleTable th {
+    font-size: 11px;
+}

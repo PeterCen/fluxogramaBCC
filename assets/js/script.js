@@ -9,6 +9,7 @@
  * - calendar.js   : Importância, urgência, prioridade e planejador diário de estudo no calendário
  * - ui.js         : Abas WAI-ARIA, renderização do fluxograma/fallback, tabelas e eventos da interface
  * - equivalence.js: Matriz oficial de equivalência curricular entre PPC 2018 e 2022/2023
+ * - enrollment.js : Avaliação e tomada de decisão para inscrição/matrícula de matérias
  */
 
 export * from "./state.js";
@@ -17,13 +18,24 @@ export * from "./planner.js";
 export * from "./calendar.js";
 export * from "./ui.js";
 export * from "./equivalence.js";
+export * from "./enrollment.js";
 
-import { initMainTabs, initEvents, build, update, registerEquivalenceRenderer } from "./ui.js";
+import {
+    initMainTabs,
+    initEvents,
+    build,
+    update,
+    registerEquivalenceRenderer,
+    registerEnrollmentRenderer
+} from "./ui.js";
 import { initEquivalenceUI, renderEquivalence } from "./equivalence.js";
+import { initEnrollmentUI, renderEnrollment } from "./enrollment.js";
 
 registerEquivalenceRenderer(renderEquivalence);
+registerEnrollmentRenderer(renderEnrollment);
 initMainTabs();
 initEvents();
 initEquivalenceUI();
+initEnrollmentUI();
 build();
 update();

@@ -128,7 +128,15 @@ const {
     EQUIVALENCE_DATA,
     migratePassedDisciplines,
     filterEquivalence,
-    calcEquivalenceStats
+    calcEquivalenceStats,
+    formatSlotLabel,
+    getDefaultCourseSlots,
+    calcGraduationImpact,
+    calcCourseDecisionScore,
+    analyzeConflicts,
+    buildOptimalSchedule,
+    populateDefaultOfferings,
+    ENROLL_STATE
 } = await import("../assets/js/script.js");
 
 function resetState(overrides = {}) {
@@ -721,5 +729,108 @@ test("Estatísticas e KPIs de aproveitamento (calcEquivalenceStats)", () => {
     assert.equal(s1.perdidasCount, 1);
     assert.equal(s1.perdidasHoras, 63.3);
 });
+
+// ============================================================================
+// TESTES DO MÓDULO DE TOMADA DE DECISÃO E INSCRIÇÃO (enrollment.js)
+// ============================================================================
+
+test("Identificação e filtragem de ofertas por paridade semestral (populateDefaultOfferings)", () => {
+    resetState({ passed: ["ALP1", "EDG1"] });
+
+    // 1. Semestre Ímpar: deve conter matérias ímpares pendentes e inibir as aprovadas
+    populateDefaultOfferings("odd");
+    assert.ok(ENROLL_STATE.offered.has("BDD1"), "BDD1 (3º sem, ímpar) deve estar ofertada");
+    assert.ok(ENROLL_STATE.offered.has("FMAT"), "FMAT (1º sem, ímpar) pendente deve estar ofertada");
+    assert.equal(ENROLL_STATE.offered.has("ALP1"), false, "ALP1 já concluída DEVE ser inibida");
+    assert.equal(ENROLL_STATE.offered.has("EDG1"), false, "EDG1 já concluída DEVE ser inibida");
+    assert.equal(ENROLL_STATE.offered.has("ALP2"), false, "ALP2 (2º sem, par) não deve estar na oferta ímpar");
+
+    // 2. Semestre Par: deve conter matérias pares pendentes
+    populateDefaultOfferings("even");
+    assert.ok(ENROLL_STATE.offered.has("ALP2"), "ALP2 (2º sem, par) deve estar ofertada no par");
+    assert.equal(ENROLL_STATE.offered.has("BDD1"), false, "BDD1 (3º sem, ímpar) não deve estar no par");
+
+    // 3. Todos os Semestres: contém ambas, mas inibe as aprovadas
+    populateDefaultOfferings("all");
+    assert.ok(ENROLL_STATE.offered.has("ALP2"));
+    assert.ok(ENROLL_STATE.offered.has("BDD1"));
+    assert.equal(ENROLL_STATE.offered.has("ALP1"), false, "Matéria aprovada segue inibida em 'all'");
+});
+
+test("Avaliação de scores de decisão, impacto na formatura e pré-requisitos (calcCourseDecisionScore)", () => {
+    // Cenário: aluno novo (sem aprovações)
+    const passedEmpty = new Set();
+
+    // 1. Matéria com pré-requisito pendente deve ser bloqueada
+    const scoreAlp2 = calcCourseDecisionScore("ALP2", passedEmpty);
+    assert.equal(scoreAlp2.isEligible, false, "ALP2 deve estar bloqueada sem ALP1");
+    assert.deepEqual(scoreAlp2.missingPre, ["ALP1"]);
+    assert.equal(scoreAlp2.score, 0);
+
+    // 2. Matéria já concluída deve ter pontuação zerada e status aprovado
+    const scorePassed = calcCourseDecisionScore("ALP1", new Set(["ALP1"]));
+    assert.equal(scorePassed.isPassed, true);
+    assert.equal(scorePassed.isEligible, false);
+    assert.equal(scorePassed.score, 0);
+
+    // 3. Matéria elegível crítica (ALP1) vs folha sem dependentes (COEX)
+    const scoreAlp1 = calcCourseDecisionScore("ALP1", passedEmpty);
+    const scoreCoex = calcCourseDecisionScore("COEX", passedEmpty);
+
+    assert.equal(scoreAlp1.isEligible, true);
+    assert.equal(scoreCoex.isEligible, true);
+    assert.ok(scoreAlp1.score > scoreCoex.score, "ALP1 deve ter score superior a COEX");
+    assert.ok(scoreAlp1.depthVal > scoreCoex.depthVal, "ALP1 possui profundidade maior no caminho crítico");
+    assert.ok(scoreAlp1.directUnlocks.includes("ALP2"), "ALP1 destrava ALP2 diretamente");
+});
+
+test("Detecção e resolução inteligente de choques de horário (analyzeConflicts)", () => {
+    const passed = new Set();
+    const candAlp1 = calcCourseDecisionScore("ALP1", passed);
+    const candCoex = calcCourseDecisionScore("COEX", passed);
+
+    // Força choque no slot '0-0' (Segunda 07:10)
+    const mockSlots = {
+        ALP1: ["0-0", "0-2"],
+        COEX: ["0-0"]
+    };
+
+    const { conflicts } = analyzeConflicts([candAlp1, candCoex], mockSlots);
+    assert.equal(conflicts.length, 1, "Deve identificar exatamente 1 choque de horário");
+
+    const conf = conflicts[0];
+    assert.equal(conf.slotKey, "0-0");
+    assert.equal(conf.winner.id, "ALP1", "ALP1 deve vencer o conflito contra COEX");
+    assert.equal(conf.loser.id, "COEX", "COEX deve ser a preterida no conflito");
+    assert.ok(conf.reason.length > 0, "Deve fornecer justificativa explicativa");
+});
+
+test("Construção de grade semanal ótima sem choques e dentro do limite maxLoad (buildOptimalSchedule)", () => {
+    resetState({ passed: [] });
+
+    // Pool de matérias ofertadas do 1º semestre
+    const candidates = ["ALP1", "COEX", "EDG1", "FADM", "FMAT", "ICCO", "MDIS"];
+
+    // 1. Grade regular sem conflitos manuais forçados
+    const plan = buildOptimalSchedule(candidates, {}, 9);
+    assert.ok(plan.recommended.length >= 6, "Deve recomendar as matérias elegíveis do semestre");
+
+    // Verifica que na grade gerada NÃO há choques
+    const usedSlots = new Set();
+    plan.recommended.forEach(item => {
+        const sls = getDefaultCourseSlots(item.id);
+        sls.forEach(s => {
+            assert.equal(usedSlots.has(s), false, `Slot ${s} não pode ter sobreposição na grade ótima`);
+            usedSlots.add(s);
+        });
+    });
+
+    // 2. Respeita rigorosamente o limite de carga (maxLoad = 3)
+    const restrictedPlan = buildOptimalSchedule(candidates, {}, 3);
+    assert.equal(restrictedPlan.recommended.length, 3, "Não deve ultrapassar maxLoad = 3");
+    assert.equal(restrictedPlan.deferred.length, candidates.length - 3);
+    assert.ok(restrictedPlan.deferred.some(d => d.deferReason.includes("Limite máximo")));
+});
+
 
 
