@@ -19,11 +19,16 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - **Abas Acessíveis (WAI-ARIA & Teclado)**: a página é dividida em Fluxograma, Cursando agora, Trabalhos e Provas, Horários, Inscrição, Plano estimado, Atividades Compl., Equivalência, Configurações, Como funciona e Feedback, utilizando `role="tablist"`, `role="tab"`, `role="tabpanel"`, `aria-selected`, `aria-controls` e *roving tabindex* (`0`/`-1`), com navegação completa por teclado (`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Home`, `End`, `Enter`, `Space`). O resumo (KPIs e barra de progresso) fica sempre visível no topo; a última aba usada é lembrada.
 
 - **Avaliação e Decisão de Inscrição no Semestre (`🎯 Inscrição`)**:
-  - **Identificação de Ofertas e Paridade Semestral**: seleção automática ou manual do tipo de semestre ofertado (Ímpar: 1º, 3º, 5º, 7º; Par: 2º, 4º, 6º, 8º; ou Todos), com botão rápido para carregar todas as ofertas regulares do semestre com 1 clique (`⚡ Carregar Ofertas do Semestre`).
-  - **Inibição de Disciplinas Concluídas e Checagem de Pré-requisitos**: disciplinas já aprovadas (`S.passed`) são automaticamente inibidas/desabilitadas da seleção (badge `✓ Já Concluída`), prevenindo análises redundantes. Disciplinas com pré-requisitos pendentes são bloqueadas e sinalizadas com a lista exata do que falta (`🔒 Bloqueada`).
-  - **Organização da Semana e Análise de Conflitos**: detecção em tempo real de choques de horário entre matérias que competem pelo mesmo slot semanal.
-  - **Algoritmo de Tomada de Decisão (Caminho Crítico & Impacto na Formatura)**: em caso de choque, o algoritmo avalia o impacto direto no tempo de conclusão do curso ($\Delta T$ em semestres adiados via simulação determinística), profundidade no caminho crítico (`depth`), dependentes desbloqueadas no próximo semestre e dependentes totais no grafo (`desc`). Ele decide a vencedora de cada conflito e fornece justificativa pedagógica detalhada.
-  - **Montagem da Grade Ótima Recomendada**: constrói a melhor combinação de disciplinas livres de choques dentro do limite `S.maxLoad`, com visualização da grade semanal e ações diretas em 1 clique: `🚀 Aplicar em Cursando Agora` e `📅 Preencher Grade de Horários`.
+  - **Estrutura Dinâmica de Semanas Abertas e Empilhadas**: a interface inicia com 1 semana de turmas por padrão (`Semana 1`) e permite adicionar novas semanas dinamicamente (`➕ Adicionar Semana`) ou excluí-las (`🗑️ Excluir Semana`), exibindo todas as grades abertas e empilhadas verticalmente para visualização simultânea sem abas escondidas.
+  - **Seleção Direta nas Células com Filtragem Inteligente de Requisitos**: o usuário cadastra as turmas e horários ofertados pela instituição diretamente nos seletores de cada célula da grade (`Horas` × `Seg-Sex`). Os dropdowns filtram em tempo real apenas as disciplinas **não concluídas** e cujos **pré-requisitos foram 100% cumpridos** no histórico escolar, organizadas por semestre letivo e seção dedicada a eletivas/optativas.
+  - **Algoritmo de Tomada de Decisão e Maximização de Disciplinas**:
+    - **Maximização Estrita de Quantidade (|M|)**: o algoritmo exato prioriza colocar a maior quantidade possível de matérias na semana sem choque de horários (respeitando `S.maxLoad`).
+    - **Priorização de Semestres Anteriores / Básicos**: em caso de matérias igualmente importantes no caminho crítico, o algoritmo prioriza a disciplina de semestre curricular anterior (mais básica), quitando pendências antes de avançar para períodos finais.
+    - **Avaliação de Trocas Multi-Matérias (1 vs N)**: detecta e destaca explicitamente quando cancelar/não cursar 1 matéria viabiliza alocar 2 ou mais disciplinas na grade semanal (`🔄 Otimização de Quantidade de Matérias (Trocas 1 vs N)`), detalhando o ganho líquido de disciplinas.
+    - **Caminho Crítico e Impacto na Formatura**: avalia o impacto no tempo de conclusão ($\Delta T$ semestres adiados via simulação determinística), profundidade no grafo (`depth`) e desbloqueio imediato de pré-requisitos para o próximo semestre.
+  - **Aplicação Unificada em 1 Clique (`🚀 Aplicar`)**:
+    - Inscreve as disciplinas recomendadas diretamente na aba **"Cursando agora"** (`S.current`) com carga horária e parâmetros de acompanhamento.
+    - Preenche e organiza automaticamente a grade semanal da aba **"Horários"** (`S.hor.cells`), eliminando choques e limpando slots obsoletos, preservando anotações de salas existentes.
 
 - **Aba de Equivalência Curricular Bidirecional (PPC 2018 ↔ PPC 2022/2023)**:
   - **Matriz Oficial Certificada**: baseada integralmente no documento formal assinado digitalmente pela Coordenação de Curso (`equivalencia matérias.pdf`, SUAP nº 1787471 · Código de Autenticação 406de5f92c · Portaria CBCC-PEP · Coordenador Prof. André Luis Olivete).
@@ -74,7 +79,7 @@ Os dados (disciplinas, semestres, carga horária e pré-requisitos) foram extra�
 - `assets/js/planner.js` — planejador guloso de semestres por caminho crítico (`simulate()`), seleção de eletivas (`electivesPlanned()`), regras de TCC/estágio (`tccOpen()`) e simulação Monte Carlo (`monte()`, `seed()`).
 - `assets/js/calendar.js` — utilitários de datas, fórmulas de importância/urgência/prioridade (`importance()`, `urgency()`, `prioOf()`) e planejador diário de estudo no calendário (`planTasks()`).
 - `assets/js/equivalence.js` — matriz de equivalência bidirecional (`migratePassedDisciplines()`, `filterEquivalence()`, `calcEquivalenceStats()`, `renderEquivalence()`).
-- `assets/js/enrollment.js` — avaliação de ofertas por paridade, score de decisão acadêmica, resolução inteligente de conflitos de horário e recomendação de grade semestral ótima.
+- `assets/js/enrollment.js` — gerenciamento dinâmico de semanas de oferta, validação de pré-requisitos em células, algoritmo de maximização de matérias (cardinalidade), desempates por semestre básico, avaliação de trocas multi-matérias (1 vs N) e aplicação unificada em Cursando e Horários.
 - `assets/js/ui.js` — abas acessíveis WAI-ARIA (`bindTablist()`), renderização do fluxograma, modo mobile/toque, fallback em lista, tabelas e listeners de eventos.
 - `assets/js/script.js` — ponto de entrada principal que inicializa e reexporta os módulos da aplicação.
 - `assets/js/feedback.js` e `assets/js/config.js` — chamada para envio de feedback via Formspree.
@@ -199,7 +204,6 @@ Para garantir qualidade, acessibilidade e impedir regressões ou vulnerabilidade
 ## Possíveis melhorias
 
 - Registrar o semestre em que cada disciplina foi cursada (histórico real) e usar isso na estimativa.
-- Bloquear disciplinas que não serão ofertadas em determinado semestre ou que tenham choque de horário.
 - Alerta explícito quando a estimativa passar de 16 semestres (hoje só o KPI muda de cor).
 - Modelar carga horária máxima por semestre (aulas/semana) em vez de número de disciplinas.
 - Contar horas de extensão e eletivas por categoria.
