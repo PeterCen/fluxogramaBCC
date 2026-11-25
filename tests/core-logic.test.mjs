@@ -144,6 +144,7 @@ const {
     ELECTIVES_SEM,
     populateDefaultSemesterOffers,
     findMaxCoursesSchedule,
+    applyEnrollment,
     ENROLL_STATE
 } = await import("../assets/js/script.js");
 
@@ -925,6 +926,15 @@ test("Estrutura das 4 semanas de oferta, inibição de cursadas e maximização 
     assert.ok(multiDecision.tradeoffs.length >= 1, "Deve identificar a troca multi-matérias (1 vs 2)");
     assert.equal(multiDecision.tradeoffs[0].deferredId, "SDIS");
     assert.equal(multiDecision.tradeoffs[0].gainCount, 1);
+
+    // h) Aplicação unificada da decisão: adiciona a Cursando agora e organiza Horários
+    applyEnrollment(multiDecision);
+    const updatedState = getState();
+    assert.ok(updatedState.current.some(c => c.id === "FPR1"), "FPR1 deve estar em Cursando agora");
+    assert.ok(updatedState.current.some(c => c.id === "APRS"), "APRS deve estar em Cursando agora");
+    assert.ok(!updatedState.current.some(c => c.id === "SDIS"), "SDIS não deve estar em Cursando agora");
+    assert.equal(updatedState.hor.cells["3-0"]?.id, "FPR1", "Slot 3-0 deve estar ocupado por FPR1");
+    assert.equal(updatedState.hor.cells["3-1"]?.id, "APRS", "Slot 3-1 deve estar ocupado por APRS");
 });
 
 

@@ -715,10 +715,10 @@ export function syncSlotsFromHor() {
 /**
  * Aplica as matérias recomendadas diretamente à aba "Cursando agora" (S.current).
  */
-export function applyEnrollmentToCurrent(recommendedList) {
+export function applyEnrollmentToCurrent(recommendedList, notify = true) {
     if (!Array.isArray(recommendedList) || recommendedList.length === 0) {
-        toast("Nenhuma matéria recomendada para aplicar.");
-        return;
+        if (notify) toast("Nenhuma matéria recomendada para aplicar.");
+        return 0;
     }
 
     const cur = S.current || [];
@@ -745,37 +745,62 @@ export function applyEnrollmentToCurrent(recommendedList) {
     });
 
     S.current = cur;
-    persist();
-    update();
-    toast(`✓ ${added} matéria(s) adicionada(s) a "Cursando agora"!`);
+    if (notify) {
+        persist();
+        update();
+        toast(`✓ ${added} matéria(s) adicionada(s) a "Cursando agora"!`);
+    }
+    return added;
 }
 
 /**
- * Preenche a grade semanal da aba "Horários" (S.hor.cells) com a recomendação da semana.
+ * Preenche e organiza a grade semanal da aba "Horários" (S.hor.cells) com a recomendação da semana.
  */
-export function applyEnrollmentToSchedule(weeklyGrid) {
+export function applyEnrollmentToSchedule(weeklyGrid, notify = true, cleanOld = true) {
     const keys = Object.keys(weeklyGrid || {});
     if (keys.length === 0) {
-        toast("Nenhuma grade gerada para aplicar aos Horários.");
-        return;
+        if (notify) toast("Nenhuma grade gerada para aplicar aos Horários.");
+        return 0;
     }
 
     if (!S.hor) S.hor = { cells: {} };
-    if (!S.hor.cells) S.hor.cells = {};
+    const oldCells = S.hor.cells || {};
+    const newCells = cleanOld ? {} : { ...oldCells };
 
     keys.forEach(slotKey => {
         const cid = weeklyGrid[slotKey];
         if (cid && hasCourse(cid)) {
-            S.hor.cells[slotKey] = {
+            newCells[slotKey] = {
                 id: cid,
-                sala: (S.hor.cells[slotKey] && S.hor.cells[slotKey].sala) || ""
+                sala: (oldCells[slotKey] && oldCells[slotKey].sala) || ""
             };
         }
     });
 
+    S.hor.cells = newCells;
+    if (notify) {
+        persist();
+        update();
+        toast(`✓ ${keys.length} horário(s) organizados na aba Horários!`);
+    }
+    return keys.length;
+}
+
+/**
+ * Aplica a decisão completa: inscreve em "Cursando agora" e organiza os horários semanais.
+ */
+export function applyEnrollment(decision) {
+    if (!decision || !decision.recommended || decision.recommended.length === 0) {
+        toast("Nenhuma matéria recomendada para aplicar.");
+        return;
+    }
+
+    const added = applyEnrollmentToCurrent(decision.recommended, false);
+    const slots = applyEnrollmentToSchedule(decision.weeklyGrid, false, true);
+
     persist();
     update();
-    toast(`✓ ${keys.length} horário(s) aplicados à aba Horários!`);
+    toast(`✓ Aplicado com sucesso: ${decision.recommended.length} matéria(s) em curso e ${slots} horário(s) organizados!`);
 }
 
 /**
@@ -1229,12 +1254,12 @@ export function initEnrollmentUI() {
         };
     }
 
-    const btnCur = $("btnApplyEnrollCurrent");
-    if (btnCur) {
-        btnCur.onclick = () => {
+    const btnApply = $("btnApplyEnroll") || $("btnApplyEnrollCurrent");
+    if (btnApply) {
+        btnApply.onclick = () => {
             const decision = buildOptimalSchedule(null, ENROLL_STATE.slots, S.maxLoad || 9);
-            confirma(btnCur, "Confirmar inscrição?", () => {
-                applyEnrollmentToCurrent(decision.recommended);
+            confirma(btnApply, "Confirmar e aplicar?", () => {
+                applyEnrollment(decision);
             });
         };
     }
