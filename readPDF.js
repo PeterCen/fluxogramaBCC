@@ -15,7 +15,7 @@ const CODE_RE = /^[A-Z][A-Z0-9]{2,4}$/;
 const CODE_IN_TEXT = /(?<![A-Za-zÀ-ÿ0-9])[A-Z][A-Z0-9]{2,4}(?![A-Za-zÀ-ÿ0-9])/g;
 const NOT_CODES = new Set([
   "CH", "TOTAL", "AULA", "AULAS", "NAO", "NÃO", "SIM", "PRE", "PRÉ", "EAD",
-  "IFSP", "PPC", "MEC", "LDB", "CNE", "CNPJ", "ENADE", "NDE", "CPA", "PDF"
+  "IFSP", "PPC", "MEC", "LDB", "CNE", "CNPJ", "ENADE", "NDE", "CPA", "PDF", "CPU", "NOTA"
 ]);
 const SEM_RE = /(\d{1,2})\s*[ºo°ª]?\s*(?:semestre|per[ií]odo|m[óo]dulo)/gi;
 const SEM_RE2 = /(?:semestre|per[ií]odo|m[óo]dulo)\s*(\d{1,2})\b/gi;
@@ -210,7 +210,7 @@ export function linhasParaDisciplinas(linhas) {
 
 // ---------- 3. disciplinas -> raw ----------
 
-export function buildRaw(discs, { extCodes = ["EXT", "PRI"], semOptativa = 10, manterOrdem = false } = {}) {
+export function buildRaw(discs, { extCodes = [], semOptativa = 10, manterOrdem = false } = {}) {
   const avisos = [];
   const vistos = new Set();
   const unicos = [];

@@ -156,9 +156,6 @@
             <label>Nota atual (0 a 10)
               <input type="number" id="curNota" min="0" max="10" step="0.1" placeholder="0.0">
             </label>
-            <label>Pontos a receber
-              <input type="number" id="curPts" min="0" max="10" step="0.1" placeholder="Padrão">
-            </label>
             <label>Faltas
               <input type="number" id="curFalt" min="0" placeholder="0">
             </label>
@@ -221,33 +218,33 @@
             </label>
             <label>Tipo de avaliação
               <select id="trType">
-                <option value="Trabalho">📄 Trabalho</option>
-                <option value="Prova">📝 Prova</option>
-                <option value="Seminário">🎤 Seminário</option>
-                <option value="Outro">📌 Outro</option>
+                <option value="trabalho">📄 Trabalho</option>
+                <option value="prova">📝 Prova</option>
+                <option value="seminário">🎤 Seminário</option>
+                <option value="outro">📌 Outro</option>
               </select>
             </label>
             <label>Status da atividade
-              <select id="trStatus">
+              <select id="trStatus" >
                 <option value="pendente">⏳ A Fazer (Pendente)</option>
                 <option value="avaliando">🔍 Avaliando (Aguardando nota)</option>
                 <option value="avaliada">✅ Avaliada (Nota lançada)</option>
               </select>
             </label>
             <label>Título da atividade
-              <input id="trTitle" placeholder="ex.: Prova 1, Lista 3, Projeto Semestral">
+              <input id="trTitle" placeholder="ex.: Prova 1, Lista 3, Trabalho 1...">
             </label>
-            <label>Data de entrega / realização
+            <label>Data de entrega
               <input type="date" id="trDue">
             </label>
-            <label>Pontos que vale (peso na média)
-              <input type="number" id="trPts" min="0" max="10" step="0.5" value="2.0">
+            <label>Nota (peso na média)
+              <input type="number" id="trPts" min="0" max="10" step="0.5" value="2.0" placeholder="2.0">
             </label>
             <label>Nota obtida (se já corrigida)
-              <input type="number" id="trGot" min="0" max="10" step="0.1" placeholder="Pendente (—)">
+              <input type="number" id="trGot" min="0" max="10" step="0.1" placeholder="0">
             </label>
             <label>Tempo de estudo estimado (horas)
-              <input type="number" id="trEff" min="0.5" step="0.5" value="3.0">
+              <input type="number" id="trEff" min="0.5" step="0.5" value="3.0" placeholder="3.0">
             </label>
           </div>
           <div class="tr-form-actions">

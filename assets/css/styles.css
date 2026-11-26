@@ -9,8 +9,11 @@
     --av: #38bdf8;
     --blk: #475079;
     --warn: #f59e0b;
+    --danger: #ef4444
     --acc: #8b5cf6;
     --ext: #f472b6;
+
+    --cal-filter: invert(1); /*altera a cor do icone*/
 }
 
 * {
@@ -125,6 +128,19 @@ input[type=range] {
     width: 170px
 }
 
+/* Icone: Calendário */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: var(--cal-filter);
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.15s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+/* =============== */
+
 button {
     background: var(--panel2);
     color: var(--txt);
@@ -145,6 +161,7 @@ button.pri {
     background: linear-gradient(90deg, #2563eb, #7c3aed);
     border: 0
 }
+
 
 .legend {
     display: flex;

@@ -301,14 +301,14 @@ export function build() {
 
         const curBtnHtml = c.kind !== "tcc"
             ? `<button type="button" class="card-act card-cur" data-card-act="cur" ` +
-              `title="Marcar/desmarcar como Cursando agora (atalho: tecla C)" aria-label="Cursando agora">📚</button>`
+            `title="Marcar/desmarcar como Cursando agora (atalho: tecla C)" aria-label="Cursando agora">📚</button>`
             : "";
         const infoBtnHtml =
             `<button type="button" class="card-act card-info" data-card-act="info" ` +
             `title="Ver pré-requisitos e disciplinas que libera (atalho: tecla I)" aria-label="Ver pré-requisitos">🔍</button>`;
         const starBtnHtml = c.kind === "el"
             ? `<button type="button" class="star" data-card-act="star" ` +
-              `title="Escolher esta eletiva" aria-label="Escolher eletiva">★</button>`
+            `title="Escolher esta eletiva" aria-label="Escolher eletiva">★</button>`
             : "";
 
         const hFormatted = c.h.toFixed(1).replace(".", ",");
@@ -485,7 +485,7 @@ function renderFlowInspect() {
             const okCls = P.has(p) ? "ok" : "pend";
             const icon = P.has(p) ? "✓" : "🔒";
             return `<button type="button" class="fi-chip ${esc(okCls)}" data-fi-jump="${esc(p)}">` +
-                   `${esc(icon)} ${esc(p)} · ${esc(C[p].name)}</button>`;
+                `${esc(icon)} ${esc(p)} · ${esc(C[p].name)}</button>`;
         }).join("")
         : `<span class="note">Nenhum (liberada desde o início)</span>`;
 
@@ -499,37 +499,37 @@ function renderFlowInspect() {
     const passBtnLbl = isPassed ? "✓ Aprovada (desmarcar)" : "✓ Marcar aprovada";
     const curBtnHtml = c.kind !== "tcc"
         ? `<button type="button" class="btn-sm ${isCur ? "pri" : ""}" data-fi-act="cur" data-id="${esc(pinnedId)}">` +
-          `${isCur ? "📚 Cursando (remover)" : "📚 Marcar cursando"}</button>`
+        `${isCur ? "📚 Cursando (remover)" : "📚 Marcar cursando"}</button>`
         : "";
     const isElChosen = S.electivePlan.includes(pinnedId);
     const starBtnHtml = c.kind === "el"
         ? `<button type="button" class="btn-sm ${isElChosen ? "pri" : ""}" data-fi-act="star" data-id="${esc(pinnedId)}">` +
-          `★ ${isElChosen ? "Eletiva escolhida" : "Escolher eletiva"}</button>`
+        `★ ${isElChosen ? "Eletiva escolhida" : "Escolher eletiva"}</button>`
         : "";
 
     const hStr = c.h.toFixed(1).replace(".", ",");
     box.hidden = false;
     box.innerHTML =
         `<div class="fi-head">` +
-            `<div>` +
-                `<b>${esc(c.name)}</b> ` +
-                `<span class="note">(${esc(c.id)} · ${esc(hStr)}h · ${esc(HEADS[colOf(c)])})</span>` +
-                `<span class="tag ${esc(statusCls)}" style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;margin-left:6px">` +
-                    `${esc(statusText)}` +
-                `</span>` +
-            `</div>` +
-            `<div class="fi-actions">` +
-                `<button type="button" class="btn-sm ${isPassed ? "pri" : ""}" data-fi-act="pass" data-id="${esc(pinnedId)}">` +
-                    `${esc(passBtnLbl)}` +
-                `</button>` +
-                `${curBtnHtml}` +
-                `${starBtnHtml}` +
-                `<button type="button" class="btn-ghost" data-fi-act="close" title="Fechar inspeção" aria-label="Fechar inspeção">✕</button>` +
-            `</div>` +
+        `<div>` +
+        `<b>${esc(c.name)}</b> ` +
+        `<span class="note">(${esc(c.id)} · ${esc(hStr)}h · ${esc(HEADS[colOf(c)])})</span>` +
+        `<span class="tag ${esc(statusCls)}" style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;margin-left:6px">` +
+        `${esc(statusText)}` +
+        `</span>` +
+        `</div>` +
+        `<div class="fi-actions">` +
+        `<button type="button" class="btn-sm ${isPassed ? "pri" : ""}" data-fi-act="pass" data-id="${esc(pinnedId)}">` +
+        `${esc(passBtnLbl)}` +
+        `</button>` +
+        `${curBtnHtml}` +
+        `${starBtnHtml}` +
+        `<button type="button" class="btn-ghost" data-fi-act="close" title="Fechar inspeção" aria-label="Fechar inspeção">✕</button>` +
+        `</div>` +
         `</div>` +
         `<div class="fi-chains">` +
-            `<div><small>Pré-requisitos diretos (${esc(anc(pinnedId).size)} na cadeia):</small> <div class="fi-chip-list">${preChips}</div></div>` +
-            `<div><small>Libera diretamente (${esc(desc(pinnedId).size)} na cadeia):</small> <div class="fi-chip-list">${kidChips}</div></div>` +
+        `<div><small>Pré-requisitos diretos (${esc(anc(pinnedId).size)} na cadeia):</small> <div class="fi-chip-list">${preChips}</div></div>` +
+        `<div><small>Libera diretamente (${esc(desc(pinnedId).size)} na cadeia):</small> <div class="fi-chip-list">${kidChips}</div></div>` +
         `</div>`;
 }
 
@@ -571,65 +571,65 @@ function renderFlowFallback(P, when, chosen) {
 
             const preHtml = c.pre.length
                 ? `<div class="fb-card-rel"><b>Pré-requisitos:</b> ` +
-                  c.pre.map(p =>
-                      `<span class="${P.has(p) ? "rel-ok" : "rel-pend"}">` +
-                      `${P.has(p) ? "✓" : "🔒"} ${esc(C[p].name)} (${esc(p)})</span>`
-                  ).join(" · ") +
-                  `</div>`
+                c.pre.map(p =>
+                    `<span class="${P.has(p) ? "rel-ok" : "rel-pend"}">` +
+                    `${P.has(p) ? "✓" : "🔒"} ${esc(C[p].name)} (${esc(p)})</span>`
+                ).join(" · ") +
+                `</div>`
                 : "";
 
             const kidsHtml = c.kids.length
                 ? `<div class="fb-card-rel"><b>Libera:</b> ` +
-                  c.kids.map(k => `<span>${esc(C[k].name)} (${esc(k)})</span>`).join(" · ") +
-                  `</div>`
+                c.kids.map(k => `<span>${esc(C[k].name)} (${esc(k)})</span>`).join(" · ") +
+                `</div>`
                 : "";
 
             const curBtnHtml = c.kind !== "tcc"
                 ? `<button type="button" class="btn-xs ${isCur ? "pri" : ""}" data-fb-act="cur" ` +
-                  `data-id="${esc(id)}" aria-pressed="${isCur ? "true" : "false"}">` +
-                  `${isCur ? "📚 Cursando" : "+ Cursando"}</button>`
+                `data-id="${esc(id)}" aria-pressed="${isCur ? "true" : "false"}">` +
+                `${isCur ? "📚 Cursando" : "+ Cursando"}</button>`
                 : "";
 
             const isElSelected = S.electivePlan.includes(id);
             const isElActive = isElSelected || chosen.includes(id);
             const starBtnHtml = c.kind === "el"
                 ? `<button type="button" class="btn-xs ${isElActive ? "pri" : ""}" data-fb-act="star" ` +
-                  `data-id="${esc(id)}" aria-pressed="${isElSelected ? "true" : "false"}">★ Eletiva</button>`
+                `data-id="${esc(id)}" aria-pressed="${isElSelected ? "true" : "false"}">★ Eletiva</button>`
                 : "";
 
             const stateCls = isPassed ? "passed" : isCur ? "cur" : isReady ? "avail" : "";
             const hStr = c.h.toFixed(1).replace(".", ",");
             return (
                 `<div class="fb-card ${esc(stateCls)} ${isOff ? "off" : ""} ${c.ext ? "ext" : ""}" data-id="${esc(id)}">` +
-                    `<div class="fb-card-top">` +
-                        `<div>` +
-                            `<div class="fb-card-title">${esc(c.name)}</div>` +
-                            `<div class="fb-card-meta">${esc(id)} · ${esc(hStr)}h` +
-                            `${c.ext ? " · Extensão" : ""}${planTxt ? " · " + esc(planTxt) : ""}</div>` +
-                        `</div>` +
-                        `<div class="fb-card-badges">${stBadge}</div>` +
-                    `</div>` +
-                    `${preHtml}` +
-                    `${kidsHtml}` +
-                    `<div class="fb-card-actions">` +
-                        `<button type="button" class="btn-xs ${isPassed ? "pri" : ""}" data-fb-act="pass" ` +
-                            `data-id="${esc(id)}" aria-pressed="${isPassed ? "true" : "false"}">` +
-                            `${isPassed ? "✓ Aprovada" : "Marcar aprovada"}` +
-                        `</button>` +
-                        `${curBtnHtml}` +
-                        `${starBtnHtml}` +
-                    `</div>` +
+                `<div class="fb-card-top">` +
+                `<div>` +
+                `<div class="fb-card-title">${esc(c.name)}</div>` +
+                `<div class="fb-card-meta">${esc(id)} · ${esc(hStr)}h` +
+                `${c.ext ? " · Extensão" : ""}${planTxt ? " · " + esc(planTxt) : ""}</div>` +
+                `</div>` +
+                `<div class="fb-card-badges">${stBadge}</div>` +
+                `</div>` +
+                `${preHtml}` +
+                `${kidsHtml}` +
+                `<div class="fb-card-actions">` +
+                `<button type="button" class="btn-xs ${isPassed ? "pri" : ""}" data-fb-act="pass" ` +
+                `data-id="${esc(id)}" aria-pressed="${isPassed ? "true" : "false"}">` +
+                `${isPassed ? "✓ Aprovada" : "Marcar aprovada"}` +
+                `</button>` +
+                `${curBtnHtml}` +
+                `${starBtnHtml}` +
+                `</div>` +
                 `</div>`
             );
         }).join("");
 
         return (
             `<section class="fb-sem-group">` +
-                `<header class="fb-sem-head">` +
-                    `<h4>${esc(g.title)} <small>${esc(g.sub)}</small></h4>` +
-                    `<span class="note">${esc(doneCount)}/${esc(g.items.length)} concluídas</span>` +
-                `</header>` +
-                `<div class="fb-sem-list">${cardsHtml}</div>` +
+            `<header class="fb-sem-head">` +
+            `<h4>${esc(g.title)} <small>${esc(g.sub)}</small></h4>` +
+            `<span class="note">${esc(doneCount)}/${esc(g.items.length)} concluídas</span>` +
+            `</header>` +
+            `<div class="fb-sem-list">${cardsHtml}</div>` +
             `</section>`
         );
     }).join("");
@@ -735,9 +735,9 @@ export function update() {
 
     const expKpiHtml = activeCurList.length
         ? `<div class="kpi">` +
-              `<b class="${exp >= 3 ? "warn" : ""}">${esc(expStr)}</b>` +
-              `<small>reprovações esperadas neste semestre (de ${esc(activeCurList.length)})</small>` +
-          `</div>`
+        `<b class="${exp >= 3 ? "warn" : ""}">${esc(expStr)}</b>` +
+        `<small>reprovações esperadas neste semestre (de ${esc(activeCurList.length)})</small>` +
+        `</div>`
         : "";
 
     $("kpis").innerHTML =
@@ -843,9 +843,9 @@ function renderCurrent() {
 
         const tasksActionBtn = hasTasks
             ? `<button type="button" class="cur-tasks-btn" data-act="view-tasks" data-subj="${esc(r.id)}" ` +
-              `title="Ver e gerenciar as avaliações desta matéria">📝 ${esc(ts.length)} avaliação(ões)</button>`
+            `title="Ver e gerenciar as avaliações desta matéria">📝 ${esc(ts.length)} avaliação(ões)</button>`
             : `<button type="button" class="cur-tasks-btn add" data-act="add-tasks" data-subj="${esc(r.id)}" ` +
-              `title="Cadastrar provas e trabalhos para esta matéria">+ avaliar</button>`;
+            `title="Cadastrar provas e trabalhos para esta matéria">+ avaliar</button>`;
 
         let notaColHtml = "";
         const barW = Math.min(100, (Number(r.nota) || 0) * 10);
@@ -855,25 +855,25 @@ function renderCurrent() {
                 : "";
             notaColHtml =
                 `<div class="mini">` +
-                    `<input type="number" min="0" max="10" step="0.1" value="${esc(r.nota)}" data-k="nota" class="in-linked" readonly ` +
-                        `title="Nota vinculada às avaliações corrigidas. Clique em 🔗 para editar manualmente.">` +
-                    `<button type="button" class="btn-link-icon on" data-act="toggle-link" data-subj="${esc(r.id)}" ` +
-                        `title="Vinculado às avaliações. Clique para editar manualmente.">🔗</button>` +
-                    `<div class="pb"><div style="width:${esc(barW)}%"></div></div>` +
+                `<input type="number" min="0" max="10" step="0.1" value="${esc(r.nota)}" data-k="nota" class="in-linked" readonly ` +
+                `title="Nota vinculada às avaliações corrigidas. Clique em 🔗 para editar manualmente.">` +
+                `<button type="button" class="btn-link-icon on" data-act="toggle-link" data-subj="${esc(r.id)}" ` +
+                `title="Vinculado às avaliações. Clique para editar manualmente.">🔗</button>` +
+                `<div class="pb"><div style="width:${esc(barW)}%"></div></div>` +
                 `</div>` +
                 `<div class="note-sync" title="Calculada a partir das avaliações corrigidas">` +
-                    `🔗 ${esc(gradedCount)} nota(s) lançada(s)${evalSpan}` +
+                `🔗 ${esc(gradedCount)} nota(s) lançada(s)${evalSpan}` +
                 `</div>`;
         } else {
             const unlockBtn = hasTasks
                 ? `<button type="button" class="btn-link-icon off" data-act="toggle-link" data-subj="${esc(r.id)}" ` +
-                  `title="Desvinculado. Clique para vincular às avaliações.">🔓</button>`
+                `title="Desvinculado. Clique para vincular às avaliações.">🔓</button>`
                 : "";
             notaColHtml =
                 `<div class="mini">` +
-                    `<input type="number" min="0" max="10" step="0.1" value="${esc(r.nota)}" data-k="nota">` +
-                    `${unlockBtn}` +
-                    `<div class="pb"><div style="width:${esc(barW)}%"></div></div>` +
+                `<input type="number" min="0" max="10" step="0.1" value="${esc(r.nota)}" data-k="nota">` +
+                `${unlockBtn}` +
+                `<div class="pb"><div style="width:${esc(barW)}%"></div></div>` +
                 `</div>` +
                 `<div class="note">${hasTasks ? "Manual (desvinculada)" : ""}</div>`;
         }
@@ -891,14 +891,14 @@ function renderCurrent() {
 
         const ptsColHtml = isLinked
             ? `<div class="mini">` +
-                  `<input type="number" min="0" max="10" step="0.1" value="${esc(r.pts)}" data-k="pts" class="in-linked" readonly ` +
-                      `title="Pontos a receber das avaliações pendentes">` +
-              `</div>` +
-              `<div class="note">${goalStatus}</div>`
+            `<input type="number" min="0" max="10" step="0.1" value="${esc(r.pts)}" data-k="pts" class="in-linked" readonly ` +
+            `title="Pontos a receber das avaliações pendentes">` +
+            `</div>` +
+            `<div class="note">${goalStatus}</div>`
             : `<div class="mini">` +
-                  `<input type="number" min="0" max="10" step="0.1" value="${esc(r.pts)}" data-k="pts">` +
-              `</div>` +
-              `<div class="note">máx. possível: ${esc(fmt(maxPossivel))}</div>`;
+            `<input type="number" min="0" max="10" step="0.1" value="${esc(r.pts)}" data-k="pts">` +
+            `</div>` +
+            `<div class="note">máx. possível: ${esc(fmt(maxPossivel))}</div>`;
 
         const folgaNote = k.folga < 0
             ? "passou " + esc(-k.folga) + " do limite"
@@ -906,32 +906,32 @@ function renderCurrent() {
         const riskCellHtml = faseKey === "Finalizada"
             ? `<span class="rk" style="color:var(--ok)">✓ Aprovada</span>`
             : `<span class="rk">${esc(pc)}%</span> ` +
-              `<span class="tag ${esc(TAGC[st])}" style="padding:2px 6px;border-radius:6px;font-size:12px;font-weight:600">${esc(st)}</span>` +
-              `<div class="note">${k.pF > k.pN ? "pesa mais: faltas" : "pesa mais: nota"}</div>`;
+            `<span class="tag ${esc(TAGC[st])}" style="padding:2px 6px;border-radius:6px;font-size:12px;font-weight:600">${esc(st)}</span>` +
+            `<div class="note">${k.pF > k.pN ? "pesa mais: faltas" : "pesa mais: nota"}</div>`;
 
         return (
             `<tr data-id="${esc(r.id)}" class="${faseKey === "Finalizada" ? "fin" : ""}">` +
-                `<td><b>${esc(C[r.id].name)}</b><div class="note">${esc(r.id)}</div>${tasksActionBtn}</td>` +
-                `<td>${notaColHtml}</td>` +
-                `<td>${ptsColHtml}</td>` +
-                `<td>` +
-                    `<div class="mini"><input type="number" min="0" value="${esc(r.falt)}" data-k="falt"></div>` +
-                    `<div class="note" style="color:${k.folga <= 2 ? "#f87171" : "var(--mut)"}">${folgaNote}</div>` +
-                `</td>` +
-                `<td>` +
-                    `<div class="mini">` +
-                        `<input class="sm" type="number" min="0" value="${esc(r.cum)}" data-k="cum"> / ` +
-                        `<input class="sm" type="number" min="0" value="${esc(r.prev)}" data-k="prev">` +
-                    `</div>` +
-                    `<div class="note" style="color:${k.freq < 75 ? "#f87171" : "var(--mut)"}">frequência ${esc(fmt(k.freq))}%</div>` +
-                `</td>` +
-                `<td>${riskCellHtml}</td>` +
-                `<td>` +
-                    `<select class="tag ${esc(TAGC[prioKey])}" data-k="prio">${optList(PRIO, prioKey)}</select>` +
-                    `<div class="note">${prioKey === "Auto" ? "sugerida: " + esc(pr) : ""}</div>` +
-                `</td>` +
-                `<td><select class="tag ${esc(TAGC[faseKey])}" data-k="fase">${optList(FASE, faseKey)}</select></td>` +
-                `<td><button class="x" data-rm title="Remover">✕</button></td>` +
+            `<td><b>${esc(C[r.id].name)}</b><div class="note">${esc(r.id)}</div>${tasksActionBtn}</td>` +
+            `<td>${notaColHtml}</td>` +
+            `<td>${ptsColHtml}</td>` +
+            `<td>` +
+            `<div class="mini"><input type="number" min="0" value="${esc(r.falt)}" data-k="falt"></div>` +
+            `<div class="note" style="color:${k.folga <= 2 ? "#f87171" : "var(--mut)"}">${folgaNote}</div>` +
+            `</td>` +
+            `<td>` +
+            `<div class="mini">` +
+            `<input class="sm" type="number" min="0" value="${esc(r.cum)}" data-k="cum"> / ` +
+            `<input class="sm" type="number" min="0" value="${esc(r.prev)}" data-k="prev">` +
+            `</div>` +
+            `<div class="note" style="color:${k.freq < 75 ? "#f87171" : "var(--mut)"}">frequência ${esc(fmt(k.freq))}%</div>` +
+            `</td>` +
+            `<td>${riskCellHtml}</td>` +
+            `<td>` +
+            `<select class="tag ${esc(TAGC[prioKey])}" data-k="prio">${optList(PRIO, prioKey)}</select>` +
+            `<div class="note">${prioKey === "Auto" ? "sugerida: " + esc(pr) : ""}</div>` +
+            `</td>` +
+            `<td><select class="tag ${esc(TAGC[faseKey])}" data-k="fase">${optList(FASE, faseKey)}</select></td>` +
+            `<td><button class="x" data-rm title="Remover">✕</button></td>` +
             `</tr>`
         );
     }).join("");
@@ -1003,8 +1003,8 @@ function renderHor() {
             const c = H[i + "-" + j] || {};
             return (
                 `<td class="${j === hoje ? "today" : ""}">` +
-                    `<select data-c="${esc(i)}-${esc(j)}" data-k="id">${opts(c.id)}</select>` +
-                    `<input data-c="${esc(i)}-${esc(j)}" data-k="sala" placeholder="sala" value="${esc(c.sala || "")}">` +
+                `<select data-c="${esc(i)}-${esc(j)}" data-k="id">${opts(c.id)}</select>` +
+                `<input data-c="${esc(i)}-${esc(j)}" data-k="sala" placeholder="sala" value="${esc(c.sala || "")}">` +
                 `</td>`
             );
         }).join("") +
@@ -1056,12 +1056,12 @@ function renderAC() {
 
         h +=
             `<tr>` +
-                `<td>${esc(a[1])}<div class="note">${esc(a[3])} · máx. ${esc(a[5])} unid.${overCapWarn}</div></td>` +
-                `<td>${esc(a[2])} h</td>` +
-                `<td><div class="mini"><input type="number" min="0" step="0.5" value="${esc(S.ac[i] || "")}" data-ac="${esc(i)}"></div></td>` +
-                `<td>${esc(fmt(r.ob))} h</td>` +
-                `<td>${groupCell}</td>` +
-                `<td>${maxCell}</td>` +
+            `<td>${esc(a[1])}<div class="note">${esc(a[3])} · máx. ${esc(a[5])} unid.${overCapWarn}</div></td>` +
+            `<td>${esc(a[2])} h</td>` +
+            `<td><div class="mini"><input type="number" min="0" step="0.5" value="${esc(S.ac[i] || "")}" data-ac="${esc(i)}"></div></td>` +
+            `<td>${esc(fmt(r.ob))} h</td>` +
+            `<td>${groupCell}</td>` +
+            `<td>${maxCell}</td>` +
             `</tr>`;
     });
 
@@ -1086,8 +1086,9 @@ function resetTaskForm() {
     if ($("trTitle")) $("trTitle").value = "";
     if ($("trGot")) $("trGot").value = "";
     if ($("trStatus")) $("trStatus").value = "pendente";
-    if ($("trPts")) $("trPts").value = "2.0";
-    if ($("trEff")) $("trEff").value = "3.0";
+    if ($("trType")) $("trType").value = "trabalho";
+    if ($("trPts")) $("trPts").value = "";
+    if ($("trEff")) $("trEff").value = "";
     if ($("trAdd")) $("trAdd").textContent = "Salvar";
 }
 
@@ -1265,48 +1266,48 @@ function renderTasksList(plan, today) {
 
         return (
             `<tr data-id="${esc(t.id)}" class="${esc(rowCls)}">` +
-                `<td style="text-align:center">` +
-                    `<select class="tag-status status-${esc(st)}" data-act="set-status" title="Alterar status da avaliação">` +
-                        `<option value="pendente"${st === "pendente" ? " selected" : ""}>⏳ A Fazer</option>` +
-                        `<option value="avaliando"${st === "avaliando" ? " selected" : ""}>🔍 Avaliando</option>` +
-                        `<option value="avaliada"${st === "avaliada" ? " selected" : ""}>✅ Avaliada</option>` +
-                    `</select>` +
-                `</td>` +
-                `<td>` +
-                    `<div class="tr-task-title-cell">` +
-                        `<span class="tag-type tag-${esc(typeClass)}">${esc(TYPE_ICON[safeType] || "📌")} ${esc(safeType)}</span>` +
-                        `<b class="tr-title-text" data-act="edit" title="Clique para editar">${esc(t.title)}</b>` +
-                    `</div>` +
-                `</td>` +
-                `<td>` +
-                    `<button type="button" class="tr-subj-tag" data-act="filter-subj" data-subj="${esc(t.subj)}" title="Filtrar por esta matéria">` +
-                        `${esc(C[t.subj]?.name || t.subj)}` +
-                    `</button>` +
-                `</td>` +
-                `<td>` +
-                    `<div class="tr-due-cell"><span>${esc(dfmt(t.due))}</span>${dueBadge}</div>` +
-                    `${startPlan ? `<div class="note">Ideal começar: ${esc(startPlan)}</div>` : ""}` +
-                `</td>` +
-                `<td>` +
-                    `<span class="tag ${esc(cl)}" style="padding:2px 8px;border-radius:6px;font-weight:600">${esc(lb)} · ${esc(Math.round(pr))}</span>` +
-                    `<div class="note">${esc(fmt(t.pts))} pts (${esc(weightPct)}% da matéria)</div>` +
-                `</td>` +
-                `<td>` +
-                    `<div class="tr-grade-edit">` +
-                        `<input type="number" min="0" max="10" step="0.1" class="tr-in-got" data-act="set-got" ` +
-                            `value="${esc(t.got != null ? t.got : "")}" placeholder="${esc(gotPlaceholder)}" title="${esc(gotTitle)}">` +
-                        `<span class="note">/ <input type="number" min="0" step="0.5" class="tr-in-pts" data-act="set-pts" ` +
-                            `value="${esc(t.pts)}" title="Pontos que vale"> pts</span>` +
-                    `</div>` +
-                    `${st === "avaliando" ? `<div class="note" style="color:#f59e0b">⏳ Aguardando nota</div>` : ""}` +
-                    `${st === "avaliada" && t.got != null ? `<div class="note" style="color:var(--ok)">✓ Nota lançada</div>` : ""}` +
-                `</td>` +
-                `<td>` +
-                    `<div class="tr-eff-cell">` +
-                        `<input type="number" min="0.5" step="0.5" class="tr-in-eff" data-act="set-eff" value="${esc(t.eff)}"> h` +
-                    `</div>` +
-                `</td>` +
-                `<td style="text-align:center"><button class="x" data-act="rm" title="Excluir avaliação">✕</button></td>` +
+            `<td style="text-align:center">` +
+            `<select class="tag-status status-${esc(st)}" data-act="set-status" title="Alterar status da avaliação">` +
+            `<option value="pendente"${st === "pendente" ? " selected" : ""}>⏳ A Fazer</option>` +
+            `<option value="avaliando"${st === "avaliando" ? " selected" : ""}>🔍 Avaliando</option>` +
+            `<option value="avaliada"${st === "avaliada" ? " selected" : ""}>✅ Avaliada</option>` +
+            `</select>` +
+            `</td>` +
+            `<td>` +
+            `<div class="tr-task-title-cell">` +
+            `<span class="tag-type tag-${esc(typeClass)}">${esc(TYPE_ICON[safeType] || "📌")} ${esc(safeType)}</span>` +
+            `<b class="tr-title-text" data-act="edit" title="Clique para editar">${esc(t.title)}</b>` +
+            `</div>` +
+            `</td>` +
+            `<td>` +
+            `<button type="button" class="tr-subj-tag" data-act="filter-subj" data-subj="${esc(t.subj)}" title="Filtrar por esta matéria">` +
+            `${esc(C[t.subj]?.name || t.subj)}` +
+            `</button>` +
+            `</td>` +
+            `<td>` +
+            `<div class="tr-due-cell"><span>${esc(dfmt(t.due))}</span>${dueBadge}</div>` +
+            `${startPlan ? `<div class="note">Ideal começar: ${esc(startPlan)}</div>` : ""}` +
+            `</td>` +
+            `<td>` +
+            `<span class="tag ${esc(cl)}" style="padding:2px 8px;border-radius:6px;font-weight:600">${esc(lb)} · ${esc(Math.round(pr))}</span>` +
+            `<div class="note">${esc(fmt(t.pts))} pts (${esc(weightPct)}% da matéria)</div>` +
+            `</td>` +
+            `<td>` +
+            `<div class="tr-grade-edit">` +
+            `<input type="number" min="0" max="10" step="0.1" class="tr-in-got" data-act="set-got" ` +
+            `value="${esc(t.got != null ? t.got : "")}" placeholder="${esc(gotPlaceholder)}" title="${esc(gotTitle)}">` +
+            `<span class="note">/ <input type="number" min="0" step="0.5" class="tr-in-pts" data-act="set-pts" ` +
+            `value="${esc(t.pts)}" title="Pontos que vale"> pts</span>` +
+            `</div>` +
+            `${st === "avaliando" ? `<div class="note" style="color:#f59e0b">⏳ Aguardando nota</div>` : ""}` +
+            `${st === "avaliada" && t.got != null ? `<div class="note" style="color:var(--ok)">✓ Nota lançada</div>` : ""}` +
+            `</td>` +
+            `<td>` +
+            `<div class="tr-eff-cell">` +
+            `<input type="number" min="0.5" step="0.5" class="tr-in-eff" data-act="set-eff" value="${esc(t.eff)}"> h` +
+            `</div>` +
+            `</td>` +
+            `<td style="text-align:center"><button class="x" data-act="rm" title="Excluir avaliação">✕</button></td>` +
             `</tr>`
         );
     }).join("");
@@ -1362,20 +1363,20 @@ function renderTasksSubjects() {
                 const safeType = VALID_TASK_TYPES.includes(t.type) ? t.type : "Outro";
                 return (
                     `<div class="tr-subj-task-item status-${esc(st)}" data-id="${esc(t.id)}">` +
-                        `<select class="mini-status-sel status-${esc(st)}" data-act="set-status" title="Alterar status da avaliação">` +
-                            `<option value="pendente"${st === "pendente" ? " selected" : ""}>⏳ A Fazer</option>` +
-                            `<option value="avaliando"${st === "avaliando" ? " selected" : ""}>🔍 Avaliando</option>` +
-                            `<option value="avaliada"${st === "avaliada" ? " selected" : ""}>✅ Avaliada</option>` +
-                        `</select>` +
-                        `<span class="task-type-icon">${esc(TYPE_ICON[safeType] || "📌")}</span>` +
-                        `<span class="task-item-title" title="${esc(t.title)}">${esc(t.title)}</span>` +
-                        `<div class="tr-task-item-due note">${esc(dfmt(t.due))}</div>` +
-                        `<div class="tr-task-item-grade">` +
-                            `<input type="number" min="0" max="10" step="0.1" class="mini-grade-in" data-act="set-got" ` +
-                                `value="${esc(t.got != null ? t.got : "")}" placeholder="${st === "avaliando" ? "aguardando" : "—"}" title="Nota obtida">` +
-                            `<span class="pts-max">/ ${esc(fmt(t.pts))} pts</span>` +
-                        `</div>` +
-                        `<button class="x btn-xs" data-act="rm" title="Excluir">✕</button>` +
+                    `<select class="mini-status-sel status-${esc(st)}" data-act="set-status" title="Alterar status da avaliação">` +
+                    `<option value="pendente"${st === "pendente" ? " selected" : ""}>⏳ A Fazer</option>` +
+                    `<option value="avaliando"${st === "avaliando" ? " selected" : ""}>🔍 Avaliando</option>` +
+                    `<option value="avaliada"${st === "avaliada" ? " selected" : ""}>✅ Avaliada</option>` +
+                    `</select>` +
+                    `<span class="task-type-icon">${esc(TYPE_ICON[safeType] || "📌")}</span>` +
+                    `<span class="task-item-title" title="${esc(t.title)}">${esc(t.title)}</span>` +
+                    `<div class="tr-task-item-due note">${esc(dfmt(t.due))}</div>` +
+                    `<div class="tr-task-item-grade">` +
+                    `<input type="number" min="0" max="10" step="0.1" class="mini-grade-in" data-act="set-got" ` +
+                    `value="${esc(t.got != null ? t.got : "")}" placeholder="${st === "avaliando" ? "aguardando" : "—"}" title="Nota obtida">` +
+                    `<span class="pts-max">/ ${esc(fmt(t.pts))} pts</span>` +
+                    `</div>` +
+                    `<button class="x btn-xs" data-act="rm" title="Excluir">✕</button>` +
                     `</div>`
                 );
             }).join("")
@@ -1387,37 +1388,37 @@ function renderTasksSubjects() {
 
         return (
             `<div class="tr-subj-card" id="subj-card-${esc(id)}">` +
-                `<div class="tr-subj-header">` +
-                    `<div>` +
-                        `<h4 class="tr-subj-title">${esc(C[id].name)}</h4>` +
-                        `<div class="tr-subj-code">${esc(id)} · ${esc(C[id].aulas * 19)}h totais</div>` +
-                    `</div>` +
-                    `<div class="tr-subj-grade-badge">` +
-                        `<span class="grade-val ${esc(gradeColorClass)}">${esc(fmt(nota))}</span>` +
-                        `<span class="grade-max">/ 10.0</span>` +
-                    `</div>` +
-                `</div>` +
-                `<div class="tr-subj-meta-row">` +
-                    `${statusTag}` +
-                    `<span class="note">${esc(gradedTasks.length)} avaliada(s)${evalMeta} · ${esc(pendingTasks.length)} a fazer</span>` +
-                `</div>` +
-                `<div class="tr-grade-bar-wrap">` +
-                    `<div class="tr-grade-bar">` +
-                        `<div class="bar-obtained" style="width:${esc(pctObt)}%" title="Nota obtida: ${esc(fmt(nota))}"></div>` +
-                        `<div class="bar-pending" style="width:${esc(pctPend)}%" title="Pontos a receber: ${esc(fmt(pts))}"></div>` +
-                    `</div>` +
-                    `<div class="tr-grade-marker" style="left:60%" title="Meta IFSP: 6.0"><span class="marker-label">6.0</span></div>` +
-                `</div>` +
-                `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:-6px">` +
-                    `<span>0.0</span>` +
-                    `<span>${esc(fmt(nota))} obtidos + ${esc(fmt(pts))} em disputa = máx. ${esc(fmt(maxPossivel))}</span>` +
-                    `<span>10.0</span>` +
-                `</div>` +
-                `<div class="tr-subj-tasks-header"><b>Avaliações cadastradas</b></div>` +
-                `<div class="tr-subj-tasks">${tasksHtml}</div>` +
-                `<div class="tr-subj-footer">` +
-                    `<button type="button" class="btn-sm pri" data-act="new-for-subj" data-subj="${esc(id)}">+ Adicionar avaliação</button>` +
-                `</div>` +
+            `<div class="tr-subj-header">` +
+            `<div>` +
+            `<h4 class="tr-subj-title">${esc(C[id].name)}</h4>` +
+            `<div class="tr-subj-code">${esc(id)} · ${esc(C[id].aulas * 19)}h totais</div>` +
+            `</div>` +
+            `<div class="tr-subj-grade-badge">` +
+            `<span class="grade-val ${esc(gradeColorClass)}">${esc(fmt(nota))}</span>` +
+            `<span class="grade-max">/ 10.0</span>` +
+            `</div>` +
+            `</div>` +
+            `<div class="tr-subj-meta-row">` +
+            `${statusTag}` +
+            `<span class="note">${esc(gradedTasks.length)} avaliada(s)${evalMeta} · ${esc(pendingTasks.length)} a fazer</span>` +
+            `</div>` +
+            `<div class="tr-grade-bar-wrap">` +
+            `<div class="tr-grade-bar">` +
+            `<div class="bar-obtained" style="width:${esc(pctObt)}%" title="Nota obtida: ${esc(fmt(nota))}"></div>` +
+            `<div class="bar-pending" style="width:${esc(pctPend)}%" title="Pontos a receber: ${esc(fmt(pts))}"></div>` +
+            `</div>` +
+            `<div class="tr-grade-marker" style="left:60%" title="Meta IFSP: 6.0"><span class="marker-label">6.0</span></div>` +
+            `</div>` +
+            `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:-6px">` +
+            `<span>0.0</span>` +
+            `<span>${esc(fmt(nota))} obtidos + ${esc(fmt(pts))} em disputa = máx. ${esc(fmt(maxPossivel))}</span>` +
+            `<span>10.0</span>` +
+            `</div>` +
+            `<div class="tr-subj-tasks-header"><b>Avaliações cadastradas</b></div>` +
+            `<div class="tr-subj-tasks">${tasksHtml}</div>` +
+            `<div class="tr-subj-footer">` +
+            `<button type="button" class="btn-sm pri" data-act="new-for-subj" data-subj="${esc(id)}">+ Adicionar avaliação</button>` +
+            `</div>` +
             `</div>`
         );
     }).join("");
@@ -1610,22 +1611,20 @@ export function initEvents() {
             resetCursForm();
         }
     };
-    
+
     $("curCancel").onclick = resetCursForm;
     $("btnCloseCurForm").onclick = resetCursForm;
-    
+
     $("curAdd").onclick = () => {
         const id = $("curSel").value;
         if (!id) return alert("Não há matéria disponível para adicionar.");
-    
+
         const data = { id };
         const nota = $("curNota").value.trim();
-        const pts = $("curPts").value.trim();
         const falt = $("curFalt").value.trim();
         if (nota !== "") data.nota = Math.min(10, Math.max(0, parseFloat(nota) || 0));
-        if (pts !== "") data.pts = Math.min(10, Math.max(0, parseFloat(pts) || 0));
         if (falt !== "") data.falt = Math.max(0, parseInt(falt) || 0);
-    
+
         S.current = [...(S.current || []), fixCur(data)];
         resetCursForm();
         update();
@@ -1859,12 +1858,13 @@ export function initEvents() {
         const subj = $("trSubj").value;
         const title = $("trTitle").value.trim();
         const due = $("trDue").value;
-        if (!subj) return alert('Adicione primeiro uma matéria em "Cursando agora".');
-        if (!title || !due) return alert("Informe título e data da avaliação.");
+        const type = $("trType").value;
+        const statusVal = $("trStatus").value;
+        if (!subj || !title || !due) return alert("Preencha todos os campos.");
 
         const pts = Math.max(0, parseFloat($("trPts").value) || 0);
         const gotVal = $("trGot").value.trim();
-        let status = $("trStatus") ? $("trStatus").value : "pendente";
+        let status = statusVal;
         let got = null;
         if (gotVal !== "") {
             got = Math.max(0, parseFloat(gotVal) || 0);
@@ -1879,7 +1879,7 @@ export function initEvents() {
             const t = (S.tasks || []).find(x => x.id === editingTaskId);
             if (t) {
                 t.subj = subj;
-                t.type = $("trType").value;
+                t.type = type;
                 t.status = status;
                 t.title = title;
                 t.due = due;
