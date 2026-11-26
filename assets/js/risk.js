@@ -54,6 +54,26 @@ export function risk(r) {
     };
 }
 
+/**
+ * Determina a situação acadêmica final de uma disciplina com fase 'Finalizada':
+ * - Aprovada (verde): frequência >= 75% (faltas <= 25%) e nota >= 6.0
+ * - IFA (amarelo): frequência >= 75% e nota >= 4.0 e nota < 6.0
+ * - Reprovada (vermelho): nota < 4.0 ou frequência < 75% (faltas > 25%)
+ */
+export function getFinStatus(r) {
+    if (!r) return null;
+    const k = risk(r);
+    const hasFreq = k.freq >= 75 && k.folga >= 0;
+    if (hasFreq && r.nota >= 6.0) {
+        return { status: "pass", label: "Aprovada", cls: "g", text: "✓ Aprovada", k };
+    }
+    if (hasFreq && r.nota >= 4.0 && r.nota < 6.0) {
+        return { status: "ifa", label: "IFA", cls: "y", text: "⚠️ Em IFA", k };
+    }
+    const reason = !hasFreq ? "Faltas > 25%" : `Nota ${String(Math.round(r.nota * 10) / 10).replace(".", ",")} < 4.0`;
+    return { status: "fail", label: "Reprovada", cls: "r", text: "✕ Reprovada", reason, k };
+}
+
 /** Retorna um mapa `{ [idDisciplina]: probabilidadeDeReprovar }` para todas as disciplinas em curso. */
 export const riskMap = () => {
     const map = {};

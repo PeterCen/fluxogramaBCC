@@ -530,8 +530,9 @@ button.x {
     width: 60px
 }
 
-tr.fin {
-    background: #12331f66
+.c.ifa-card {
+    border-color: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
 }
 
 table.hor td {

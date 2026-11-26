@@ -21,7 +21,7 @@ import {
     depth,
     anc
 } from "./state.js";
-import { riskMap, acH } from "./risk.js";
+import { riskMap, acH, risk, getFinStatus } from "./risk.js";
 
 /** Retorna a paridade (1 = ímpar/1º sem, 2 = par/2º sem) do k-ésimo semestre futuro. */
 export const half = k => ((S.startHalf - 1 + k) % 2) + 1;
@@ -103,8 +103,11 @@ export function passedSet() {
     const P = new Set(S.passed);
     (S.current || []).forEach(r => {
         if (r.fase === "Finalizada") {
-            P.add(r.id);
-            anc(r.id).forEach(x => P.add(x));
+            const fin = getFinStatus(r);
+            if (fin && fin.status === "pass") {
+                P.add(r.id);
+                anc(r.id).forEach(x => P.add(x));
+            }
         }
     });
     return P;

@@ -51,6 +51,7 @@ import {
 
 import {
     risk,
+    getFinStatus,
     sortCur,
     syncSubjectGrades,
     acCalc,
@@ -210,6 +211,16 @@ export function toggleCur(id) {
     if (!hasCourse(id) || C[id].kind === "tcc") return;
     const cur = S.current || [];
     if (cur.some(r => r.id === id)) {
+        const item = cur.find(r => r.id === id);
+        if (item && item.fase === "Finalizada") {
+            const fin = getFinStatus(item);
+            if (fin && fin.status === "pass") {
+                const P = new Set(S.passed);
+                P.add(id);
+                anc(id).forEach(x => P.add(x));
+                S.passed = [...P];
+            }
+        }
         S.current = cur.filter(r => r.id !== id);
     } else if (!passedSet().has(id)) {
         S.current = [...cur, fixCur({ id })];
@@ -469,16 +480,20 @@ function renderFlowInspect() {
     const c = C[pinnedId];
     const P = passedSet();
     const isPassed = P.has(pinnedId);
-    const isCur = !isPassed && (S.current || []).some(r => r.id === pinnedId);
+    const cr = (S.current || []).find(r => r.id === pinnedId);
+    const fin = cr && cr.fase === "Finalizada" ? getFinStatus(cr) : null;
+    const isCur = !isPassed && !!cr;
     const isReady = c.pre.every(p => P.has(p));
     const statusText = isPassed
         ? "✓ Aprovada"
-        : isCur
-            ? "📚 Cursando agora"
-            : isReady
-                ? "Disponível"
-                : "🔒 Bloqueada";
-    const statusCls = isPassed ? "g" : isCur ? "y" : isReady ? "b" : "r";
+        : fin
+            ? fin.text
+            : isCur
+                ? "📚 Cursando agora"
+                : isReady
+                    ? "Disponível"
+                    : "🔒 Bloqueada";
+    const statusCls = isPassed ? "g" : fin ? fin.cls : isCur ? "y" : isReady ? "b" : "r";
 
     const preChips = c.pre.length
         ? c.pre.map(p => {
@@ -556,18 +571,21 @@ function renderFlowFallback(P, when, chosen) {
             const isReady = c.pre.every(p => P.has(p));
             const isOff = (c.kind === "el" && !isPassed && !chosen.includes(id)) || (c.kind === "op" && !isPassed);
             const cr = (S.current || []).find(r => r.id === id);
+            const fin = cr && cr.fase === "Finalizada" ? getFinStatus(cr) : null;
             const rp = cr && !isPassed ? risk(cr).p : 0;
             const planTxt = cr && !isPassed
-                ? "⚠ Risco " + Math.round(rp * 100) + "%"
+                ? (fin ? fin.text : "⚠ Risco " + Math.round(rp * 100) + "%")
                 : ((!isPassed && when[id] !== undefined) ? "Previsto: " + label(when[id]) : "");
 
             const stBadge = isPassed
                 ? `<span class="tag g">✓ Aprovada</span>`
-                : isCur
-                    ? `<span class="tag y">📚 Cursando</span>`
-                    : isReady
-                        ? `<span class="tag b">Disponível</span>`
-                        : `<span class="tag r">🔒 Bloqueada</span>`;
+                : fin
+                    ? `<span class="tag ${esc(fin.cls)}">${esc(fin.text)}</span>`
+                    : isCur
+                        ? `<span class="tag y">📚 Cursando</span>`
+                        : isReady
+                            ? `<span class="tag b">Disponível</span>`
+                            : `<span class="tag r">🔒 Bloqueada</span>`;
 
             const preHtml = c.pre.length
                 ? `<div class="fb-card-rel"><b>Pré-requisitos:</b> ` +
@@ -692,11 +710,15 @@ export function update() {
 
         const pl = el.querySelector(".plan");
         const cr = (S.current || []).find(r => r.id === id);
+        const fin = cr && cr.fase === "Finalizada" ? getFinStatus(cr) : null;
         const rp = cr && !isPassed ? risk(cr).p : 0;
-        el.classList.toggle("hi", rp >= 0.6);
-        pl.textContent = cr && !isPassed
-            ? "⚠ " + Math.round(rp * 100) + "%"
-            : ((!isPassed && when[id] !== undefined) ? label(when[id]) : "");
+        el.classList.toggle("hi", fin ? fin.status === "fail" : rp >= 0.6);
+        el.classList.toggle("ifa-card", !!(fin && fin.status === "ifa"));
+        pl.textContent = fin
+            ? fin.text
+            : cr && !isPassed
+                ? "⚠ " + Math.round(rp * 100) + "%"
+                : ((!isPassed && when[id] !== undefined) ? label(when[id]) : "");
 
         const st = el.querySelector(".star");
         if (st) st.classList.toggle("on", S.electivePlan.includes(id) || chosen.includes(id));
@@ -903,14 +925,27 @@ function renderCurrent() {
         const folgaNote = k.folga < 0
             ? "passou " + esc(-k.folga) + " do limite"
             : "folga: " + esc(k.folga) + " (limite " + esc(k.limit) + ")";
-        const riskCellHtml = faseKey === "Finalizada"
-            ? `<span class="rk" style="color:var(--ok)">✓ Aprovada</span>`
-            : `<span class="rk">${esc(pc)}%</span> ` +
-            `<span class="tag ${esc(TAGC[st])}" style="padding:2px 6px;border-radius:6px;font-size:12px;font-weight:600">${esc(st)}</span>` +
-            `<div class="note">${k.pF > k.pN ? "pesa mais: faltas" : "pesa mais: nota"}</div>`;
+
+        const fin = faseKey === "Finalizada" ? getFinStatus(r) : null;
+        let riskCellHtml = "";
+        let faseTagClass = TAGC[faseKey];
+
+        if (fin) {
+            if (fin.status === "pass") {
+                riskCellHtml = `<span class="rk" style="color:var(--ok)">✓ Aprovada</span>`;
+            } else if (fin.status === "ifa") {
+                riskCellHtml = `<span class="rk" style="color:var(--warn)">⚠️ Em IFA</span>`;
+            } else {
+                riskCellHtml = `<span class="rk" style="color:#f87171">✕ Reprovada</span>`;
+            }
+        } else {
+            riskCellHtml = `<span class="rk">${esc(pc)}%</span> ` +
+                `<span class="tag ${esc(TAGC[st])}" style="padding:2px 6px;border-radius:6px;font-size:12px;font-weight:600">${esc(st)}</span>` +
+                `<div class="note">${k.pF > k.pN ? "pesa mais: faltas" : "pesa mais: nota"}</div>`;
+        }
 
         return (
-            `<tr data-id="${esc(r.id)}" class="${faseKey === "Finalizada" ? "fin" : ""}">` +
+            `<tr data-id="${esc(r.id)}">` +
             `<td><b>${esc(C[r.id].name)}</b><div class="note">${esc(r.id)}</div>${tasksActionBtn}</td>` +
             `<td>${notaColHtml}</td>` +
             `<td>${ptsColHtml}</td>` +
@@ -930,7 +965,7 @@ function renderCurrent() {
             `<select class="tag ${esc(TAGC[prioKey])}" data-k="prio">${optList(PRIO, prioKey)}</select>` +
             `<div class="note">${prioKey === "Auto" ? "sugerida: " + esc(pr) : ""}</div>` +
             `</td>` +
-            `<td><select class="tag ${esc(TAGC[faseKey])}" data-k="fase">${optList(FASE, faseKey)}</select></td>` +
+            `<td><select class="tag ${esc(faseTagClass)}" data-k="fase">${optList(FASE, faseKey)}</select></td>` +
             `<td><button class="x" data-rm title="Remover">✕</button></td>` +
             `</tr>`
         );
@@ -949,17 +984,18 @@ function renderCurrent() {
 }
 
 /** Exibe um alerta temporário (toast) no rodapé da tela. */
-export function toast(msg) {
+export function toast(msg, isSuccess = false) {
     let t = $("toast");
     if (!t) {
         t = document.createElement("div");
         t.id = "toast";
         t.style.cssText =
             "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);" +
-            "background:#7f1d1d;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;z-index:9999";
+            "color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;z-index:9999;transition:background 0.2s";
         document.body.appendChild(t);
     }
-    t.textContent = "⚠️ " + msg;
+    t.style.background = isSuccess ? "#14532d" : "#7f1d1d";
+    t.textContent = (isSuccess ? "✓ " : "⚠️ ") + msg;
     t.style.display = "block";
     clearTimeout(t._t);
     t._t = setTimeout(() => { t.style.display = "none"; }, 3500);
@@ -1647,6 +1683,16 @@ export function initEvents() {
             toast("Valor máximo é 10.");
         }
         r[k] = v;
+        if (k === "fase" && v === "Finalizada") {
+            const fin = getFinStatus(r);
+            if (fin.status === "pass") {
+                toast(`Matéria finalizada: Aprovada!`, true);
+            } else if (fin.status === "ifa") {
+                toast(`Matéria finalizada: Em IFA (média ${fmt(r.nota)}).`, false);
+            } else {
+                toast(`Matéria finalizada: Reprovada (${fin.reason}).`, false);
+            }
+        }
         if (k === "cum" && r.prev && r.cum > r.prev) {
             toast("Aulas cumpridas não podem passar das aulas previstas.");
         }
@@ -1677,6 +1723,27 @@ export function initEvents() {
         }
         if (!e.target.hasAttribute("data-rm")) return;
         const id = e.target.closest("tr").dataset.id;
+
+        // 1. Busca os dados da matéria que está sendo removida
+        const item = (S.current || []).find(x => x.id === id);
+
+        if (item && item.fase === "Finalizada") {
+            const fin = getFinStatus(item);
+            if (fin && fin.status === "pass") {
+                // Aprovado com sucesso! Adiciona no histórico permanente
+                const P = new Set(S.passed);
+                P.add(id);
+                anc(id).forEach(x => P.add(x));
+                S.passed = [...P];
+                toast(`${C[id]?.name || id} aprovada com média ${fmt(item.nota)}! Carga horária somada à conclusão do curso.`, true);
+            } else if (fin && fin.status === "ifa") {
+                toast(`${C[id]?.name || id} removida com status IFA (média ${fmt(item.nota)}). Não foi adicionada à conclusão do curso.`, false);
+            } else {
+                toast(`✕ ${C[id]?.name || id} removida como Reprovada (${fin ? fin.reason : "critérios não atendidos"}). Não foi adicionada aos aprovados.`, false);
+            }
+        }
+
+        // 2. Remove de 'Cursando agora' e recalcula a tela
         S.current = S.current.filter(x => x.id !== id);
         update();
     };

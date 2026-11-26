@@ -26,7 +26,7 @@ export const TAGC = {
     "Bem viável": "b",
     "Consumindo": "b",
     "Revisando": "y",
-    "Finalizada": "g"
+    "Finalizada": "b"
 };
 
 export const VALID_TASK_TYPES = ["Trabalho", "Prova", "Seminário", "Outro"];
