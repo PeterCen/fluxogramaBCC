@@ -465,6 +465,7 @@ export function hover(id) {
         const on = chainSet.has(e.dataset.f) && chainSet.has(e.dataset.t);
         e.classList.toggle("hl", on);
         e.classList.toggle("dim", !on);
+        if (on) svg.appendChild(e);
     });
 }
 

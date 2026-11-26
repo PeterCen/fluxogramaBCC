@@ -9,7 +9,7 @@
     --av: #38bdf8;
     --blk: #475079;
     --warn: #f59e0b;
-    --danger: #ef4444
+    --danger: #ef4444;
     --acc: #8b5cf6;
     --ext: #f472b6;
 
@@ -351,7 +351,7 @@ path.e.pass {
 }
 
 path.e.hl {
-    stroke: var(--acc);
+    stroke: var(--acc, #8b5cf6);
     stroke-width: 2.4;
     opacity: 1
 }
