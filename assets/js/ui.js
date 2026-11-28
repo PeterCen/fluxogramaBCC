@@ -576,7 +576,7 @@ function renderFlowFallback(P, when, chosen) {
             const fin = cr && cr.fase === "Finalizada" ? getFinStatus(cr) : null;
             const rp = cr && !isPassed ? risk(cr).p : 0;
             const planTxt = cr && !isPassed
-                ? (fin ? fin.text : "⚠ Risco " + Math.round(rp * 100) + "%")
+                ? (fin ? (fin.status === "pass" ? "" : fin.text) : "⚠ Risco " + Math.round(rp * 100) + "%")
                 : ((!isPassed && when[id] !== undefined) ? "Previsto: " + label(when[id]) : "");
 
             const stBadge = isPassed
@@ -717,7 +717,7 @@ export function update() {
         el.classList.toggle("hi", fin ? fin.status === "fail" : rp >= 0.6);
         el.classList.toggle("ifa-card", !!(fin && fin.status === "ifa"));
         pl.textContent = fin
-            ? fin.text
+            ? (fin.status === "pass" ? "" : fin.text)
             : cr && !isPassed
                 ? "⚠ " + Math.round(rp * 100) + "%"
                 : ((!isPassed && when[id] !== undefined) ? label(when[id]) : "");
