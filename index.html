@@ -858,12 +858,40 @@
           <li id="helpTccAnt" style="display:none"><b>Regra específica — Grade Antiga BCC (PPC 2018):</b> o PPC 2018 não fixa percentual para o TCC (100h = TCC 1 + TCC 2 de 50h): ele é liberado quando restam no máximo 2× o limite de disciplinas por semestre (obrigatórias + eletivas). Atividades complementares: 80h. Pré-requisitos "FP1 ou FP2 ou FP3" de Projeto Integrado I foram simplificados para FP1.</li>
           <li><b>Regras de TCC (BCC PPC 2022) e Estágio (Pedagogia PPC 2023):</b> em BCC (grade nova), o TCC 1 (30h) exige <b>75% da carga concluída</b> (configurável entre carga total do curso ou apenas obrigatórias) e o TCC 2 (30h) exige aprovação no TCC 1. Em Pedagogia, os 4 Estágios Supervisionados (400h nos semestres 5 a 8) exigem <b>35% da carga horária mínima (1.120,1h)</b> cumprida em disciplinas obrigatórias/estágios.</li>
           <li><b>Fórmula do Risco de Reprovação (Faltas + Nota + NAF):</b>
-            <i>Risco por Faltas ($p_F$)</i> compara a folga até o limite de 25% com a projeção de 60% do seu ritmo atual de faltas nas aulas restantes via curva sigmoide.
-            <i>Risco por Nota ($p_N$)</i> compara a proporção de pontos que você precisa tirar ($\frac{6 - \text{nota}}{\text{pontos restantes}}$) com seu aproveitamento esperado; caso sua nota máxima possível ($\text{nota} + \text{pontos restantes}$) seja $\ge 4,0$, a possibilidade de <b>NAF (Avaliação Final)</b> reduz $p_N$ em 25%. O risco combinado é $p = 1 - (1 - p_F)(1 - p_N)$.</li>
+            <div><b>Risco por faltas (<var>p<sub>F</sub></var>):</b> compara a folga até o limite de 25% com a projeção de 60% do seu ritmo atual de faltas nas aulas restantes, usando uma curva sigmoide.</div>
+            <div><b>Risco por nota (<var>p<sub>N</sub></var>):</b> compara a proporção de pontos que você precisa tirar com o seu aproveitamento esperado:</div>
+            <span class="formula">
+              <var>r</var> =
+              <span class="frac"><span>6 − nota</span><span>pontos restantes</span></span>
+            </span>
+            <div>Se a nota máxima possível for pelo menos 4,0, a chance de fazer a <b>NAF (Avaliação Final)</b> reduz <var>p<sub>N</sub></var> em 25%:</div>
+            <span class="formula">
+              nota + pontos restantes ≥ 4,0 &nbsp;⇒&nbsp; <var>p<sub>N</sub></var> × 0,75
+            </span>
+            <div><b>Risco combinado:</b></div>
+            <span class="formula">
+              <var>p</var> = 1 − (1 − <var>p<sub>F</sub></var>) × (1 − <var>p<sub>N</sub></var>)
+            </span>
+          </li>
+          
           <li><b>Fórmula de Prioridade e Distribuição de Estudo:</b>
-            <i>Importância</i> = $\frac{\text{pontos da atividade}}{\max(10,\ \text{total de pontos da matéria})} \times (1 + 0,5 \times \text{risco da matéria})$, escalada de 0 a 100.
-            <i>Urgência</i> = $100$ quando não há folga, decaindo com a folga líquida ($\text{dias até a entrega} - \frac{\text{horas restantes}}{\text{horas/dia}}$).
-            <i>Prioridade</i> = $55\% \text{ Importância} + 45\% \text{ Urgência}$. A cada dia, o planejador do calendário aloca suas horas diárias priorizando as atividades de maior pontuação de prioridade até a véspera da entrega.</li>
+            <div><b>Importância</b> (escalada de 0 a 100):</div>
+            <span class="formula">
+              Importância =
+              <span class="frac"><span>pontos da atividade</span><span>máx(10; total de pontos da matéria)</span></span>
+              × (1 + 0,5 × risco da matéria)
+            </span>
+            <div><b>Urgência:</b> vale 100 quando não há folga e diminui conforme a folga líquida aumenta:</div>
+            <span class="formula">
+              Folga líquida = dias até a entrega −
+              <span class="frac"><span>horas restantes</span><span>horas por dia</span></span>
+            </span>
+            <div><b>Prioridade final:</b></div>
+            <span class="formula">
+              Prioridade = 0,55 × Importância + 0,45 × Urgência
+            </span>
+            <div>A cada dia, o planejador do calendário aloca suas horas diárias priorizando as atividades de maior prioridade até a véspera da entrega.</div>
+          </li>
         </ul>
 
         <!-- Aviso de Isenção de Responsabilidade (Estimativas Não Oficiais) -->
