@@ -29,16 +29,22 @@ export const TAGC = {
     "Finalizada": "b"
 };
 
-export const VALID_TASK_TYPES = ["Trabalho", "Prova", "Seminário", "Outro"];
+export const VALID_TASK_TYPES = ["trabalho", "prova", "seminário", "outro"];
 export const VALID_TASK_STATUS = ["pendente", "avaliando", "avaliada"];
 export const VALID_SORTS_CUR = ["add", "nome", "prio", "risco"];
 export const VALID_VIEWS_TR = ["list", "subjects", "cal"];
 export const VALID_SORTS_TR = ["prio", "due", "subj", "pts"];
 export const TYPE_ICON = {
-    "Trabalho": "📄",
-    "Prova": "📝",
-    "Seminário": "🎤",
-    "Outro": "📌"
+    "trabalho": "📄",
+    "prova": "📝",
+    "seminário": "🎤",
+    "outro": "📌"
+};
+export const TYPE_LABEL = {
+    "trabalho" : "Trabalho",
+    "prova" : "Prova",
+    "seminário" : "Seminário",
+    "outro" : "Outro"
 };
 export const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex"];
 export const HORAS = [
@@ -294,7 +300,8 @@ export const fixTask = t => {
         ? t.id
         : "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     const subj = t.subj;
-    const type = VALID_TASK_TYPES.includes(t.type) ? t.type : "Outro";
+    const rawType = String(t.type ?? "").trim().toLowerCase(); //transforma o status de uma atividade em minusculo
+    const type = VALID_TASK_TYPES.includes(rawType) ? rawType : "outro";
     const title = String(t.title ?? "").trim().slice(0, 200) || "Atividade";
     const due = typeof t.due === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.due) ? t.due : "";
     const pts = Math.round(clampNum(t.pts, 0, 100, 2) * 100) / 100;

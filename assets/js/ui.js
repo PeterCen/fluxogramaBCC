@@ -34,6 +34,7 @@ import {
     VALID_TASK_TYPES,
     VALID_VIEWS_TR,
     TYPE_ICON,
+    TYPE_LABEL,
     DIAS,
     HORAS,
     esc,
@@ -1292,7 +1293,7 @@ function renderTasksList(plan, today) {
         }
 
         const startPlan = p && p.start && st === "pendente" ? dfmt(p.start) : null;
-        const safeType = VALID_TASK_TYPES.includes(t.type) ? t.type : "Outro";
+        const safeType = VALID_TASK_TYPES.includes(t.type) ? t.type : "outro";
         const typeClass = safeType.toLowerCase();
         const rowCls = st === "avaliada" ? "fin" : st === "avaliando" ? "is-evaluating" : "";
         const weightPct = Math.round((t.pts / subjTotals(t.subj).total) * 100);
@@ -1312,7 +1313,7 @@ function renderTasksList(plan, today) {
             `</td>` +
             `<td>` +
             `<div class="tr-task-title-cell">` +
-            `<span class="tag-type tag-${esc(typeClass)}">${esc(TYPE_ICON[safeType] || "📌")} ${esc(safeType)}</span>` +
+            `<span class="tag-type tag-${esc(typeClass)}">${esc(TYPE_ICON[safeType] || "📌")} ${esc(TYPE_LABEL[safeType] || "Outro")}</span>` +
             `<b class="tr-title-text" data-act="edit" title="Clique para editar">${esc(t.title)}</b>` +
             `</div>` +
             `</td>` +
@@ -1397,7 +1398,7 @@ function renderTasksSubjects() {
         const tasksHtml = sortedTs.length
             ? sortedTs.map(t => {
                 const st = taskStatus(t);
-                const safeType = VALID_TASK_TYPES.includes(t.type) ? t.type : "Outro";
+                const safeType = VALID_TASK_TYPES.includes(t.type) ? t.type : "outro";
                 return (
                     `<div class="tr-subj-task-item status-${esc(st)}" data-id="${esc(t.id)}">` +
                     `<select class="mini-status-sel status-${esc(st)}" data-act="set-status" title="Alterar status da avaliação">` +
